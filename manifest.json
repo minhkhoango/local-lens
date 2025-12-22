@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "screenshot-reader",
+  "version": "1.0.0",
+  "action": {},
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  },
+  "permissions": ["activeTab", "scripting"]
+}
