@@ -1,18 +1,23 @@
 import { defineConfig } from 'vite';
-import { crx } from '@crxjs/vite-plugin';
-import manifest from './manifest.json';
+import { resolve } from 'path';
 
 export default defineConfig({
-  plugins: [crx({ manifest })],
-  server: {
-    port: 5173,
-    hmr: {
-      overlay: false, // Prevents HMR errors from blocking the UI
+  build: {
+    rollupOptions: {
+      input: {
+        background: resolve(__dirname, 'src/background.ts'),
+        content: resolve(__dirname, 'src/content.ts'),
+      },
+      output: {
+        entryFileNames: '[name].js',
+      },
     },
-
-    cors: true,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
     },
   },
 });

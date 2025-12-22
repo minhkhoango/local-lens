@@ -1,17 +1,27 @@
 chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.id || !tab.url) return;
-  if (tab.url.startsWith('chrome://')) {
-    console.warn('Protected site, retreat');
-    return;
-  }
+  if (!tab.id || tab.url?.startsWith('chrome://')) return;
 
   try {
-    const dataUrl = await chrome.tabs.captureVisibleTab();
-    await chrome.storage.session.set({ lastCapture: dataUrl });
+    const dataUrl: string = await chrome.tabs.captureVisibleTab({
+      format: 'png',
+    });
+    await chrome.storage.session.set({ capturedImage: dataUrl });
+    console.log('Snapshot saved in storage');
 
-    const lastCapture = await chrome.storage.session.get('lastCapture');
-    console.log('Success:', lastCapture);
-  } catch (error) {
-    console.error('Capture failed:', error);
+    try {
+      await chrome.tabs.sendMessage(tab.id, { action: 'Qm_ACTIVATE_OVERLAY' });
+      console.log('content.ts loaded');
+    } catch {
+      // if content.ts not loaded, we load it now.
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js'],
+      });
+      console.log('Injected content.ts');
+
+      await chrome.tabs.sendMessage(tab.id, { action: 'Qm_ACTIVATE_OVERLAY' });
+    }
+  } catch (err) {
+    console.error('Capture failed:', err);
   }
 });
