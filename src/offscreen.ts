@@ -19,29 +19,63 @@ chrome.runtime.onMessage.addListener(
 
       case ExtensionAction.PERFORM_OCR:
         const { imageDataUrl, rect } = message.payload;
-        console.log(
-          `[Offscreen] Processing ${rect.width}x${rect.height} region`
-        );
-
-        try {
-          const cropped = await cropImage(imageDataUrl, rect);
-          const engine = await getWorker();
-
-          const result = await engine.recognize(cropped);
-          const text = result.data.text.trim();
-          const confidence = result.data.confidence;
-
-          console.log(`OCR SUCCESS [confidence: ${confidence}%]:\n`, text);
-        } catch (err) {
-          console.error('[Offscreen] Error:', err);
-          sendResponse({ status: 'error', message: (err as Error).message });
-        }
+        await runTesseractOcr(imageDataUrl, rect, sendResponse);
         break;
     }
 
     return true; // Keep channel open
   }
 );
+
+async function runTesseractOcr(
+  imageDataUrl: string,
+  rect: SelectionRect,
+  sendResponse: (response: MessageResponse) => void
+): Promise<void> {
+  try {
+    console.log(`[Offscreen] Processing ${rect.width}x${rect.height} region`);
+
+    // Crop the image to the selected region
+    let cropped: string;
+    try {
+      cropped = await cropImage(imageDataUrl, rect);
+    } catch (err) {
+      console.error('[Offscreen] Image cropping error:', err);
+      sendResponse({
+        status: 'error',
+        message: `Image cropping failed: ${(err as Error).message}`,
+      });
+      return;
+    }
+
+    // Initialize or reuse Tesseract worker
+    let engine: Tesseract.Worker;
+    try {
+      engine = await getWorker();
+    } catch (err) {
+      console.error('[Offscreen] Worker initialization error:', err);
+      sendResponse({
+        status: 'error',
+        message: `OCR worker initialization failed: ${(err as Error).message}`,
+      });
+      return;
+    }
+
+    // Perform OCR recognition
+    const result = await engine.recognize(cropped);
+    const text = result.data.text.trim();
+    const confidence = result.data.confidence;
+
+    console.log(`OCR SUCCESS [confidence: ${confidence}%]:\n`, text);
+    sendResponse({ status: 'ok', message: text });
+  } catch (err) {
+    console.error('[Offscreen] OCR recognition error:', err);
+    sendResponse({
+      status: 'error',
+      message: `OCR recognition failed: ${(err as Error).message}`,
+    });
+  }
+}
 
 async function cropImage(
   dataUrl: string,
