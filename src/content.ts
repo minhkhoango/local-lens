@@ -33,6 +33,7 @@ chrome.runtime.onMessage.addListener(
   ) => {
     switch (message.action) {
       case ExtensionAction.PING_CONTENT:
+        if (activeIsland) activeIsland.destroy();
         sendResponse({ status: 'ok' });
         break;
 
@@ -204,6 +205,11 @@ class FloatingIsland {
   private isExpanded = false;
   private hasCopied = false;
 
+  // Drag state
+  private isDragging = false;
+  private dragStartPos: Point = { x: 0, y: 0 };
+  private dragOffset: Point = { x: 0, y: 0 };
+
   // Element refs
   private statusEl!: HTMLSpanElement;
   private previewEl!: HTMLDivElement;
@@ -255,24 +261,53 @@ class FloatingIsland {
   }
 
   private calculatePosition(cursor: Point): Point {
-    const padding = ISLAND.PADDING;
-    const width = ISLAND.WIDTH;
+    const width = ISLAND.WIDTH_COLLAPSED;
     const height = ISLAND.HEIGHT_COLLAPSED;
 
-    let x = cursor.x + 10;
-    let y = cursor.y + 10;
+    let x = cursor.x;
+    let y = cursor.y;
 
     // Boundary checks
-    if (x + width + padding > window.innerWidth) {
-      x = window.innerWidth - width - padding;
+    if (x + width > window.innerWidth) {
+      x = window.innerWidth - width;
     }
-    if (y + height + padding > window.innerHeight) {
-      y = cursor.y - height - 10;
+    if (y + height > window.innerHeight) {
+      y = cursor.y - height;
     }
-    if (x < padding) x = padding;
-    if (y < padding) y = padding;
 
     return { x, y };
+  }
+
+  private constrainToViewport(pos: Point): Point {
+    const padding = ISLAND.PADDING;
+    const containerRect = this.container.getBoundingClientRect();
+    const width = containerRect.width;
+    const height = containerRect.height;
+
+    let x = Math.max(padding, pos.x);
+    let y = Math.max(padding, pos.y);
+
+    x = Math.min(x, window.innerWidth - width - padding);
+    y = Math.min(y, window.innerHeight - height - padding);
+
+    return { x, y };
+  }
+
+  private isDraggableTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+
+    // Reject if clicking interactive elements
+    if (target.closest('.island-btn')) return false;
+    if (target.closest('.toggle')) return false;
+    if (target.closest('.island-preview')) return false;
+    if (target.closest('.island-textarea')) return false;
+
+    // Accept if clicking draggable areas
+    if (target.closest('.island-image')) return true;
+    if (target.classList.contains('island-status')) return true;
+    if (target === this.container) return true;
+
+    return false;
   }
 
   private build(): void {
@@ -285,7 +320,6 @@ class FloatingIsland {
     this.container.className = 'island entering';
     this.container.style.left = `${this.position.x}px`;
     this.container.style.top = `${this.position.y}px`;
-    this.container.style.width = `${ISLAND.WIDTH}px`;
 
     this.container.innerHTML = this.renderCollapsed();
     this.shadow.appendChild(this.container);
@@ -303,7 +337,7 @@ class FloatingIsland {
   }
 
   private renderCollapsed(): string {
-    const truncatedText = this.truncateText(this.text, 18);
+    const truncatedText = this.truncateText(this.text);
     const statusText =
       this.state === 'success'
         ? this.settings.autoCopy
@@ -349,6 +383,9 @@ class FloatingIsland {
   }
 
   private bindEvents(): void {
+    // Drag functionality
+    this.container.addEventListener('mousedown', this.handleDragStart);
+
     // Preview click → expand
     this.previewEl?.addEventListener('click', () => this.toggleExpand());
 
@@ -377,6 +414,51 @@ class FloatingIsland {
     document.addEventListener('click', this.handleClickOutside);
     window.addEventListener('keydown', this.handleKeyDown);
   }
+
+  private handleDragStart = (e: MouseEvent): void => {
+    if (!this.isDraggableTarget(e.target)) return;
+
+    this.isDragging = true;
+    this.dragStartPos = { x: e.clientX, y: e.clientY };
+    this.dragOffset = {
+      x: e.clientX - this.position.x,
+      y: e.clientY - this.position.y,
+    };
+
+    e.preventDefault();
+    e.stopPropagation(); // Prevent handleClickOutside
+
+    document.addEventListener('mousemove', this.handleDragMove);
+    document.addEventListener('mouseup', this.handleDragEnd);
+    this.container.style.cursor = 'grabbing';
+  };
+
+  private handleDragMove = (e: MouseEvent): void => {
+    if (!this.isDragging) return;
+
+    // Check for minimum drag threshold (3px)
+    const deltaX = Math.abs(e.clientX - this.dragStartPos.x);
+    const deltaY = Math.abs(e.clientY - this.dragStartPos.y);
+    if (deltaX < ISLAND.DRAG_THRESHOLD && deltaY < ISLAND.DRAG_THRESHOLD)
+      return;
+
+    const newX = e.clientX - this.dragOffset.x;
+    const newY = e.clientY - this.dragOffset.y;
+
+    // Apply viewport constraints
+    this.position = this.constrainToViewport({ x: newX, y: newY });
+
+    this.container.style.left = `${this.position.x}px`;
+    this.container.style.top = `${this.position.y}px`;
+  };
+
+  private handleDragEnd = (): void => {
+    this.isDragging = false;
+    this.container.style.cursor = '';
+
+    document.removeEventListener('mousemove', this.handleDragMove);
+    document.removeEventListener('mouseup', this.handleDragEnd);
+  };
 
   private handleClickOutside = (e: MouseEvent): void => {
     if (!this.host.contains(e.target as Node)) {
@@ -407,6 +489,20 @@ class FloatingIsland {
       this.textareaEl.style.display = this.isExpanded ? 'block' : 'none';
       if (this.isExpanded) {
         this.textareaEl.focus();
+        this.container.style.width = `${ISLAND.WIDTH_EXPANDED}px`;
+
+        // Reposition to ensure island stays within viewport
+        this.position = this.constrainToViewport(this.position);
+        this.container.style.left = `${this.position.x}px`;
+        this.container.style.top = `${this.position.y}px`;
+      } else {
+        // Reset to minimum width when collapsed
+        this.container.style.width = `${ISLAND.WIDTH_COLLAPSED}px`;
+
+        // Reposition after width change
+        this.position = this.constrainToViewport(this.position);
+        this.container.style.left = `${this.position.x}px`;
+        this.container.style.top = `${this.position.y}px`;
       }
     }
   }
@@ -470,11 +566,11 @@ class FloatingIsland {
     setTimeout(() => this.container.classList.remove('wiggle'), 150);
   }
 
-  private truncateText(text: string, maxLength: number): string {
+  private truncateText(text: string): string {
     if (!text) return '';
     const cleaned = text.replace(/\s+/g, ' ').trim();
-    return cleaned.length > maxLength
-      ? cleaned.slice(0, maxLength) + '...'
+    return cleaned.length > ISLAND.TEXT_MAXLENGTH
+      ? cleaned.slice(0, ISLAND.TEXT_MAXLENGTH) + '...'
       : cleaned;
   }
 
@@ -491,6 +587,10 @@ class FloatingIsland {
   }
 
   public destroy(): void {
+    // Clean up drag listeners
+    document.removeEventListener('mousemove', this.handleDragMove);
+    document.removeEventListener('mouseup', this.handleDragEnd);
+
     document.removeEventListener('click', this.handleClickOutside);
     window.removeEventListener('keydown', this.handleKeyDown);
     this.host.remove();

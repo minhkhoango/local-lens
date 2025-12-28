@@ -69,32 +69,38 @@ export const ICONS = {
 
 // Floating Island defaults
 export const ISLAND = {
-  WIDTH: 280,
+  TEXT_MAXLENGTH: 25,
+  WIDTH_COLLAPSED: 280,
+  WIDTH_EXPANDED: 500,
   HEIGHT_COLLAPSED: 56,
-  HEIGHT_EXPANDED: 300,
-  PADDING: 16,
+  HEIGHT_EXPANDED: 500,
   IMAGE_SIZE: 40,
-  AUTO_DISMISS_DELAY: 3000,
+  PADDING: 8,
+  DRAG_THRESHOLD: 3,
 } as const;
 
 // Floating Island CSS (semi-minified for readability)
 export const ISLAND_STYLES = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-.island{position:fixed;z-index:2147483647;display:block;padding:8px 8px 8px;min-width:280px;max-width:400px;min-height:42px;height:auto;background:rgba(9,9,11,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.05);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#fafafa;transition:height 0.25s cubic-bezier(0.4,0,0.2,1),max-height 0.25s cubic-bezier(0.4,0,0.2,1),opacity 0.2s ease;overflow:hidden}
-.island.expanded{height:auto;max-height:300px;padding:8px 8px 8px}
-.island-row{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;width:100%}
+.island{position:fixed;z-index:${UI.Z_INDEX_MAX};display:block;padding:${ISLAND.PADDING}px ${ISLAND.PADDING}px ${ISLAND.PADDING}px;min-width:${ISLAND.WIDTH_COLLAPSED}px;max-width:${ISLAND.WIDTH_EXPANDED}px;min-height:${ISLAND.HEIGHT_COLLAPSED}px;height:auto;background:rgba(9,9,11,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.05);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#fafafa;transition:height 0.25s cubic-bezier(0.4,0,0.2,1),max-height 0.25s cubic-bezier(0.4,0,0.2,1),opacity 0.2s ease;overflow:hidden}
+.island.expanded{height:auto;max-height:${ISLAND.HEIGHT_EXPANDED}px;padding:${ISLAND.PADDING}px ${ISLAND.PADDING}px ${ISLAND.PADDING}px}
+.island-image{cursor:grab}
+.island-image:active{cursor:grabbing}
+.island-status{cursor:grab}
+.island-status:active{cursor:grabbing}
+.island-row{display:flex;align-items:center;gap:${ISLAND.PADDING}px;flex-wrap:nowrap;width:100%}
 @keyframes wiggle{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .island.wiggle{animation:wiggle 150ms ease-in-out}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 .island.entering{animation:fadeIn 0.2s cubic-bezier(0.4,0,0.2,1) forwards}
-.island-image{width:40px;height:40px;min-width:40px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.1)}
+.island-image{width:${ISLAND.IMAGE_SIZE}px;height:${ISLAND.IMAGE_SIZE}px;min-width:${ISLAND.IMAGE_SIZE}px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.1)}
 .island-content{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .island-status{font-size:13px;font-weight:500;color:#fafafa;display:flex;align-items:center;gap:6px}
 .island-status.success{color:#4ade80}
 .island-status.error{color:#f87171}
 .island-preview{font-size:12px;color:#a1a1aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;cursor:pointer}
 .island-preview:hover{color:#d4d4d8}
-.island-textarea{width:100%;min-height:120px;max-height:200px;margin-top:8px;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fafafa;font-size:13px;font-family:'SF Mono',Monaco,'Cascadia Code',monospace;line-height:1.5;resize:vertical;outline:none;transition:border-color 0.15s ease}
+.island-textarea{width:100%;height:auto;min-height:200px;max-height:${ISLAND.HEIGHT_EXPANDED}px;margin-top:${ISLAND.PADDING}px;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fafafa;font-size:13px;font-family:'SF Mono',Monaco,'Cascadia Code',monospace;line-height:1.5;resize:vertical;outline:none;transition:border-color 0.15s ease}
 .island-textarea:focus{border-color:rgba(255,255,255,0.25)}
 .island-actions{display:flex;align-items:center;gap:4px}
 .island-btn{position:relative;display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:transparent;border:none;border-radius:10px;cursor:pointer;color:#a1a1aa;transition:background 0.15s ease,color 0.15s ease}
