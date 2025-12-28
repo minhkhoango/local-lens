@@ -7,7 +7,7 @@ import Tesseract from 'tesseract.js';
 let worker: Tesseract.Worker | null = null;
 
 chrome.runtime.onMessage.addListener(
-  async (
+  (
     message: ExtensionMessage,
     _sender: chrome.runtime.MessageSender,
     sendResponse: (response: MessageResponse) => void
@@ -19,7 +19,7 @@ chrome.runtime.onMessage.addListener(
 
       case ExtensionAction.PERFORM_OCR:
         const { imageDataUrl, rect } = message.payload;
-        await runTesseractOcr(imageDataUrl, rect, sendResponse);
+        runTesseractOcr(imageDataUrl, rect, sendResponse);
         break;
     }
 
@@ -44,6 +44,8 @@ async function runTesseractOcr(
       sendResponse({
         status: 'error',
         message: `Image cropping failed: ${(err as Error).message}`,
+        confidence: 0,
+        croppedImageUrl: '',
       });
       return;
     }
@@ -57,6 +59,8 @@ async function runTesseractOcr(
       sendResponse({
         status: 'error',
         message: `OCR worker initialization failed: ${(err as Error).message}`,
+        confidence: 0,
+        croppedImageUrl: cropped,
       });
       return;
     }
@@ -67,12 +71,19 @@ async function runTesseractOcr(
     const confidence = result.data.confidence;
 
     console.log(`OCR SUCCESS [confidence: ${confidence}%]:\n`, text);
-    sendResponse({ status: 'ok', message: text });
+    sendResponse({
+      status: 'ok',
+      message: text,
+      confidence,
+      croppedImageUrl: cropped,
+    });
   } catch (err) {
     console.error('[Offscreen] OCR recognition error:', err);
     sendResponse({
       status: 'error',
       message: `OCR recognition failed: ${(err as Error).message}`,
+      confidence: 0,
+      croppedImageUrl: '',
     });
   }
 }
@@ -133,3 +144,6 @@ async function getWorker(): Promise<Tesseract.Worker> {
 
   return worker;
 }
+
+// Start warming up the worker as soon as the offscreen doc loads
+getWorker().catch((err) => console.error('Warmup failed:', err));
