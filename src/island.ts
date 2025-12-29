@@ -187,7 +187,9 @@ export class FloatingIsland {
     this.els.status.textContent = isLoading
       ? 'Processing...'
       : isSuccess
-        ? 'Extracted'
+        ? this.hasCopied
+          ? 'Copied!'
+          : 'Extracted'
         : 'Error';
 
     // Button
@@ -215,7 +217,10 @@ export class FloatingIsland {
     // Wiggle on error
     if (this.state === 'error') {
       this.container.classList.add(CLASSES.wiggle);
-      setTimeout(() => this.container.classList.remove(CLASSES.wiggle), 200);
+      setTimeout(
+        () => this.container.classList.remove(CLASSES.wiggle),
+        CONFIG.WIGGLE_TIME
+      );
     }
   }
 
@@ -236,6 +241,10 @@ export class FloatingIsland {
     this.els.settingsBtn?.addEventListener('click', () => {
       this.container.classList.toggle(CLASSES.settingsShow);
       if (!this.isExpanded) this.toggleExpand(true);
+
+      // Reposition after settings panel changes widget size
+      this.position = this.constrainToViewport(this.position);
+      this.updatePosition();
     });
     this.els.toggle?.addEventListener('click', (e) => {
       const el = e.currentTarget as HTMLElement;
@@ -249,13 +258,30 @@ export class FloatingIsland {
 
   private toggleExpand(force?: boolean): void {
     if (this.state === 'loading') return;
+
+    const wasExpanded = this.isExpanded;
     this.isExpanded = force ?? !this.isExpanded;
+    if (wasExpanded === this.isExpanded) return;
+
+    // Expand/collapse to the left
+    if (ISLAND_CSS_VARS.layout.expandToLeft) {
+      const widthDiff =
+        ISLAND_CSS_VARS.layout.widthExpanded -
+        ISLAND_CSS_VARS.layout.widthCollapsed;
+      this.position.x += this.isExpanded ? -widthDiff : widthDiff;
+    }
 
     this.container.classList.toggle(CLASSES.expanded, this.isExpanded);
     if (this.els.textarea) {
       this.els.textarea.style.display = this.isExpanded ? 'block' : 'none';
       if (this.isExpanded) this.els.textarea.focus();
     }
+
+    // Important: Only constrain to viewport when expanding
+    if (this.isExpanded) {
+      this.position = this.constrainToViewport(this.position);
+    }
+    this.updatePosition();
 
     this.updateUI();
   }
@@ -267,23 +293,11 @@ export class FloatingIsland {
       await navigator.clipboard.writeText(this.text);
       this.hasCopied = true;
       this.updateUI();
-      setTimeout(() => {
-        this.hasCopied = false;
-        this.updateUI();
-      }, 2000);
+      // Auto clean up after copy
+      setTimeout(() => this.destroy(), CONFIG.WAIT_TIME_AFTER_COPY);
     } catch (err) {
       console.error('Clipboard write failed:', err);
     }
-  }
-
-  private clampToViewport(pos: Point): Point {
-    const width = ISLAND_CSS_VARS.layout.widthCollapsed;
-    const height = ISLAND_CSS_VARS.layout.heightCollapsed;
-    const pad = ISLAND_CSS_VARS.layout.padding;
-
-    const x = Math.min(Math.max(pad, pos.x), window.innerWidth - width - pad);
-    const y = Math.min(Math.max(pad, pos.y), window.innerHeight - height - pad);
-    return { x, y };
   }
 
   private updatePosition(): void {
@@ -310,14 +324,15 @@ export class FloatingIsland {
     document.addEventListener('mousemove', this.handleDragMove);
     document.addEventListener('mouseup', this.handleDragEnd);
     e.preventDefault();
+    e.stopPropagation();
   };
 
   private handleDragMove = (e: MouseEvent): void => {
     if (!this.isDragging) return;
-    this.position = {
+    this.position = this.constrainToViewport({
       x: e.clientX - this.dragOffset.x,
       y: e.clientY - this.dragOffset.y,
-    };
+    });
     this.updatePosition();
   };
 
@@ -334,4 +349,32 @@ export class FloatingIsland {
   private handleKeyDown = (e: KeyboardEvent): void => {
     if (e.key === 'Escape') this.destroy();
   };
+
+  private clampToViewport(pos: Point): Point {
+    const width = ISLAND_CSS_VARS.layout.widthCollapsed;
+    const height = ISLAND_CSS_VARS.layout.heightCollapsed;
+    const pad = ISLAND_CSS_VARS.layout.padding;
+
+    const x = Math.min(Math.max(pad, pos.x), window.innerWidth - width - pad);
+    const y = Math.min(Math.max(pad, pos.y), window.innerHeight - height - pad);
+    return { x, y };
+  }
+
+  private constrainToViewport(pos: Point): Point {
+    const padding = ISLAND_CSS_VARS.layout.padding;
+    const containerRect = this.container.getBoundingClientRect();
+    const width = containerRect.width;
+    const height = containerRect.height;
+
+    const x = Math.min(
+      Math.max(padding, pos.x),
+      window.innerWidth - width - padding
+    );
+    const y = Math.min(
+      Math.max(padding, pos.y),
+      window.innerHeight - height - padding
+    );
+
+    return { x, y };
+  }
 }

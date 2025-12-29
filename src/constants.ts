@@ -84,6 +84,7 @@ export const ISLAND_CSS_VARS = {
     heightExpanded: 400,
     imageSize: 40,
     zIndex: 2147483647,
+    expandToLeft: true,
   },
   font: {
     family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -96,6 +97,8 @@ export const ISLAND_CSS_VARS = {
 
 // Functional Configuration
 export const CONFIG = {
+  WAIT_TIME_AFTER_COPY: 3000,
+  WIGGLE_TIME: 200,
   MIN_SELECTION_ZX: 5,
   MIN_SELECTION_ZY: 5,
   DRAG_THRESHOLD: 3,
