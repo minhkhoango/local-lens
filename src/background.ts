@@ -1,4 +1,4 @@
-import { FILES_PATH, STORAGE_KEYS, OCR_CONFIG, IDS } from './constants';
+import { FILES_PATH, STORAGE_KEYS, OCR_CONFIG } from './constants';
 import { ExtensionAction } from './types';
 import type {
   ExtensionMessage,
@@ -13,62 +13,8 @@ import type {
 // Track the tab that initiated OCR (for forwarding CROP_READY)
 let activeOcrTabId: number | undefined;
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: IDS.MENU_TRIGGER,
-    title: 'Capture Area (Alt+Shift+S)',
-    contexts: ['all'],
-  });
-});
-
-// tool bar icon click
+// tool bar icon click, chrome handle the shortcut automatically
 chrome.action.onClicked.addListener(async (tab) => {
-  executeScreenshotFlow(tab);
-});
-
-// Keyboard Shortcut
-chrome.commands.onCommand.addListener((command, tab) => {
-  if (command === IDS.COMMAND_TRIGGER && tab) {
-    executeScreenshotFlow(tab);
-  }
-});
-
-// Context Menu Click
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === IDS.MENU_TRIGGER && tab) {
-    executeScreenshotFlow(tab);
-  }
-});
-
-// Routing messages across scripts
-chrome.runtime.onMessage.addListener(
-  async (
-    message: ExtensionMessage,
-    sender: chrome.runtime.MessageSender,
-    _sendResponse: (response: MessageResponse) => void
-  ) => {
-    switch (message.action) {
-      case ExtensionAction.CAPTURE_SUCCESS: {
-        await handleCaptureSuccess(message.payload, sender.tab?.id);
-        break;
-      }
-      case ExtensionAction.CROP_READY: {
-        // Forward CROP_READY from offscreen to content script
-        if (activeOcrTabId) {
-          sendCropReadyToTab(activeOcrTabId, message.payload);
-        }
-        break;
-      }
-      case ExtensionAction.OPEN_SHORTCUTS_PAGE: {
-        chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
-        break;
-      }
-    }
-    return true; // keep channel open
-  }
-);
-
-async function executeScreenshotFlow(tab: chrome.tabs.Tab) {
   if (!tab.id || !tab.url) return;
   if (tab.url.startsWith('chrome://')) {
     console.log('Protected site, backup method needed');
@@ -101,7 +47,65 @@ async function executeScreenshotFlow(tab: chrome.tabs.Tab) {
   } catch (err) {
     console.error('Background workflow error:', err);
   }
-}
+});
+
+// Routing messages across scripts
+chrome.runtime.onMessage.addListener(
+  (
+    message: ExtensionMessage,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response: MessageResponse) => void
+  ) => {
+    switch (message.action) {
+      case ExtensionAction.CAPTURE_SUCCESS: {
+        // Handle async work in IIFE while returning true synchronously
+        (async () => {
+          try {
+            await handleCaptureSuccess(message.payload, sender.tab?.id);
+            sendResponse({ status: 'ok' });
+          } catch (err) {
+            sendResponse({
+              status: 'error',
+              message: (err as Error).message,
+            });
+          }
+        })();
+        return true; // Keep channel open for async response
+      }
+      case ExtensionAction.GET_SHORTCUT: {
+        // Handle async work in IIFE while returning true synchronously
+        (async () => {
+          try {
+            const shortcutCommand = await getShortcutCommand();
+            sendResponse({
+              status: 'ok',
+              shortcut: shortcutCommand,
+            });
+          } catch (err) {
+            sendResponse({
+              status: 'error',
+              message: (err as Error).message,
+            });
+          }
+        })();
+        return true; // Keep channel open for async response
+      }
+      case ExtensionAction.CROP_READY: {
+        // Forward CROP_READY from offscreen to content script (fire-and-forget)
+        if (activeOcrTabId) {
+          sendCropReadyToTab(activeOcrTabId, message.payload);
+        }
+        return false; // No response needed
+      }
+      case ExtensionAction.OPEN_SHORTCUTS_PAGE: {
+        chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+        sendResponse({ status: 'ok' });
+        return false; // Synchronous response
+      }
+    }
+    return false;
+  }
+);
 
 async function handleCaptureSuccess(
   payload: SelectionRect,
@@ -318,8 +322,12 @@ async function checkAndShowShortcutHint(tabId: number) {
     STORAGE_KEYS.SHORTCUT_HINT_SHOWN
   );
   if (!result[STORAGE_KEYS.SHORTCUT_HINT_SHOWN]) {
+    const shortcutCommand = await getShortcutCommand();
+    const message = shortcutCommand
+      ? `Press ${shortcutCommand} to capture instantly`
+      : 'Click the extension icon to capture';
     const hintPayload: ShowHintPayload = {
-      message: 'Press Alt+Shift+S to capture instantly',
+      message: message,
     };
 
     chrome.tabs
@@ -331,9 +339,21 @@ async function checkAndShowShortcutHint(tabId: number) {
         /* ignore if tab closed */
       });
 
-    // Don't nag for now.
-    // await chrome.storage.local.set({
-    //   [STORAGE_KEYS.SHORTCUT_HINT_SHOWN]: true,
-    // });
+    // Don't force user to 'X' notification
+    setTimeout(
+      async () =>
+        await chrome.storage.local.set({
+          [STORAGE_KEYS.SHORTCUT_HINT_SHOWN]: true,
+        }),
+      4000
+    );
   }
+}
+
+async function getShortcutCommand(): Promise<string> {
+  const commands = await chrome.commands.getAll();
+  const cmd = commands.find((c) => c.name === '_execute_action');
+
+  if (!cmd || !cmd.shortcut) return '';
+  return cmd.shortcut;
 }

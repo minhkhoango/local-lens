@@ -44,6 +44,7 @@ export class FloatingIsland {
   private hasAutocopied = false;
   private showNotification = false;
   private notificationMessage = '';
+  private shortcutText = 'Set shortcut';
 
   // Element Refs
   private els: {
@@ -72,7 +73,10 @@ export class FloatingIsland {
     this.shadow = this.host.attachShadow({ mode: 'closed' });
     this.container = document.createElement('div');
 
-    this.loadSettings().then(() => this.build());
+    this.loadSettings().then(async () => {
+      await this.loadShortcut();
+      this.build();
+    });
   }
 
   // --- Public Methods ---
@@ -118,6 +122,17 @@ export class FloatingIsland {
   }
 
   // --- Private Methods ---
+  private async loadShortcut(): Promise<void> {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: ExtensionAction.GET_SHORTCUT,
+      });
+      this.shortcutText = response?.shortcut || 'Set shortcut';
+    } catch {
+      // Keep default 'Set shortcut' on error
+    }
+  }
+
   private async loadSettings(): Promise<void> {
     try {
       const stored = await chrome.storage.local.get([
@@ -283,7 +298,7 @@ export class FloatingIsland {
           <div class="setting-row">
             <span>${config.label}</span>
             <button class="${CLASSES.settingsActionBtn}" data-action="${config.action}">
-              Alt + Shift + S
+              ${this.shortcutText}
             </button>
           </div>`;
       }
@@ -367,10 +382,10 @@ export class FloatingIsland {
   private dismissNotification(): void {
     this.showNotification = false;
     this.container.classList.remove(CLASSES.notificationShow);
-    // Mark as shown so it won't appear again [OFF FOR TESTING]
-    // chrome.storage.local.set({
-    //   [STORAGE_KEYS.SHORTCUT_HINT_SHOWN]: true,
-    // });
+    // Mark as shown so it won't appear again
+    chrome.storage.local.set({
+      [STORAGE_KEYS.SHORTCUT_HINT_SHOWN]: true,
+    });
   }
 
   private toggleExpand(force?: boolean): void {

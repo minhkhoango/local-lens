@@ -27,6 +27,7 @@ export const ExtensionAction = {
   CROP_READY: 'CROP_READY',
   SHOW_HINT: 'SHOW_HINT',
   OPEN_SHORTCUTS_PAGE: 'OPEN_SHORTCUTS_PAGE',
+  GET_SHORTCUT: 'GET_SHORTCUT',
 } as const;
 
 export type ExtensionAction =
@@ -73,7 +74,8 @@ export type ExtensionMessage =
     }
   | { action: typeof ExtensionAction.CROP_READY; payload: CropReadyPayload }
   | { action: typeof ExtensionAction.SHOW_HINT; payload: ShowHintPayload }
-  | { action: typeof ExtensionAction.OPEN_SHORTCUTS_PAGE };
+  | { action: typeof ExtensionAction.OPEN_SHORTCUTS_PAGE }
+  | { action: typeof ExtensionAction.GET_SHORTCUT };
 
 export interface MessageResponse {
   status: 'ok' | 'error';
@@ -81,6 +83,7 @@ export interface MessageResponse {
   confidence?: number;
   croppedImageUrl?: string;
   data?: SelectionRect;
+  shortcut?: string;
 }
 
 export interface SessionStorage {
@@ -94,14 +97,14 @@ export interface IslandSettings {
   autoExpand: boolean;
 }
 
-/** Settings configuration item for rendering settings UI */
+/** Settings configuration item for rendering settings UI (for 2 toggles)*/
 export interface SettingsConfigItem {
   key: keyof IslandSettings;
   label: string;
   type?: 'toggle' | 'button';
 }
 
-/** Button-only settings config (no stored state) */
+/** Button-only settings config, no stored state (for shortcut btn) */
 export interface ButtonConfigItem {
   action: string;
   label: string;

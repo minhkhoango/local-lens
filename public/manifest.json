@@ -2,9 +2,7 @@
   "manifest_version": 3,
   "name": "screenshot-reader",
   "version": "1.0.0",
-  "action": {
-    "default_title": "Screenshot Reader (Alt/Command +Shift+S)"
-  },
+  "action": {},
   "background": {
     "service_worker": "background.js"
   },
@@ -16,12 +14,11 @@
     "contextMenus"
   ],
   "commands": {
-    "command-trigger-screenshot": {
+    "_execute_action": {
       "suggested_key": {
         "default": "Alt+Shift+S",
         "mac": "Command+Shift+S"
-      },
-      "description": "Capture Area"
+      }
     }
   },
   "content_security_policy": {
