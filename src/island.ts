@@ -283,8 +283,7 @@ export class FloatingIsland {
           <div class="setting-row">
             <span>${config.label}</span>
             <button class="${CLASSES.settingsActionBtn}" data-action="${config.action}">
-              ${ICONS.keyboard}
-              <span class="external-indicator">${ICONS.externalLink}</span>
+              Alt + Shift + S
             </button>
           </div>`;
       }
@@ -411,9 +410,6 @@ export class FloatingIsland {
       await navigator.clipboard.writeText(this.text);
       this.hasCopied = true;
       this.updateUI();
-      // Auto clean up after copy
-      // Remember to add some exceptions like if isDragging, settings, expanded.
-      // setTimeout(() => this.destroy(), CONFIG.WAIT_TIME_AFTER_COPY);
     } catch (err) {
       console.error('Clipboard write failed:', err);
     }

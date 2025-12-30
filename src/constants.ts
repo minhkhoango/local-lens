@@ -127,7 +127,6 @@ export const ISLAND_CSS_VARS = {
 
 // Functional Configuration
 export const CONFIG = {
-  WAIT_TIME_AFTER_COPY: 3000,
   WIGGLE_TIME: 200,
   MIN_SELECTION_ZX: 5,
   MIN_SELECTION_ZY: 5,
@@ -362,7 +361,7 @@ export const ISLAND_STYLES = `
 .${CLASSES.settings} {
   display: none;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding-top: 12px;
   margin-top: 12px;
   border-top: 1px solid var(--border);
@@ -376,7 +375,7 @@ export const ISLAND_STYLES = `
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
-  padding: 0 4px;
+  padding: 0 2px;
 }
 
 .${CLASSES.toggle} {
@@ -410,44 +409,37 @@ export const ISLAND_STYLES = `
 }
 .${CLASSES.toggle}.${CLASSES.active}::after { 
   transform: translateX(20px);
-  background: var(--bg); /* On Primary *
+  background: var(--bg);
 }
 
 /* Settings Action Button */
 .${CLASSES.settingsActionBtn} {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--surface);
-  border: 1px solid #DADCE0;
-  border-radius: 8px;
-  color: var(--text-muted);
+  justify-content: center;
+  height: 32px;
+  padding: 0 16px;
+  min-width: unset;
+
+  background: ${ISLAND_CSS_VARS.colors.surfaceContainerHigh};
+  color: ${ISLAND_CSS_VARS.colors.textMain};
+  border: 1px solid transparent; 
+  border-radius: 100px;
+
+  font-family: var(--font-main);
   font-size: 13px;
   font-weight: 500;
-  font-family: var(--font-main);
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  user-select: none;
+  transition: background 0.2s cubic-bezier(0.2, 0, 0, 1), color 0.2s ease, transform 0.1s ease;
 }
 .${CLASSES.settingsActionBtn}:hover {
-  background: var(--hover);
-  border-color: #BDC1C6;
-  color: var(--text);
+  background: #DEE3EB;
+  color: ${ISLAND_CSS_VARS.colors.primary};
 }
 .${CLASSES.settingsActionBtn}:active {
-  background: var(--active);
-}
-.${CLASSES.settingsActionBtn} svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.${CLASSES.settingsActionBtn} .external-indicator {
-  width: 12px;
-  height: 12px;
-  margin-left: auto;
-  opacity: 0.6;
+  background: #D5DBE5;
+  transform: scale(0.96);
 }
 
 /* Notification Banner */
