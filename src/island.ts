@@ -1,12 +1,11 @@
+import { ICONS, ISLAND_STYLES } from './assets';
 import {
   IDS,
   CLASSES,
-  ISLAND_STYLES,
-  ICONS,
   CONFIG,
   DEFAULT_SETTINGS,
   STORAGE_KEYS,
-  ISLAND_CSS_VARS,
+  ISLAND_CSS,
   SETTINGS_CONFIG,
 } from './constants';
 import {
@@ -15,7 +14,7 @@ import {
   type IslandSettings,
   type OcrResultPayload,
   type IslandState,
-  type SettingsConfigItem,
+  type ToggleConfigItem,
   type ButtonConfigItem,
 } from './types';
 
@@ -278,8 +277,8 @@ export class FloatingIsland {
   }
 
   private isToggleConfig(
-    config: SettingsConfigItem | ButtonConfigItem
-  ): config is SettingsConfigItem {
+    config: ToggleConfigItem | ButtonConfigItem
+  ): config is ToggleConfigItem {
     return 'key' in config;
   }
 
@@ -396,10 +395,9 @@ export class FloatingIsland {
     if (wasExpanded === this.isExpanded) return;
 
     // Expand/collapse to the left
-    if (ISLAND_CSS_VARS.layout.expandToLeft) {
+    if (ISLAND_CSS.layout.expandToLeft) {
       const widthDiff =
-        ISLAND_CSS_VARS.layout.widthExpanded -
-        ISLAND_CSS_VARS.layout.widthCollapsed;
+        ISLAND_CSS.layout.widthExpanded - ISLAND_CSS.layout.widthCollapsed;
       this.position.x += this.isExpanded ? -widthDiff : widthDiff;
     }
 
@@ -481,14 +479,13 @@ export class FloatingIsland {
   };
 
   private clampToViewport(pos: Point): Point {
-    const width = ISLAND_CSS_VARS.layout.widthCollapsed;
-    const height = ISLAND_CSS_VARS.layout.heightCollapsed;
-    const pad = ISLAND_CSS_VARS.layout.padding;
+    const width = ISLAND_CSS.layout.widthCollapsed;
+    const height = ISLAND_CSS.layout.heightCollapsed;
+    const pad = ISLAND_CSS.layout.padding;
 
     // Account for notification height if it will be shown
     const notificationOffset = this.showNotification
-      ? ISLAND_CSS_VARS.layout.notificationHeight +
-        ISLAND_CSS_VARS.layout.notificationGap
+      ? ISLAND_CSS.layout.notificationHeight + ISLAND_CSS.layout.notificationGap
       : 0;
 
     const x = Math.min(Math.max(pad, pos.x), window.innerWidth - width - pad);
@@ -500,7 +497,7 @@ export class FloatingIsland {
   }
 
   private constrainToViewport(pos: Point): Point {
-    const padding = ISLAND_CSS_VARS.layout.padding;
+    const padding = ISLAND_CSS.layout.padding;
     const containerRect = this.container.getBoundingClientRect();
     const width = containerRect.width;
     const height = containerRect.height;

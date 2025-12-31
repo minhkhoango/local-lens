@@ -1,4 +1,4 @@
-import { IDS, CONFIG, OVERLAY_CSS_VARS } from './constants';
+import { IDS, CONFIG, OVERLAY_CSS } from './constants';
 import { ExtensionAction } from './types';
 import type { ExtensionMessage, SelectionRect, Point } from './types';
 
@@ -27,7 +27,7 @@ export class GhostOverlay {
       left: '0',
       width: '100vw',
       height: '100vh',
-      zIndex: OVERLAY_CSS_VARS.layout.zIndex,
+      zIndex: OVERLAY_CSS.layout.zIndex,
       pointerEvents: 'none', // Pass-through
     });
 
@@ -38,7 +38,7 @@ export class GhostOverlay {
     Object.assign(this.canvas.style, {
       width: '100%',
       height: '100%',
-      cursor: OVERLAY_CSS_VARS.animation.cursor,
+      cursor: OVERLAY_CSS.animation.cursor,
     });
 
     this.ctx = this.canvas.getContext('2d');
@@ -108,14 +108,14 @@ export class GhostOverlay {
     if (!this.ctx) return;
     const dpr = window.devicePixelRatio || 1;
     this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
-    this.ctx.fillStyle = OVERLAY_CSS_VARS.colors.bg;
+    this.ctx.fillStyle = OVERLAY_CSS.colors.bg;
     this.ctx.fillRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
 
     if (this.isDragging || this.startPos.x !== 0) {
       const { x, y, width, height } = this.getSelectionRect();
       this.ctx.clearRect(x, y, width, height);
-      this.ctx.strokeStyle = OVERLAY_CSS_VARS.colors.stroke;
-      this.ctx.lineWidth = OVERLAY_CSS_VARS.animation.lineWidth;
+      this.ctx.strokeStyle = OVERLAY_CSS.colors.stroke;
+      this.ctx.lineWidth = OVERLAY_CSS.animation.lineWidth;
       this.ctx.strokeRect(x, y, width, height);
     }
   }

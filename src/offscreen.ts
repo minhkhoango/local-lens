@@ -129,8 +129,7 @@ async function cropImage(
     throw new Error('Canvas context failed');
   }
 
-  // Scale coordinates by devicePixelRatio since the captured screenshot
-  // is at native resolution, but selection coordinates are in CSS pixels
+  // Scale coordinates from CSS pxl to native
   const dpr = rect.devicePixelRatio || 1;
   const scaledX = rect.x * dpr;
   const scaledY = rect.y * dpr;

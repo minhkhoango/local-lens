@@ -1,18 +1,14 @@
-/**
- * Shared Type Definitions
- */
-
 export interface Point {
   x: number;
   y: number;
 }
 
-export interface Dimension {
+export const ISLAND_STATES = ['loading', 'success', 'error'] as const;
+export type IslandState = (typeof ISLAND_STATES)[number];
+
+export interface SelectionRect extends Point {
   width: number;
   height: number;
-}
-
-export interface SelectionRect extends Point, Dimension {
   devicePixelRatio: number;
 }
 
@@ -33,19 +29,12 @@ export const ExtensionAction = {
 export type ExtensionAction =
   (typeof ExtensionAction)[keyof typeof ExtensionAction];
 
-/** OCR result payload sent back to content script */
 export interface OcrResultPayload {
   success: boolean;
   text: string;
   confidence: number;
   croppedImageUrl: string;
   cursorPosition: Point;
-}
-
-/** OCR progress payload for live updates */
-export interface OcrProgressPayload {
-  progress: number;
-  status: string;
 }
 
 /** Payload sent when crop is ready, before OCR starts */
@@ -68,10 +57,6 @@ export type ExtensionMessage =
       payload: { imageDataUrl: string; rect: SelectionRect };
     }
   | { action: typeof ExtensionAction.OCR_RESULT; payload: OcrResultPayload }
-  | {
-      action: typeof ExtensionAction.OCR_PROGRESS;
-      payload: OcrProgressPayload;
-    }
   | { action: typeof ExtensionAction.CROP_READY; payload: CropReadyPayload }
   | { action: typeof ExtensionAction.SHOW_HINT; payload: ShowHintPayload }
   | { action: typeof ExtensionAction.OPEN_SHORTCUTS_PAGE }
@@ -91,26 +76,21 @@ export interface SessionStorage {
   shortcutHintShown: boolean;
 }
 
-/** Stored in chrome.storage.local */
 export interface IslandSettings {
   autoCopy: boolean;
   autoExpand: boolean;
 }
 
-/** Settings configuration item for rendering settings UI (for 2 toggles)*/
-export interface SettingsConfigItem {
+export interface ToggleConfigItem {
   key: keyof IslandSettings;
   label: string;
-  type?: 'toggle' | 'button';
+  type: 'toggle';
 }
 
-/** Button-only settings config, no stored state (for shortcut btn) */
 export interface ButtonConfigItem {
   action: string;
   label: string;
   type: 'button';
 }
 
-export type SettingsRowConfig = SettingsConfigItem | ButtonConfigItem;
-
-export type IslandState = 'loading' | 'success' | 'error';
+export type SettingsRowConfig = ToggleConfigItem | ButtonConfigItem;
