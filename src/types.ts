@@ -29,6 +29,7 @@ export const ExtensionAction = {
   CROP_READY: 'CROP_READY',
   OPEN_SHORTCUTS_PAGE: 'OPEN_SHORTCUTS_PAGE',
   GET_SHORTCUT: 'GET_SHORTCUT',
+  INITIALIZE_BACKUP: 'INITIALIZE_BACKUP',
 } as const;
 
 export type ExtensionAction =
@@ -63,6 +64,10 @@ export interface UpdateLanguagePayload {
   croppedImage: string | null;
 }
 
+export interface BackupImagePayload {
+  imageUrl: string;
+}
+
 export type ExtensionMessage =
   | { action: typeof ExtensionAction.ACTIVATE_OVERLAY }
   | { action: typeof ExtensionAction.CAPTURE_SUCCESS; payload: SelectionRect }
@@ -80,7 +85,11 @@ export type ExtensionMessage =
   | { action: typeof ExtensionAction.OCR_RESULT; payload: OcrResultPayload }
   | { action: typeof ExtensionAction.CROP_READY; payload: CropReadyPayload }
   | { action: typeof ExtensionAction.OPEN_SHORTCUTS_PAGE }
-  | { action: typeof ExtensionAction.GET_SHORTCUT };
+  | { action: typeof ExtensionAction.GET_SHORTCUT }
+  | {
+      action: typeof ExtensionAction.INITIALIZE_BACKUP;
+      payload: BackupImagePayload;
+    };
 
 export interface MessageResponse {
   status: 'ok' | 'error';

@@ -4,9 +4,12 @@ import type {
   MessageResponse,
   CropReadyPayload,
   OcrResultPayload,
+  BackupImagePayload,
 } from './types';
 import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island';
+import { BACKUP_STYLES } from './assets';
+import { CLASSES } from './constants';
 
 // State Management
 let activeOverlay: GhostOverlay | null = null;
@@ -32,6 +35,12 @@ chrome.runtime.onMessage.addListener(
         activeOverlay = new GhostOverlay();
         activeOverlay.mount();
         activeOverlay.activate();
+        sendResponse({ status: 'ok' });
+        break;
+
+      case ExtensionAction.INITIALIZE_BACKUP:
+        console.debug('[Content]', message.action);
+        setupBackupDisplay(message.payload);
         sendResponse({ status: 'ok' });
         break;
 
@@ -73,5 +82,36 @@ function handleOcrResult(payload: OcrResultPayload): void {
     );
     activeIsland.mount();
     activeIsland.updateWithResult(payload);
+  }
+}
+
+function setupBackupDisplay(payload: BackupImagePayload): void {
+  try {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = BACKUP_STYLES;
+    document.head.appendChild(styleElement);
+
+    const imageContainer = document.querySelector(`.${CLASSES.imageContainer}`);
+    if (!imageContainer) {
+      console.error(
+        `[Content] .${CLASSES.imageContainer} not found in backup.html`
+      );
+      return;
+    }
+
+    const img = document.createElement('img');
+    img.src = payload.imageUrl;
+    img.alt = 'Captured screenshot';
+    img.onerror = () => {
+      console.error('[Content] Failed to load backup image');
+    };
+    imageContainer.appendChild(img);
+
+    const banner = document.createElement('div');
+    banner.className = CLASSES.banner;
+    banner.textContent = 'Original tab was protected. Using read-only preview.';
+    document.body.appendChild(banner);
+  } catch (err) {
+    console.error('[Content] Failed to setup backup display:', err);
   }
 }

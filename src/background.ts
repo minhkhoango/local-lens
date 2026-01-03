@@ -19,10 +19,6 @@ let croppedImage: string | null = null;
 // tool bar icon click, chrome handle the shortcut automatically
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id || !tab.url) return;
-  if (tab.url.startsWith('chrome://')) {
-    console.error('[BG] Protected site, backup method needed');
-    return;
-  }
 
   try {
     console.debug('[BG] screenshot');
@@ -30,24 +26,16 @@ chrome.action.onClicked.addListener(async (tab) => {
       format: OCR_CONFIG.CAPTURE_FORMAT,
     });
 
-    console.debug('[BG] load content.ts ...');
-    await ensureContentScriptLoaded(tab.id);
+    let targetTabId = tab.id;
+    const isProtectedSite =
+      tab.url.startsWith('chrome://') || tab.url.startsWith('edge://');
 
-    console.debug('[BG] send ACTIVATE_OVERLAY to content');
-    const overlayResponse = await chrome.tabs.sendMessage<ExtensionMessage>(
-      tab.id,
-      {
-        action: ExtensionAction.ACTIVATE_OVERLAY,
-      }
-    );
-    if (overlayResponse.status !== 'ok') {
-      console.error('[BG] Overlay failed:', overlayResponse.message);
-      return;
+    if (isProtectedSite) {
+      console.debug('[BG] Protected site detected, creating backup tab');
+      targetTabId = await createBackupTab();
     }
 
-    console.debug('[BG] warming up offscreen engine...');
-    // warm up the offscreen engine
-    await setupOffscreenDocument(FILES_PATH.OFFSCREEN_HTML);
+    await runOcrOnTab(targetTabId, isProtectedSite);
   } catch (err) {
     console.error('[BG] On click activation error:', err);
   }
@@ -150,6 +138,64 @@ chrome.runtime.onMessage.addListener(
     return false;
   }
 );
+
+async function runOcrOnTab(tabId: number, isBackupTab = false) {
+  try {
+    if (!isBackupTab) {
+      console.debug('[BG] load content.ts on tab:', tabId);
+      await ensureContentScriptLoaded(tabId);
+    } else {
+      console.debug('[BG] backup tab - content script already loaded');
+    }
+
+    console.debug('[BG] send ACTIVATE_OVERLAY to content');
+    const overlayResponse = await chrome.tabs.sendMessage<ExtensionMessage>(
+      tabId,
+      {
+        action: ExtensionAction.ACTIVATE_OVERLAY,
+      }
+    );
+    if (overlayResponse.status !== 'ok') {
+      console.error('[BG] Overlay failed:', overlayResponse.message);
+      return;
+    }
+
+    console.debug('[BG] warming up offscreen engine...');
+    // warm up the offscreen engine
+    await setupOffscreenDocument(FILES_PATH.OFFSCREEN_HTML);
+  } catch (err) {
+    console.error('[BG] OcrOntab run failed:', err);
+  }
+}
+
+async function createBackupTab(): Promise<number> {
+  if (!capturedImage) {
+    throw new Error('[BG] capturedImage not found!, no new Tab');
+  }
+
+  const tab = await chrome.tabs.create({
+    url: chrome.runtime.getURL('backup.html'),
+  });
+
+  // Wait for tab to fully load before returning
+  await new Promise<void>((resolve) => {
+    const listener = (tabId: number, changeInfo: { status?: string }) => {
+      if (tabId === tab.id && changeInfo.status === 'complete') {
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }
+    };
+    chrome.tabs.onUpdated.addListener(listener);
+  });
+
+  // Send the captured image to the backup tab
+  await chrome.tabs.sendMessage<ExtensionMessage>(tab.id!, {
+    action: ExtensionAction.INITIALIZE_BACKUP,
+    payload: { imageUrl: capturedImage },
+  });
+
+  return tab.id!;
+}
 
 async function handleCaptureSuccess(
   payload: SelectionRect,

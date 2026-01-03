@@ -74,6 +74,8 @@ export const CLASSES = {
   success: 'success',
   error: 'error',
   active: 'active',
+  imageContainer: 'image-container',
+  banner: 'banner',
 } as const;
 
 // ============================================================================
@@ -141,7 +143,7 @@ export const ISLAND_CSS = {
     // without spilling to the line below
     widthExpanded: 650,
     heightCollapsed: 64,
-    heightExpanded: 450,
+    heightExpanded: 350,
     heightMax: 500,
     imageSize: 40,
     buttonSize: 40,
@@ -197,5 +199,33 @@ export const ISLAND_CSS = {
     subtle: '1px solid rgba(0,0,0,0.06)',
     toggle: '2px solid transparent',
     gradient: '2px',
+  },
+} as const;
+
+// ============================================================================
+// BACKUP TAB STYLES
+// ============================================================================
+
+export const BACKUP_CSS = {
+  colors: {
+    bg: '#1e1e1e',
+    surface: ISLAND_CSS.colors.surfaceContainerHigh,
+    text: ISLAND_CSS.colors.textMain,
+    border: 'rgba(255,255,255,0.1)',
+  },
+  layout: {
+    bannerRadius: 28,
+    bannerBottom: 24,
+    bannerPadding: '12px 24px',
+    zIndex: 999,
+  },
+  font: {
+    family: ISLAND_CSS.font.family,
+    size: 14,
+    weight: 500,
+  },
+  shadows: {
+    base: ISLAND_CSS.shadows.base,
+    image: '0 0 20px rgba(0,0,0,0.5)',
   },
 } as const;

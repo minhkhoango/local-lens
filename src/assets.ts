@@ -1,4 +1,4 @@
-import { CLASSES, ISLAND_CSS } from './constants';
+import { CLASSES, ISLAND_CSS, BACKUP_CSS } from './constants';
 
 export const ICONS = {
   // Material Symbols (Rounded)
@@ -9,6 +9,61 @@ export const ICONS = {
   spinner: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>`,
   dropdown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`,
 };
+
+export const BACKUP_STYLES = `
+  :root {
+    --bg: ${BACKUP_CSS.colors.bg};
+    --surface: ${BACKUP_CSS.colors.surface};
+    --text: ${BACKUP_CSS.colors.text};
+    --border: ${BACKUP_CSS.colors.border};
+    --font: ${BACKUP_CSS.font.family};
+    --shadow: ${BACKUP_CSS.shadows.base};
+    --img-shadow: ${BACKUP_CSS.shadows.image};
+  }
+
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    background-color: var(--bg);
+    overflow: hidden;
+  }
+
+  .${CLASSES.imageContainer} {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+  }
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    box-shadow: var(--img-shadow);
+  }
+
+  .${CLASSES.banner} {
+    position: fixed;
+    bottom: ${BACKUP_CSS.layout.bannerBottom}px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    color: var(--text);
+    padding: ${BACKUP_CSS.layout.bannerPadding};
+    border-radius: ${BACKUP_CSS.layout.bannerRadius}px;
+    box-shadow: var(--shadow);
+    font-family: var(--font);
+    font-size: ${BACKUP_CSS.font.size}px;
+    font-weight: ${BACKUP_CSS.font.weight};
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: ${BACKUP_CSS.layout.zIndex};
+    border: 1px solid var(--border);
+  }
+`;
 
 export const ISLAND_STYLES = `
 :host {
