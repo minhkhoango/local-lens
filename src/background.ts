@@ -21,7 +21,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id || !tab.url) return;
 
   try {
-    console.debug('[BG] screenshot');
+    console.debug('screenshot');
     capturedImage = await chrome.tabs.captureVisibleTab({
       format: OCR_CONFIG.CAPTURE_FORMAT,
     });
@@ -31,13 +31,13 @@ chrome.action.onClicked.addListener(async (tab) => {
       tab.url.startsWith('chrome://') || tab.url.startsWith('edge://');
 
     if (isProtectedSite) {
-      console.debug('[BG] Protected site detected, creating backup tab');
+      console.debug('Protected site detected, creating backup tab');
       targetTabId = await createBackupTab();
     }
 
     await runOcrOnTab(targetTabId, isProtectedSite);
   } catch (err) {
-    console.error('[BG] On click activation error:', err);
+    console.error('On click activation error:', err);
   }
 });
 
@@ -50,7 +50,7 @@ chrome.runtime.onMessage.addListener(
   ) => {
     switch (message.action) {
       case ExtensionAction.CAPTURE_SUCCESS: {
-        console.debug('[BG]', message.action);
+        console.debug(message.action);
         // Handle async work in IIFE while returning true synchronously
         (async () => {
           try {
@@ -66,7 +66,7 @@ chrome.runtime.onMessage.addListener(
         return true; // Keep channel open for async response
       }
       case ExtensionAction.REQUEST_LANGUAGE_UPDATE: {
-        console.debug('[BG]', message.action);
+        console.debug(message.action);
         (async () => {
           try {
             const isOffscreenReady = ensureOffscreenAlive();
@@ -90,7 +90,7 @@ chrome.runtime.onMessage.addListener(
             // return to island handleLanguageUpdate
             sendResponse(response);
           } catch (err) {
-            console.error('[BG] Language update failed:', err);
+            console.error('Language update failed:', err);
             sendResponse({
               status: 'error',
               message: (err as Error).message,
@@ -100,7 +100,7 @@ chrome.runtime.onMessage.addListener(
         return true; // keep chanenl open
       }
       case ExtensionAction.GET_SHORTCUT: {
-        console.debug('[BG]', message.action);
+        console.debug(message.action);
         // Handle async work in IIFE while returning true synchronously
         (async () => {
           try {
@@ -119,7 +119,7 @@ chrome.runtime.onMessage.addListener(
         return true; // Keep channel open for async response
       }
       case ExtensionAction.CROP_READY: {
-        console.debug('[BG]', message.action);
+        console.debug(message.action);
         if (message.payload?.croppedImageUrl) {
           croppedImage = message.payload.croppedImageUrl;
         }
@@ -129,7 +129,7 @@ chrome.runtime.onMessage.addListener(
         return false; // No response needed
       }
       case ExtensionAction.OPEN_SHORTCUTS_PAGE: {
-        console.debug('[BG]', message.action);
+        console.debug(message.action);
         chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
         sendResponse({ status: 'ok' });
         return false; // Synchronous response
@@ -142,13 +142,13 @@ chrome.runtime.onMessage.addListener(
 async function runOcrOnTab(tabId: number, isBackupTab = false) {
   try {
     if (!isBackupTab) {
-      console.debug('[BG] load content.ts on tab:', tabId);
+      console.debug('load content.ts on tab:', tabId);
       await ensureContentScriptLoaded(tabId);
     } else {
-      console.debug('[BG] backup tab - content script already loaded');
+      console.debug('backup tab - content script already loaded');
     }
 
-    console.debug('[BG] send ACTIVATE_OVERLAY to content');
+    console.debug('send ACTIVATE_OVERLAY to content');
     const overlayResponse = await chrome.tabs.sendMessage<ExtensionMessage>(
       tabId,
       {
@@ -156,21 +156,21 @@ async function runOcrOnTab(tabId: number, isBackupTab = false) {
       }
     );
     if (overlayResponse.status !== 'ok') {
-      console.error('[BG] Overlay failed:', overlayResponse.message);
+      console.error('Overlay failed:', overlayResponse.message);
       return;
     }
 
-    console.debug('[BG] warming up offscreen engine...');
+    console.debug('warming up offscreen engine...');
     // warm up the offscreen engine
     await setupOffscreenDocument(FILES_PATH.OFFSCREEN_HTML);
   } catch (err) {
-    console.error('[BG] OcrOntab run failed:', err);
+    console.error('OcrOntab run failed:', err);
   }
 }
 
 async function createBackupTab(): Promise<number> {
   if (!capturedImage) {
-    throw new Error('[BG] capturedImage not found!, no new Tab');
+    throw new Error('capturedImage not found!, no new Tab');
   }
 
   const tab = await chrome.tabs.create({
@@ -205,7 +205,7 @@ async function handleCaptureSuccess(
   activeOcrTabId = tabId;
 
   if (!capturedImage) {
-    console.error('[BG] No image found in storage');
+    console.error('No image found in storage');
     sendOcrResultToTab(tabId, {
       success: false,
       text: 'No screenshot found',
@@ -218,12 +218,12 @@ async function handleCaptureSuccess(
     });
     return;
   }
-  console.debug('[BG] image found in storage, warming offscreen');
+  console.debug('image found in storage, warming offscreen');
 
   try {
     const isOffscreenReady = await ensureOffscreenAlive();
     if (!isOffscreenReady) {
-      console.error('[BG] Offscreen not reachable, aborting OCR');
+      console.error('Offscreen not reachable, aborting OCR');
       sendOcrResultToTab(tabId, {
         success: false,
         text: 'OCR engine not ready',
@@ -238,11 +238,9 @@ async function handleCaptureSuccess(
     }
 
     const { language, source } = await getUserLanguage();
-    console.debug(`[BG] User language: ${language}, source: ${source}`);
+    console.debug(`User language: ${language}, source: ${source}`);
 
-    console.debug(
-      `[BG] sending rect ${payload}, lang: ${language} to PERFORM_OCR`
-    );
+    console.debug(`sending rect ${payload}, lang: ${language} to PERFORM_OCR`);
     const ocrResult = await chrome.runtime.sendMessage<
       ExtensionMessage,
       MessageResponse
@@ -255,7 +253,7 @@ async function handleCaptureSuccess(
       },
     });
 
-    console.debug('[BG] OCR result:', ocrResult);
+    console.debug('OCR result:', ocrResult);
     if (ocrResult === undefined) {
       sendOcrResultToTab(tabId, {
         success: false,
@@ -282,7 +280,7 @@ async function handleCaptureSuccess(
       },
     };
 
-    console.debug(`[BG] sending ${resultPayload} OCR_RESULT to update UI`);
+    console.debug(`sending ${resultPayload} OCR_RESULT to update UI`);
     sendOcrResultToTab(tabId, resultPayload);
   } catch (err) {
     console.error('Offscreen communication failed:', err);
@@ -333,7 +331,7 @@ async function sendOcrResultToTab(
       payload,
     });
   } catch (err) {
-    console.error('[BG] Failed to send OCR result to tab:', err);
+    console.error('Failed to send OCR result to tab:', err);
   }
 }
 
@@ -348,7 +346,7 @@ async function sendCropReadyToTab(
       payload,
     });
   } catch (err) {
-    console.error('[BG] Failed to send CROP_READY to tab:', err);
+    console.error('Failed to send CROP_READY to tab:', err);
   }
 }
 
@@ -381,7 +379,7 @@ async function setupOffscreenDocument(path: string): Promise<void> {
     return;
   }
 
-  console.debug('[BG] offscreen doc not found, creating...');
+  console.debug('offscreen doc not found, creating...');
   creatingOffscreenPromise = chrome.offscreen.createDocument({
     url: path,
     reasons: [chrome.offscreen.Reason.BLOBS],

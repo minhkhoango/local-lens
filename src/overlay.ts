@@ -22,6 +22,7 @@ export class GhostOverlay {
   }
 
   private initStructure(): void {
+    console.debug('[Overlay]: Create top level gray darkening, match dpr');
     Object.assign(this.host.style, {
       position: 'fixed',
       top: '0',
@@ -48,12 +49,16 @@ export class GhostOverlay {
   }
 
   public mount(): void {
+    console.debug('[Overlay]: Mount overlay on screen');
     if (!document.getElementById(IDS.OVERLAY)) {
       document.body.appendChild(this.host);
     }
   }
 
   public activate(): void {
+    console.debug(
+      '[Overlay] Enables + mouse, listen to mouse movements & update box'
+    );
     this.host.style.pointerEvents = 'auto';
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
     this.canvas.addEventListener('mousemove', this.handleMouseMove);
@@ -63,6 +68,7 @@ export class GhostOverlay {
   }
 
   public destroy(): void {
+    console.debug('[Overlay] remove listener, "escape" keydown, & box');
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
     this.canvas.removeEventListener('mousemove', this.handleMouseMove);
     this.canvas.removeEventListener('mouseup', this.handleMouseUp);
@@ -85,6 +91,9 @@ export class GhostOverlay {
   };
 
   private handleMouseUp = (_e: MouseEvent): void => {
+    console.debug(
+      '[Overlay] on mouseup, check rect, send image to BG, destroy'
+    );
     this.isDragging = false;
     const rect = this.getSelectionRect();
 
@@ -102,6 +111,7 @@ export class GhostOverlay {
   };
 
   private handleKeyDown = (e: KeyboardEvent): void => {
+    console.debug('[Overlay] destroy on "Escape"');
     if (e.key === 'Escape') this.destroy();
   };
 

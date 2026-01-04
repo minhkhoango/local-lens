@@ -217,7 +217,7 @@ export const BACKUP_CSS = {
     bannerRadius: 28,
     bannerBottom: 24,
     bannerPadding: '12px 24px',
-    zIndex: 999,
+    zIndex: 1,
   },
   font: {
     family: ISLAND_CSS.font.family,

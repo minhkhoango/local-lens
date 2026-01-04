@@ -23,13 +23,13 @@ chrome.runtime.onMessage.addListener(
   ) => {
     switch (message.action) {
       case ExtensionAction.PING_CONTENT:
-        console.debug('[Content]', message.action);
+        console.debug(message.action);
         if (activeIsland) activeIsland.destroy();
         sendResponse({ status: 'ok' });
         break;
 
       case ExtensionAction.ACTIVATE_OVERLAY:
-        console.debug('[Content]', message.action);
+        console.debug(message.action);
         if (activeOverlay) activeOverlay.destroy();
         if (activeIsland) activeIsland.destroy();
         activeOverlay = new GhostOverlay();
@@ -39,19 +39,19 @@ chrome.runtime.onMessage.addListener(
         break;
 
       case ExtensionAction.INITIALIZE_BACKUP:
-        console.debug('[Content]', message.action);
+        console.debug(message.action);
         setupBackupDisplay(message.payload);
         sendResponse({ status: 'ok' });
         break;
 
       case ExtensionAction.CROP_READY:
-        console.debug('[Content]', message.action);
+        console.debug(message.action);
         handleCropReady(message.payload);
         sendResponse({ status: 'ok' });
         break;
 
       case ExtensionAction.OCR_RESULT:
-        console.debug('[Content]', message.action);
+        console.debug(message.action);
         handleOcrResult(message.payload);
         sendResponse({ status: 'ok' });
         break;
@@ -93,9 +93,7 @@ function setupBackupDisplay(payload: BackupImagePayload): void {
 
     const imageContainer = document.querySelector(`.${CLASSES.imageContainer}`);
     if (!imageContainer) {
-      console.error(
-        `[Content] .${CLASSES.imageContainer} not found in backup.html`
-      );
+      console.error(`.${CLASSES.imageContainer} not found in backup.html`);
       return;
     }
 
@@ -103,15 +101,16 @@ function setupBackupDisplay(payload: BackupImagePayload): void {
     img.src = payload.imageUrl;
     img.alt = 'Captured screenshot';
     img.onerror = () => {
-      console.error('[Content] Failed to load backup image');
+      console.error('Failed to load backup image');
     };
     imageContainer.appendChild(img);
 
     const banner = document.createElement('div');
     banner.className = CLASSES.banner;
-    banner.textContent = 'Original tab was protected. Using read-only preview.';
+    banner.textContent =
+      'Original tab was protected. Using read-only screenshot.';
     document.body.appendChild(banner);
   } catch (err) {
-    console.error('[Content] Failed to setup backup display:', err);
+    console.error('Failed to setup backup display:', err);
   }
 }

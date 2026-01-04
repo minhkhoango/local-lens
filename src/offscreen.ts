@@ -15,19 +15,19 @@ chrome.runtime.onMessage.addListener(
   ) => {
     switch (message.action) {
       case ExtensionAction.PING_OFFSCREEN:
-        console.debug('[Offscreen]', message.action);
+        console.debug(message.action);
         sendResponse({ status: 'ok', message: 'pong' });
         break;
 
       case ExtensionAction.PERFORM_OCR:
-        console.debug('[Offscreen]', message.action);
+        console.debug(message.action);
         const { imageDataUrl, rect, language } = message.payload;
         currentLanguage = language;
         runTesseractOcr(imageDataUrl, rect, language, sendResponse);
         break;
 
       case ExtensionAction.UPDATE_LANGUAGE:
-        console.debug('[Offscreen]', message.action);
+        console.debug(message.action);
         const { language: retryLanguage, croppedImage } = message.payload;
         retryTesseractOcr(retryLanguage, croppedImage, sendResponse);
         break;
@@ -50,7 +50,7 @@ async function runTesseractOcr(
   };
 
   try {
-    console.debug(`[Offscreen] Processing ${rect.width}x${rect.height} region`);
+    console.debug(`Processing ${rect.width}x${rect.height} region`);
 
     // Crop the image to the selected region
     let cropped: string;
@@ -60,7 +60,7 @@ async function runTesseractOcr(
       // Save cropped image in case of language retry
       localCroppedImage = cropped;
     } catch (err) {
-      console.error('[Offscreen] Image cropping error:', err);
+      console.error('Image cropping error:', err);
       sendResponse({
         status: 'error',
         message: `Image cropping failed: ${(err as Error).message}`,
@@ -70,7 +70,7 @@ async function runTesseractOcr(
       return;
     }
 
-    console.debug('[Offscreen] sending cropped img -> bg -> content');
+    console.debug('sending cropped img -> bg -> content');
     chrome.runtime.sendMessage<ExtensionMessage>({
       action: ExtensionAction.CROP_READY,
       payload: {
@@ -79,10 +79,10 @@ async function runTesseractOcr(
       },
     });
 
-    console.debug('[Offscreen] running OCR');
+    console.debug('running OCR');
     await performRecognition(cropped, language, sendResponse);
   } catch (err) {
-    console.error('[Offscreen] OCR recognition error:', err);
+    console.error('OCR recognition error:', err);
     sendResponse({
       status: 'error',
       message: `OCR recognition failed: ${(err as Error).message}`,
@@ -103,10 +103,10 @@ async function retryTesseractOcr(
     }
     const croppedImage = (localCroppedImage ?? bgCroppedImage) as string;
 
-    console.debug(`[Offscreen] Retrying OCR with language: ${language}`);
+    console.debug(`Retrying OCR with language: ${language}`);
     await performRecognition(croppedImage, language, sendResponse);
   } catch (err) {
-    console.error('[Offscreen] Retry error:', err);
+    console.error('Retry error:', err);
     sendResponse({
       status: 'error',
       message: `Retry failed: ${(err as Error).message}`,
@@ -125,7 +125,7 @@ async function performRecognition(
   try {
     engine = await getWorker(language);
   } catch (err) {
-    console.error('[Offscreen] Worker initialization error:', err);
+    console.error('Worker initialization error:', err);
     sendResponse({
       status: 'error',
       message: `OCR worker initialization failed: ${(err as Error).message}`,
@@ -135,13 +135,13 @@ async function performRecognition(
     return;
   }
 
-  console.debug(`[Offscreen] engine: ${engine}, perform recognizing`);
+  console.debug(`engine: ${engine}, perform recognizing`);
   try {
     const result = await engine.recognize(image);
     const confidence = result.data.confidence;
     const text = result.data.text.trim();
 
-    console.debug(`[Offscreen] OCR SUCCESS [confidence: ${confidence}%]:\n`);
+    console.debug(`OCR SUCCESS [confidence: ${confidence}%]:\n`);
     sendResponse({
       status: 'ok',
       message: text,
@@ -149,7 +149,7 @@ async function performRecognition(
       croppedImageUrl: image,
     });
   } catch (err) {
-    console.error('[Offscreen] Recognition error:', err);
+    console.error('Recognition error:', err);
     sendResponse({
       status: 'error',
       message: `OCR recognition failed: ${(err as Error).message}`,
@@ -166,25 +166,23 @@ async function performRecognition(
  */
 async function getWorker(language: string): Promise<Tesseract.Worker> {
   if (worker && currentLanguage === language) {
-    console.debug('[Offscreen] reusing old worker');
+    console.debug('reusing old worker');
     return worker;
   }
 
   if (worker && currentLanguage !== language) {
-    console.debug(
-      `[Offscreen] re-init worker from ${currentLanguage} to ${language}`
-    );
+    console.debug(`re-init worker from ${currentLanguage} to ${language}`);
     try {
       await worker.reinitialize(language, OCR_CONFIG.OEM);
       currentLanguage = language;
       return worker;
     } catch (err) {
-      console.warn(`[Offscreen] worker re-init failed: ${err}`);
+      console.warn(`worker re-init failed: ${err}`);
       await worker.terminate();
     }
   }
 
-  console.debug('[Offscreen] create new worker lang:', language);
+  console.debug('create new worker lang:', language);
   worker = await Tesseract.createWorker(language, OCR_CONFIG.OEM, {
     workerBlobURL: false,
     workerPath: FILES_PATH.OCR_WORKER,

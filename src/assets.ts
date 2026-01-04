@@ -10,6 +10,10 @@ export const ICONS = {
   dropdown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`,
 };
 
+/**
+ * Important, move the BACKUP tab as little as possible
+ * overflow: hidden to prevent scrollbar from forming
+ */
 export const BACKUP_STYLES = `
   :root {
     --bg: ${BACKUP_CSS.colors.bg};
@@ -30,11 +34,7 @@ export const BACKUP_STYLES = `
   }
 
   .${CLASSES.imageContainer} {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: auto;
+    overflow: hidden;
   }
 
   img {

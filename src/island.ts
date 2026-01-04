@@ -78,6 +78,7 @@ export class FloatingIsland {
 
   // --- Public Methods ---
   public updateWithResult(payload: OcrResultPayload): void {
+    console.debug('[Island]: update widget with cropped img');
     this.state = payload.success ? 'success' : 'error';
     this.text = payload.text;
     if (payload.croppedImageUrl) this.imageUrl = payload.croppedImageUrl;
@@ -106,11 +107,13 @@ export class FloatingIsland {
 
   public mount(): void {
     if (!document.getElementById(IDS.ISLAND)) {
+      console.debug('[Island] mount widget on documentElement');
       document.documentElement.appendChild(this.host);
     }
   }
 
   public destroy(): void {
+    console.log('[Island] destroy widget & listener');
     document.removeEventListener('mousemove', this.handleDragMove);
     document.removeEventListener('mouseup', this.handleDragEnd);
     document.removeEventListener('click', this.handleClickOutside);
@@ -120,6 +123,7 @@ export class FloatingIsland {
 
   // --- Private Methods ---
   private async loadShortcut(): Promise<void> {
+    console.debug('[Island] loading shortcut from contextMenu');
     try {
       const response = await chrome.runtime.sendMessage<ExtensionMessage>({
         action: ExtensionAction.GET_SHORTCUT,
@@ -131,6 +135,7 @@ export class FloatingIsland {
   }
 
   private async loadSettings(): Promise<void> {
+    console.debug('[Island] finding settings from chrome local storage');
     try {
       const stored = await chrome.storage.local.get([
         STORAGE_KEYS.ISLAND_SETTINGS,
@@ -150,6 +155,7 @@ export class FloatingIsland {
   }
 
   private build(): void {
+    console.log('[Island] Building the full widget, caching refs');
     // Inject styles
     const style = document.createElement('style');
     style.textContent = ISLAND_STYLES;
@@ -174,10 +180,10 @@ export class FloatingIsland {
     this.els.settingsPanel = query(this.container, `.${CLASSES.settings}`);
 
     this.bindEvents();
-    this.updateUI();
   }
 
   private renderTemplate(): string {
+    console.debug('[Island] Rendering img, icons, settings of widget');
     return `
       <div class="${CLASSES.row}">
         <img class="${CLASSES.image}" src="${this.imageUrl}" alt="Captured region"/>
@@ -205,6 +211,7 @@ export class FloatingIsland {
       !this.els.textarea
     )
       return;
+    console.debug('[Island] updateUI()');
 
     const isLoading = this.state === 'loading';
     const isSuccess = this.state === 'success';
@@ -244,6 +251,7 @@ export class FloatingIsland {
   }
 
   private renderSettingsRows(): string {
+    console.debug('[Island] rendering the hidden settings of widget');
     return SETTINGS_CONFIG.map((config) => {
       // Render language dropdown
       if (config.type === 'dropdown') {
@@ -251,7 +259,9 @@ export class FloatingIsland {
         const optionsHtml = config.options
           .map(
             (opt) =>
-              `<option value="${opt.value}" ${opt.value === currentValue ? 'selected' : ''}>${opt.label}</option>`
+              `<option value="${opt.value}" ${opt.value === currentValue ? 'selected' : ''}>
+                ${opt.label}
+              </option>`
           )
           .join('');
 
@@ -291,6 +301,7 @@ export class FloatingIsland {
   // --- Logic & Events ---
 
   private bindEvents(): void {
+    console.debug('[Island] Binding events to icons / widget');
     this.container.addEventListener('mousedown', this.handleDragStart);
     document.addEventListener('click', this.handleClickOutside);
     window.addEventListener('keydown', this.handleKeyDown);
@@ -322,7 +333,7 @@ export class FloatingIsland {
   }
 
   private handleToggleSettings = (e: PointerEvent): void => {
-    // Handle toggle clicks
+    console.debug('[Island] Handle toggle UI in settings');
     const toggle = (e.target as HTMLElement).closest(`.${CLASSES.toggle}`);
     if (toggle) {
       const key = toggle.getAttribute('data-key') as keyof IslandSettings;
@@ -368,6 +379,9 @@ export class FloatingIsland {
   };
 
   private handleLanguageUpdate = async (e: Event): Promise<void> => {
+    console.debug(
+      '[Island] Handle the language update, calling bg -> offscreen'
+    );
     const target = e.target as HTMLSelectElement;
     if (!target.classList.contains(CLASSES.settingsSelect)) return;
 
@@ -427,6 +441,7 @@ export class FloatingIsland {
   };
 
   private toggleExpand(force?: boolean): void {
+    console.debug('[Island] link text to expansion of widget, expand to left');
     if (this.state === 'loading') return;
 
     const wasExpanded = this.isExpanded;
@@ -456,6 +471,7 @@ export class FloatingIsland {
   }
 
   private async copyToClipboard(): Promise<void> {
+    console.debug('[Island] Handle copy to clipboard');
     if (!this.text) return;
     if (!navigator.clipboard) {
       console.warn('Clipboard API not available');
@@ -484,12 +500,16 @@ export class FloatingIsland {
   }
 
   private updatePosition(): void {
+    console.debug('[Island] Update widget position');
     this.container.style.left = `${this.position.x}px`;
     this.container.style.top = `${this.position.y}px`;
   }
 
   // --- Dragging ---
   private handleDragStart = (e: MouseEvent): void => {
+    console.debug(
+      '[Island] Enable drag feature on clicking non-icon, with boundaries'
+    );
     const target = e.target as HTMLElement;
     if (
       target.closest(
@@ -517,6 +537,7 @@ export class FloatingIsland {
   };
 
   private handleDragMove = (e: MouseEvent): void => {
+    console.debug('[Island] Handle widget move, constrain its position');
     if (!this.isDragging) return;
     this.position = this.constrainToViewport({
       x: e.clientX - this.dragOffset.x,
@@ -526,20 +547,26 @@ export class FloatingIsland {
   };
 
   private handleDragEnd = (): void => {
+    console.debug('[Island] Handle when drag ends, remove listeners');
     this.isDragging = false;
     document.removeEventListener('mousemove', this.handleDragMove);
     document.removeEventListener('mouseup', this.handleDragEnd);
   };
 
   private handleClickOutside = (e: MouseEvent): void => {
+    console.debug('[Island] Handle click outside, destroy?');
     if (!this.host.contains(e.target as Node)) this.destroy();
   };
 
   private handleKeyDown = (e: KeyboardEvent): void => {
+    console.debug('[Island] Listen to "Escape" to exit widget');
     if (e.key === 'Escape') this.destroy();
   };
 
   private clampToViewport(pos: Point): Point {
+    console.debug(
+      '[Island] clamp to viewport, ensure UI spawn inside page on initilization'
+    );
     const width = ISLAND_CSS.layout.widthCollapsed;
     const height = ISLAND_CSS.layout.heightCollapsed;
     const pad = ISLAND_CSS.layout.padding;
@@ -550,6 +577,9 @@ export class FloatingIsland {
   }
 
   private constrainToViewport(pos: Point): Point {
+    console.debug(
+      '[Island] constrains to vp, make sure UI never visually leave bounding box'
+    );
     const padding = ISLAND_CSS.layout.padding;
     const containerRect = this.container.getBoundingClientRect();
     const width = containerRect.width;
