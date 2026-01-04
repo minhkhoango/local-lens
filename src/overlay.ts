@@ -56,13 +56,9 @@ export class GhostOverlay {
   }
 
   public activate(): void {
-    console.debug(
-      '[Overlay] Enables + mouse, listen to mouse movements & update box'
-    );
+    console.debug('[Overlay] Enables + mouse, listen to mousedown');
     this.host.style.pointerEvents = 'auto';
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
-    this.canvas.addEventListener('mousemove', this.handleMouseMove);
-    this.canvas.addEventListener('mouseup', this.handleMouseUp);
     window.addEventListener('keydown', this.handleKeyDown);
     this.draw();
   }
@@ -70,8 +66,8 @@ export class GhostOverlay {
   public destroy(): void {
     console.debug('[Overlay] remove listener, "escape" keydown, & box');
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
-    this.canvas.removeEventListener('mousemove', this.handleMouseMove);
-    this.canvas.removeEventListener('mouseup', this.handleMouseUp);
+    document.removeEventListener('mousemove', this.handleMouseMove);
+    document.removeEventListener('mouseup', this.handleMouseUp);
     window.removeEventListener('keydown', this.handleKeyDown);
     this.host.remove();
   }
@@ -81,6 +77,9 @@ export class GhostOverlay {
     this.startPos = { x: e.clientX, y: e.clientY };
     this.currentPos = { x: e.clientX, y: e.clientY };
     e.preventDefault();
+    // document > this.canvas for mouse release outside tab
+    document.addEventListener('mousemove', this.handleMouseMove);
+    document.addEventListener('mouseup', this.handleMouseUp);
     this.draw();
   };
 
@@ -95,6 +94,8 @@ export class GhostOverlay {
       '[Overlay] on mouseup, check rect, send image to BG, destroy'
     );
     this.isDragging = false;
+    document.removeEventListener('mousemove', this.handleMouseMove);
+    document.removeEventListener('mouseup', this.handleMouseUp);
     const rect = this.getSelectionRect();
 
     if (
@@ -132,11 +133,17 @@ export class GhostOverlay {
   }
 
   private getSelectionRect(): SelectionRect {
+    // Clamp viewport boundaries when mouse leaves window
+    const clampedCurrentPos: Point = {
+      x: Math.max(0, Math.min(this.currentPos.x, window.innerWidth)),
+      y: Math.max(0, Math.min(this.currentPos.y, window.innerHeight)),
+    };
+
     return {
-      x: Math.min(this.startPos.x, this.currentPos.x),
-      y: Math.min(this.startPos.y, this.currentPos.y),
-      width: Math.abs(this.startPos.x - this.currentPos.x),
-      height: Math.abs(this.startPos.y - this.currentPos.y),
+      x: Math.min(this.startPos.x, clampedCurrentPos.x),
+      y: Math.min(this.startPos.y, clampedCurrentPos.y),
+      width: Math.abs(this.startPos.x - clampedCurrentPos.x),
+      height: Math.abs(this.startPos.y - clampedCurrentPos.y),
       devicePixelRatio: window.devicePixelRatio || 1,
     };
   }
