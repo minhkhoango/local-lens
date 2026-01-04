@@ -42,6 +42,10 @@ export class FloatingIsland {
   private hasCopied = false;
   private hasAutocopied = false;
   private shortcutText = 'Set shortcut';
+  private viewportSize = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
 
   // Element Refs
   private els: {
@@ -118,6 +122,7 @@ export class FloatingIsland {
     document.removeEventListener('mouseup', this.handleDragEnd);
     document.removeEventListener('click', this.handleClickOutside);
     window.removeEventListener('keydown', this.handleKeyDown);
+    window.removeEventListener('resize', this.handleResize);
     this.host.remove();
   }
 
@@ -305,6 +310,7 @@ export class FloatingIsland {
     this.container.addEventListener('mousedown', this.handleDragStart);
     document.addEventListener('click', this.handleClickOutside);
     window.addEventListener('keydown', this.handleKeyDown);
+    window.addEventListener('resize', this.handleResize);
 
     this.els.preview?.addEventListener('click', () => this.toggleExpand());
     this.els.copyBtn?.addEventListener('click', () => this.copyToClipboard());
@@ -561,6 +567,35 @@ export class FloatingIsland {
   private handleKeyDown = (e: KeyboardEvent): void => {
     console.debug('[Island] Listen to "Escape" to exit widget');
     if (e.key === 'Escape') this.destroy();
+  };
+
+  private handleResize = (): void => {
+    console.debug('[Island] Reposition widget on viewport resize');
+    const { innerWidth, innerHeight } = window;
+    const { width: prevWidth, height: prevHeight } = this.viewportSize;
+
+    // For very first resize
+    if (prevWidth === 0 || prevHeight === 0) {
+      this.viewportSize = { width: innerWidth, height: innerHeight };
+      return;
+    }
+
+    const scaleX = innerWidth / prevWidth;
+    const scaleY = innerHeight / prevHeight;
+
+    // Bails out on odd browser
+    if (!Number.isFinite(scaleX) || !Number.isFinite(scaleY)) {
+      this.viewportSize = { width: innerWidth, height: innerHeight };
+      return;
+    }
+
+    this.position = this.constrainToViewport({
+      x: this.position.x * scaleX,
+      y: this.position.y * scaleY,
+    });
+
+    this.updatePosition();
+    this.viewportSize = { width: innerWidth, height: innerHeight };
   };
 
   private clampToViewport(pos: Point): Point {
