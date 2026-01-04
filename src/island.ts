@@ -6,7 +6,6 @@ import {
   DEFAULT_SETTINGS,
   STORAGE_KEYS,
   ISLAND_CSS,
-  SETTINGS_CONFIG,
 } from './constants';
 import {
   ExtensionAction,
@@ -17,6 +16,12 @@ import {
   type IslandState,
   type MessageResponse,
 } from './types';
+import {
+  type LanguageSchema,
+  type TesseractLang,
+  LANGUAGES,
+  LANGUAGES_OPTIONS,
+} from './language_map';
 
 function query<T extends HTMLElement>(
   root: ShadowRoot | Document | HTMLElement,
@@ -35,6 +40,7 @@ export class FloatingIsland {
   private settings: IslandSettings = { ...DEFAULT_SETTINGS };
   private state: IslandState = 'loading';
 
+  private uiLang: LanguageSchema = LANGUAGES['eng'];
   private text = '';
   private imageUrl = '';
   private position: Point;
@@ -58,6 +64,10 @@ export class FloatingIsland {
     settingsPanel?: HTMLDivElement;
     notification?: HTMLDivElement;
     notificationClose?: HTMLButtonElement;
+    settingsLabelLang?: HTMLSpanElement;
+    settingsLabelAutoCopy?: HTMLSpanElement;
+    settingsLabelAutoExpand?: HTMLSpanElement;
+    settingsLabelShortcut?: HTMLSpanElement;
   } = {};
 
   // Drag state
@@ -133,7 +143,7 @@ export class FloatingIsland {
       const response = await chrome.runtime.sendMessage<ExtensionMessage>({
         action: ExtensionAction.GET_SHORTCUT,
       });
-      this.shortcutText = response?.shortcut || 'Set shortcut';
+      this.shortcutText = response?.shortcut || this.uiLang.island.setShortcut;
     } catch {
       // Keep default 'Set shortcut' on error
     }
@@ -153,6 +163,8 @@ export class FloatingIsland {
           ...DEFAULT_SETTINGS,
           ...savedSettings,
         };
+        if (savedSettings.language)
+          this.uiLang = LANGUAGES[savedSettings.language];
       }
     } catch {
       /* ignore */
@@ -184,6 +196,24 @@ export class FloatingIsland {
     this.els.settingsBtn = query(this.container, `.${CLASSES.openSettings}`);
     this.els.settingsPanel = query(this.container, `.${CLASSES.settings}`);
 
+    // Cache settings label spans
+    this.els.settingsLabelLang = query(
+      this.container,
+      `.${CLASSES.settingRow}:nth-child(1) > span`
+    );
+    this.els.settingsLabelAutoCopy = query(
+      this.container,
+      `.${CLASSES.settingRow}:nth-child(2) > span`
+    );
+    this.els.settingsLabelAutoExpand = query(
+      this.container,
+      `.${CLASSES.settingRow}:nth-child(3) > span`
+    );
+    this.els.settingsLabelShortcut = query(
+      this.container,
+      `.${CLASSES.settingRow}:nth-child(4) > span`
+    );
+
     this.bindEvents();
   }
 
@@ -191,10 +221,10 @@ export class FloatingIsland {
     console.debug('[Island] Rendering img, icons, settings of widget');
     return `
       <div class="${CLASSES.row}">
-        <img class="${CLASSES.image}" src="${this.imageUrl}" alt="Captured region"/>
+        <img class="${CLASSES.image}" src="${this.imageUrl}" alt="${this.uiLang.island.croppedScreenshot}"/>
         <div class="${CLASSES.content}">
-          <span class="${CLASSES.status}">Processing...</span>
-          <div class="${CLASSES.preview}" title="Click to expand"></div>
+          <span class="${CLASSES.status}">${this.uiLang.island.processing}</span>
+          <div class="${CLASSES.preview}" title="${this.uiLang.island.expand}"></div>
         </div>
         <div class="${CLASSES.actions}">
           <button class="${CLASSES.btn} ${CLASSES.copybtn} ${CLASSES.loading}">${ICONS.spinner}</button>
@@ -216,7 +246,7 @@ export class FloatingIsland {
       !this.els.textarea
     )
       return;
-    console.debug('[Island] updateUI()');
+    console.debug('[Island] updateUI(), core logic');
 
     const isLoading = this.state === 'loading';
     const isSuccess = this.state === 'success';
@@ -225,12 +255,12 @@ export class FloatingIsland {
 
     this.els.status.className = `${CLASSES.status} ${this.state}`;
     this.els.status.textContent = isLoading
-      ? 'Processing...'
+      ? this.uiLang.island.processing
       : isSuccess
         ? this.hasCopied
-          ? 'Copied!'
-          : 'Extracted'
-        : 'Error';
+          ? this.uiLang.island.copied
+          : this.uiLang.island.extracted
+        : this.uiLang.island.error;
 
     // Button
     this.els.copyBtn.className = `${CLASSES.btn} ${CLASSES.copybtn}
@@ -252,55 +282,77 @@ export class FloatingIsland {
     this.els.preview.textContent =
       cleanText.length > maxLength
         ? cleanText.slice(0, maxLength) + '...'
-        : cleanText || (isLoading ? '' : 'No text');
+        : cleanText || (isLoading ? '' : this.uiLang.island.noText);
+
+    if (
+      !this.els.settingsLabelLang ||
+      !this.els.settingsLabelAutoCopy ||
+      !this.els.settingsLabelAutoExpand ||
+      !this.els.settingsLabelShortcut
+    )
+      return;
+    console.debug('[Island] updateUI(), settings label language');
+
+    this.els.settingsLabelLang.textContent = this.uiLang.island.lang;
+    this.els.settingsLabelAutoCopy.textContent = this.uiLang.island.autoCopy;
+    this.els.settingsLabelAutoExpand.textContent =
+      this.uiLang.island.autoExpand;
+    this.els.settingsLabelShortcut.textContent = this.uiLang.island.shortcut;
+
+    if (!this.els.image || !this.els.preview) return;
+    this.els.image.alt = this.uiLang.island.croppedScreenshot;
+    this.els.preview.title = this.uiLang.island.expand;
   }
 
   private renderSettingsRows(): string {
     console.debug('[Island] rendering the hidden settings of widget');
-    return SETTINGS_CONFIG.map((config) => {
-      // Render language dropdown
-      if (config.type === 'dropdown') {
-        const currentValue = this.settings[config.key] as string;
-        const optionsHtml = config.options
-          .map(
-            (opt) =>
-              `<option value="${opt.value}" ${opt.value === currentValue ? 'selected' : ''}>
-                ${opt.label}
-              </option>`
-          )
-          .join('');
 
-        return `
-           <div class="${CLASSES.settingRow}">
-             <span>${config.label}</span>
-             <div class="${CLASSES.selectWrapper}">
-                <select class="${CLASSES.settingsSelect}" data-key="${config.key}">
-                  ${optionsHtml}
-                </select>
-                <div class="${CLASSES.selectIcon}">${ICONS.dropdown}</div>
-             </div>
-           </div>`;
-      }
+    // Language dropdown
+    const currentLanguage = this.settings.language as string;
+    const languageOptions =
+      LANGUAGES_OPTIONS?.map(
+        (opt: { value: string; label: string }) =>
+          `<option value="${opt.value}" ${opt.value === currentLanguage ? 'selected' : ''}>
+            ${opt.label}
+          </option>`
+      ).join('') || '';
+    const languageRow = `
+      <div class="${CLASSES.settingRow}">
+        <span>${this.uiLang.island.lang}</span>
+        <div class="${CLASSES.selectWrapper}">
+          <select class="${CLASSES.settingsSelect}" data-key="language">
+            ${languageOptions}
+          </select>
+          <div class="${CLASSES.selectIcon}">${ICONS.dropdown}</div>
+        </div>
+      </div>`;
 
-      // Render auto-copy / auto-expand toggles
-      if ('key' in config) {
-        const toggleClass = `${CLASSES.toggle} ${this.settings[config.key] ? CLASSES.active : ''}`;
-        return `
-          <div class="${CLASSES.settingRow}">
-            <span>${config.label}</span>
-            <div class="${toggleClass}" data-key="${config.key}"></div>
-          </div>`;
-      }
+    // Auto-copy toggle
+    const autoCopyClass = `${CLASSES.toggle} ${this.settings.autoCopy ? CLASSES.active : ''}`;
+    const autoCopyRow = `
+      <div class="${CLASSES.settingRow}">
+        <span>${this.uiLang.island.autoCopy}</span>
+        <div class="${autoCopyClass}" data-key="autoCopy"></div>
+      </div>`;
 
-      // Render shortcut button
-      return `
-        <div class="${CLASSES.settingRow}">
-          <span>${config.label}</span>
-          <button class="${CLASSES.settingsActionBtn}" data-action="${config.action}">
-            ${this.shortcutText}
-          </button>
-        </div>`;
-    }).join('');
+    // Auto-expand toggle
+    const autoExpandClass = `${CLASSES.toggle} ${this.settings.autoExpand ? CLASSES.active : ''}`;
+    const autoExpandRow = `
+      <div class="${CLASSES.settingRow}">
+        <span>${this.uiLang.island.autoExpand}</span>
+        <div class="${autoExpandClass}" data-key="autoExpand"></div>
+      </div>`;
+
+    // Keyboard shortcut button
+    const shortcutRow = `
+      <div class="${CLASSES.settingRow}">
+        <span>${this.uiLang.island.shortcut}</span>
+        <button class="${CLASSES.settingsActionBtn}" data-action="openShortcuts">
+          ${this.shortcutText}
+        </button>
+      </div>`;
+
+    return languageRow + autoCopyRow + autoExpandRow + shortcutRow;
   }
 
   // --- Logic & Events ---
@@ -392,7 +444,7 @@ export class FloatingIsland {
     if (!target.classList.contains(CLASSES.settingsSelect)) return;
 
     const key = target.getAttribute('data-key') as keyof IslandSettings;
-    const newLanguage = target.value;
+    const newLanguage = target.value as TesseractLang;
 
     if (key === 'language') {
       // Optimistic UI update
@@ -400,6 +452,8 @@ export class FloatingIsland {
       chrome.storage.local.set({
         [STORAGE_KEYS.ISLAND_SETTINGS]: this.settings,
       });
+      this.uiLang = LANGUAGES[newLanguage];
+      this.updateUI();
 
       // Trigger update language / ocr logic
       if (this.imageUrl) {
@@ -408,7 +462,6 @@ export class FloatingIsland {
         this.state = 'loading';
         this.text = '';
         this.hasCopied = false;
-        this.updateUI();
 
         try {
           // Route through background for ensureOff func
@@ -481,7 +534,7 @@ export class FloatingIsland {
     if (!this.text) return;
     if (!navigator.clipboard) {
       console.warn('Clipboard API not available');
-      this.els.status!.textContent = 'Clipboard Error';
+      this.els.status!.textContent = this.uiLang.island.clipboardError;
       return;
     }
 
@@ -602,9 +655,9 @@ export class FloatingIsland {
     console.debug(
       '[Island] clamp to viewport, ensure UI spawn inside page on initilization'
     );
+    const pad = ISLAND_CSS.layout.boundaryPad;
     const width = ISLAND_CSS.layout.widthCollapsed;
     const height = ISLAND_CSS.layout.heightCollapsed;
-    const pad = ISLAND_CSS.layout.padding;
 
     const x = Math.min(Math.max(pad, pos.x), window.innerWidth - width - pad);
     const y = Math.min(Math.max(pad, pos.y), window.innerHeight - height - pad);
@@ -615,19 +668,13 @@ export class FloatingIsland {
     console.debug(
       '[Island] constrains to vp, make sure UI never visually leave bounding box'
     );
-    const padding = ISLAND_CSS.layout.padding;
+    const pad = ISLAND_CSS.layout.boundaryPad;
     const containerRect = this.container.getBoundingClientRect();
     const width = containerRect.width;
     const height = containerRect.height;
 
-    const x = Math.min(
-      Math.max(padding, pos.x),
-      window.innerWidth - width - padding
-    );
-    const y = Math.min(
-      Math.max(padding, pos.y),
-      window.innerHeight - height - padding
-    );
+    const x = Math.min(Math.max(pad, pos.x), window.innerWidth - width - pad);
+    const y = Math.min(Math.max(pad, pos.y), window.innerHeight - height - pad);
 
     return { x, y };
   }

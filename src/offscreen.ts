@@ -189,6 +189,7 @@ async function getWorker(language: string): Promise<Tesseract.Worker> {
     corePath: FILES_PATH.OCR_CORE,
     langPath: OCR_CONFIG.LANG_PATH,
     cacheMethod: OCR_CONFIG.CACHE_METHOD,
+    logger: (_m) => {},
   });
 
   currentLanguage = language;

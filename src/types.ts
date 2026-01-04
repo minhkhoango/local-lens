@@ -1,3 +1,5 @@
+import type { TesseractLang } from './language_map';
+
 export interface Point {
   x: number;
   y: number;
@@ -13,7 +15,7 @@ export interface SelectionRect extends Point {
 }
 
 export interface UserLanguage {
-  language: string;
+  language: TesseractLang;
   source: 'local_storage' | 'browser' | 'browser_base' | 'default';
 }
 
@@ -52,20 +54,21 @@ export interface CropReadyPayload {
 export interface OcrPerformPayload {
   imageDataUrl: string;
   rect: SelectionRect;
-  language: string;
+  language: TesseractLang;
 }
 
 export interface RequestLanguagePayload {
-  language: string;
+  language: TesseractLang;
 }
 
 export interface UpdateLanguagePayload {
-  language: string;
+  language: TesseractLang;
   croppedImage: string | null;
 }
 
 export interface BackupImagePayload {
   imageUrl: string;
+  language: TesseractLang;
 }
 
 export type ExtensionMessage =
@@ -103,29 +106,5 @@ export interface MessageResponse {
 export interface IslandSettings {
   autoCopy: boolean;
   autoExpand: boolean;
-  language: string;
+  language: TesseractLang;
 }
-
-export interface ToggleConfigItem {
-  key: keyof IslandSettings;
-  label: string;
-  type: 'toggle';
-}
-
-export interface ButtonConfigItem {
-  action: string;
-  label: string;
-  type: 'button';
-}
-
-export interface DropdownConfigItem {
-  key: keyof IslandSettings;
-  label: string;
-  type: 'dropdown';
-  options: ReadonlyArray<{ value: string; label: string }>;
-}
-
-export type SettingsRowConfig =
-  | ToggleConfigItem
-  | ButtonConfigItem
-  | DropdownConfigItem;

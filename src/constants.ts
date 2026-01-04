@@ -1,5 +1,4 @@
-import type { SettingsRowConfig, IslandSettings } from './types';
-import { LANGUAGES } from './language_map';
+import type { IslandSettings } from './types';
 
 export const IDS = {
   OVERLAY: 'xr-screenshot-reader-host',
@@ -41,13 +40,6 @@ export const DEFAULT_SETTINGS: IslandSettings = {
   autoExpand: false,
   language: 'eng',
 } as const;
-
-export const SETTINGS_CONFIG: SettingsRowConfig[] = [
-  { key: 'language', label: 'Language', type: 'dropdown', options: LANGUAGES },
-  { key: 'autoCopy', label: 'Auto-copy', type: 'toggle' },
-  { key: 'autoExpand', label: 'Auto-expand', type: 'toggle' },
-  { action: 'openShortcuts', label: 'Keyboard shortcut', type: 'button' },
-];
 
 export const CLASSES = {
   island: 'island',
@@ -132,7 +124,8 @@ export const ISLAND_CSS = {
     inputBorder: 'rgba(0, 0, 0, 0.12)',
   },
   layout: {
-    padding: 12,
+    layoutPad: 12,
+    boundaryPad: 2,
     radius: 28,
     radiusMedium: 12,
     radiusSmall: 8,

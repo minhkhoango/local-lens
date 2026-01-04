@@ -10,6 +10,7 @@ import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island';
 import { BACKUP_STYLES } from './assets';
 import { CLASSES } from './constants';
+import { LANGUAGES } from './language_map';
 
 // State Management
 let activeOverlay: GhostOverlay | null = null;
@@ -87,6 +88,13 @@ function handleOcrResult(payload: OcrResultPayload): void {
 
 function setupBackupDisplay(payload: BackupImagePayload): void {
   try {
+    const { imageUrl, language } = payload;
+    const uiLang = LANGUAGES[language];
+
+    const title = document.createElement('title');
+    title.textContent = uiLang.backup.tabName;
+    document.head.append(title);
+
     const styleElement = document.createElement('style');
     styleElement.textContent = BACKUP_STYLES;
     document.head.appendChild(styleElement);
@@ -98,8 +106,8 @@ function setupBackupDisplay(payload: BackupImagePayload): void {
     }
 
     const img = document.createElement('img');
-    img.src = payload.imageUrl;
-    img.alt = 'Captured screenshot';
+    img.src = imageUrl;
+    img.alt = uiLang.backup.screenshot;
     img.onerror = () => {
       console.error('Failed to load backup image');
     };
@@ -107,8 +115,7 @@ function setupBackupDisplay(payload: BackupImagePayload): void {
 
     const banner = document.createElement('div');
     banner.className = CLASSES.banner;
-    banner.textContent =
-      'Original tab was protected. Using read-only screenshot.';
+    banner.textContent = uiLang.backup.banner;
     document.body.appendChild(banner);
   } catch (err) {
     console.error('Failed to setup backup display:', err);

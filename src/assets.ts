@@ -78,7 +78,7 @@ export const ISLAND_STYLES = `
   --gradient: ${ISLAND_CSS.colors.gradient};
   --primary: ${ISLAND_CSS.colors.primary};
   
-  --p: ${ISLAND_CSS.layout.padding}px;
+  --p: ${ISLAND_CSS.layout.layoutPad}px;
   --radius: ${ISLAND_CSS.layout.radius}px;
   --w-min: ${ISLAND_CSS.layout.widthCollapsed}px;
   --w-max: ${ISLAND_CSS.layout.widthExpanded}px;

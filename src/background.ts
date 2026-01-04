@@ -1,4 +1,8 @@
-import { CHROME_TO_TESSERACT } from './language_map';
+import {
+  CHROME_TO_TESSERACT,
+  type ChromeLang,
+  type TesseractLang,
+} from './language_map';
 import { FILES_PATH, STORAGE_KEYS, OCR_CONFIG } from './constants';
 import { ExtensionAction } from './types';
 import type {
@@ -27,15 +31,15 @@ chrome.action.onClicked.addListener(async (tab) => {
     });
 
     let targetTabId = tab.id;
-    const isProtectedSite =
-      tab.url.startsWith('chrome://') || tab.url.startsWith('edge://');
 
-    if (isProtectedSite) {
+    try {
+      await runOcrOnTab(targetTabId, false);
+    } catch {
       console.debug('Protected site detected, creating backup tab');
       targetTabId = await createBackupTab();
-    }
 
-    await runOcrOnTab(targetTabId, isProtectedSite);
+      await runOcrOnTab(targetTabId, true);
+    }
   } catch (err) {
     console.error('On click activation error:', err);
   }
@@ -74,8 +78,9 @@ chrome.runtime.onMessage.addListener(
               throw new Error('Could not start OCR engine');
             }
 
-            // Forward command to offscreen doc
             const { language } = message.payload;
+
+            // Forward command to offscreen doc
             const response = await chrome.runtime.sendMessage<
               ExtensionMessage,
               MessageResponse
@@ -164,7 +169,7 @@ async function runOcrOnTab(tabId: number, isBackupTab = false) {
     // warm up the offscreen engine
     await setupOffscreenDocument(FILES_PATH.OFFSCREEN_HTML);
   } catch (err) {
-    console.error('OcrOntab run failed:', err);
+    throw err;
   }
 }
 
@@ -188,10 +193,16 @@ async function createBackupTab(): Promise<number> {
     chrome.tabs.onUpdated.addListener(listener);
   });
 
+  const { language, source } = await getUserLanguage();
+  console.debug(`Get user language for backup: ${language}, source: ${source}`);
+
   // Send the captured image to the backup tab
   await chrome.tabs.sendMessage<ExtensionMessage>(tab.id!, {
     action: ExtensionAction.INITIALIZE_BACKUP,
-    payload: { imageUrl: capturedImage },
+    payload: {
+      imageUrl: capturedImage,
+      language: language,
+    },
   });
 
   return tab.id!;
@@ -398,6 +409,10 @@ async function getShortcutCommand(): Promise<string> {
   return cmd.shortcut;
 }
 
+function getLanguageFromMap(key: string): TesseractLang | undefined {
+  return CHROME_TO_TESSERACT[key as ChromeLang];
+}
+
 async function getUserLanguage(): Promise<UserLanguage> {
   try {
     // Check user storage
@@ -416,17 +431,18 @@ async function getUserLanguage(): Promise<UserLanguage> {
 
   // Check browser language
   const uiLang = await chrome.i18n.getUILanguage();
-  if (CHROME_TO_TESSERACT[uiLang])
+  const lang = getLanguageFromMap(uiLang);
+  if (lang)
     return {
-      language: CHROME_TO_TESSERACT[uiLang],
+      language: lang,
       source: 'browser',
     };
 
   // Try mapping base language (e.g. 'fr' from 'fr-CA')
-  const prefix = uiLang.split('-')[0];
-  if (CHROME_TO_TESSERACT[prefix])
+  const baseLang = getLanguageFromMap(uiLang.split('-')[0]);
+  if (baseLang)
     return {
-      language: CHROME_TO_TESSERACT[prefix],
+      language: baseLang,
       source: 'browser_base',
     };
 
