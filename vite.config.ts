@@ -7,6 +7,9 @@ import { resolve } from 'path';
 const entry = process.env.VITE_ENTRY || 'background';
 
 export default defineConfig({
+  esbuild: {
+    drop: ['console'],
+  },
   build: {
     rollupOptions: {
       input: resolve(__dirname, `src/${entry}.ts`),
