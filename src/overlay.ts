@@ -125,10 +125,37 @@ export class GhostOverlay {
 
     if (this.isDragging || this.startPos.x !== 0) {
       const { x, y, width, height } = this.getSelectionRect();
-      this.ctx.clearRect(x, y, width, height);
+      const radius = Math.min(OVERLAY_CSS.layout.radius, width / 2, height / 2);
+
+      this.ctx.beginPath();
+      // Draw rounded rectangle path
+      this.ctx.moveTo(x + radius, y);
+      this.ctx.lineTo(x + width - radius, y);
+      this.ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      this.ctx.lineTo(x + width, y + height - radius);
+      this.ctx.quadraticCurveTo(
+        x + width,
+        y + height,
+        x + width - radius,
+        y + height
+      );
+      this.ctx.lineTo(x + radius, y + height);
+      this.ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      this.ctx.lineTo(x, y + radius);
+      this.ctx.quadraticCurveTo(x, y, x + radius, y);
+      this.ctx.closePath();
+
+      // Cut out "hole" for lens effect
+      // 'destination-out' removes pixels from existing canvas
+      this.ctx.globalCompositeOperation = 'destination-out';
+      this.ctx.fillStyle = 'black';
+      this.ctx.fill();
+
+      // Draw the border
+      this.ctx.globalCompositeOperation = 'source-over';
       this.ctx.strokeStyle = OVERLAY_CSS.colors.stroke;
       this.ctx.lineWidth = OVERLAY_CSS.animation.lineWidth;
-      this.ctx.strokeRect(x, y, width, height);
+      this.ctx.stroke();
     }
   }
 

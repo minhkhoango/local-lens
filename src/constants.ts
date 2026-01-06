@@ -81,10 +81,11 @@ export const OVERLAY_CSS = {
   },
   layout: {
     zIndex: 2147483647,
+    radius: 28,
   },
   animation: {
     cursor: 'crosshair',
-    lineWidth: 2,
+    lineWidth: 3,
   },
 } as const;
 
