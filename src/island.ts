@@ -462,6 +462,7 @@ export class FloatingIsland {
         this.state = 'loading';
         this.text = '';
         this.hasCopied = false;
+        this.updateUI();
 
         try {
           // Route through background for ensureOff func

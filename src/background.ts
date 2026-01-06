@@ -157,19 +157,11 @@ function isRestrictedUrl(url: string | undefined): boolean {
   const newUrl = new URL(url);
 
   // Check protocol (https, chrome://, ...)
-  const restrictedProtocols = [
-    'chrome:',
-    'edge:',
-    'brave:',
-    'about:',
-    'view-source:',
-    'chrome-extension:',
-    'file:',
-  ];
+  const restrictedProtocols = ['chrome:', 'edge:', 'brave:', 'file:'];
   if (restrictedProtocols.includes(newUrl.protocol)) return true;
 
   // Check domain
-  const restrictedHosts = ['chrome.google.com', 'chromewebstore.google.com'];
+  const restrictedHosts = ['chromewebstore.google.com'];
   if (restrictedHosts.includes(newUrl.hostname)) return true;
 
   return false;

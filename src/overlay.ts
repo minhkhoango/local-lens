@@ -125,7 +125,7 @@ export class GhostOverlay {
 
     if (this.isDragging || this.startPos.x !== 0) {
       const { x, y, width, height } = this.getSelectionRect();
-      const radius = Math.min(OVERLAY_CSS.layout.radius, width / 2, height / 2);
+      const radius = Math.min(OVERLAY_CSS.layout.radius, width / 3, height / 3);
 
       this.ctx.beginPath();
       // Draw rounded rectangle path

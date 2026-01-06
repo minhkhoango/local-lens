@@ -177,8 +177,8 @@ async function getWorker(language: string): Promise<Tesseract.Worker> {
       currentLanguage = language;
       return worker;
     } catch (err) {
-      console.warn(`worker re-init failed: ${err}`);
-      await worker.terminate();
+      console.warn(`worker re-init failed: ${err}, return old worker`);
+      return worker;
     }
   }
 
