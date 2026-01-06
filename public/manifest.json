@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "screenshot-reader",
+  "name": "Local Lens",
+  "description": "A privacy-first visual text reader that stays on your device",
   "version": "1.0.0",
   "action": {},
   "background": {

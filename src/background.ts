@@ -31,14 +31,21 @@ chrome.action.onClicked.addListener(async (tab) => {
     });
 
     let targetTabId = tab.id;
+    const isRestricted = isRestrictedUrl(tab.url);
 
-    try {
-      await runOcrOnTab(targetTabId, false);
-    } catch {
-      console.debug('Protected site detected, creating backup tab');
+    if (isRestricted) {
+      console.debug('Restricted site detected via URL check.');
       targetTabId = await createBackupTab();
-
       await runOcrOnTab(targetTabId, true);
+    } else {
+      try {
+        await runOcrOnTab(targetTabId, false);
+      } catch {
+        console.debug('Injection failed on standard site, creating backup tab');
+        targetTabId = await createBackupTab();
+
+        await runOcrOnTab(targetTabId, true);
+      }
     }
   } catch (err) {
     console.error('On click activation error:', err);
@@ -143,6 +150,30 @@ chrome.runtime.onMessage.addListener(
     return false;
   }
 );
+
+function isRestrictedUrl(url: string | undefined): boolean {
+  if (!url) return true;
+
+  const newUrl = new URL(url);
+
+  // Check protocol (https, chrome://, ...)
+  const restrictedProtocols = [
+    'chrome:',
+    'edge:',
+    'brave:',
+    'about:',
+    'view-source:',
+    'chrome-extension:',
+    'file:',
+  ];
+  if (restrictedProtocols.includes(newUrl.protocol)) return true;
+
+  // Check domain
+  const restrictedHosts = ['chrome.google.com', 'chromewebstore.google.com'];
+  if (restrictedHosts.includes(newUrl.hostname)) return true;
+
+  return false;
+}
 
 async function runOcrOnTab(tabId: number, isBackupTab = false) {
   try {
