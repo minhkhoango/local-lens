@@ -157,7 +157,7 @@ function isRestrictedUrl(url: string | undefined): boolean {
   const newUrl = new URL(url);
 
   // Check protocol (https, chrome://, ...)
-  const restrictedProtocols = ['chrome:', 'edge:', 'brave:', 'file:'];
+  const restrictedProtocols = ['chrome:', 'edge:', 'brave:'];
   if (restrictedProtocols.includes(newUrl.protocol)) return true;
 
   // Check domain
