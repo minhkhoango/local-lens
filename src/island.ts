@@ -139,7 +139,7 @@ export class FloatingIsland {
 
   // --- Private Methods ---
   private async loadShortcut(): Promise<void> {
-    console.debug('[Island] loading shortcut from contextMenu');
+    console.debug('[Island] loading shortcut from background');
     try {
       const response = await chrome.runtime.sendMessage<ExtensionMessage>({
         action: ExtensionAction.GET_SHORTCUT,
