@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Local Lens",
   "minimum_chrome_version": "109",
-  "description": "A privacy-first visual text reader that stays on your device",
+  "description": "A privacy-first visual text extractor that stays on your device",
   "version": "1.0.0",
   "action": {},
   "background": {
