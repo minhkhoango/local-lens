@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "En personvernfokusert visuell tekstuttrekker som blir på enheten din"
+  },
+  "ui_cropped_screenshot": { "message": "Fanget område" },
+  "ui_processing": { "message": "behandler..." },
+  "ui_expand": { "message": "Klikk for å utvide" },
+  "ui_copied": { "message": "Kopiert!" },
+  "ui_extracted": { "message": "Trukket ut" },
+  "ui_error": { "message": "Feil" },
+  "ui_no_text": { "message": "Ingen tekst" },
+  "ui_clipboard_error": { "message": "Utklippstavlefeil" },
+  "ui_language": { "message": "Språk" },
+  "ui_auto_copy": { "message": "Auto-kopi" },
+  "ui_auto_expand": { "message": "Auto-utvid" },
+  "ui_shortcut": { "message": "Tastatursnarvei" },
+  "ui_set_shortcut": { "message": "Angi snarvei" },
+  "backup_tab_name": { "message": "Skjermbilde av original fane" },
+  "backup_screenshot": { "message": "skjermbilde" },
+  "backup_banner": {
+    "message": "Den originale fanen var beskyttet. Bruker skrivebeskyttet skjermbilde."
+  }
+}

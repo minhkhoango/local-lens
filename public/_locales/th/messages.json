@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "เครื่องมือดึงข้อความจากภาพที่ให้ความสำคัญกับความเป็นส่วนตัวและทำงานบนอุปกรณ์ของคุณ"
+  },
+  "ui_cropped_screenshot": { "message": "พื้นที่ที่จับภาพ" },
+  "ui_processing": { "message": "กำลังประมวลผล..." },
+  "ui_expand": { "message": "คลิกเพื่อขยาย" },
+  "ui_copied": { "message": "คัดลอกแล้ว!" },
+  "ui_extracted": { "message": "สกัดแล้ว" },
+  "ui_error": { "message": "ข้อผิดพลาด" },
+  "ui_no_text": { "message": "ไม่มีข้อความ" },
+  "ui_clipboard_error": { "message": "ข้อผิดพลาดคลิปบอร์ด" },
+  "ui_language": { "message": "ภาษา" },
+  "ui_auto_copy": { "message": "คัดลอกอัตโนมัติ" },
+  "ui_auto_expand": { "message": "ขยายอัตโนมัติ" },
+  "ui_shortcut": { "message": "แป้นพิมพ์ลัด" },
+  "ui_set_shortcut": { "message": "ตั้งค่าทางลัด" },
+  "backup_tab_name": { "message": "ภาพหน้าจอของแท็บเดิม" },
+  "backup_screenshot": { "message": "ภาพหน้าจอ" },
+  "backup_banner": {
+    "message": "แท็บเดิมได้รับการป้องกัน กำลังใช้ภาพหน้าจอแบบอ่านอย่างเดียว"
+  }
+}

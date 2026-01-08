@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Gizliliği ön planda tutan ve cihazınızda kalan görsel metin çıkarıcı"
+  },
+  "ui_cropped_screenshot": { "message": "Yakalanan bölge" },
+  "ui_processing": { "message": "işleniyor..." },
+  "ui_expand": { "message": "Genişletmek için tıkla" },
+  "ui_copied": { "message": "Kopyalandı!" },
+  "ui_extracted": { "message": "Çıkarıldı" },
+  "ui_error": { "message": "Hata" },
+  "ui_no_text": { "message": "Metin yok" },
+  "ui_clipboard_error": { "message": "Pano Hatası" },
+  "ui_language": { "message": "Dil" },
+  "ui_auto_copy": { "message": "Otomatik Kopyala" },
+  "ui_auto_expand": { "message": "Otomatik Genişlet" },
+  "ui_shortcut": { "message": "Klavye kısayolu" },
+  "ui_set_shortcut": { "message": "Kısayol ayarla" },
+  "backup_tab_name": { "message": "Orijinal sekmenin ekran görüntüsü" },
+  "backup_screenshot": { "message": "ekran görüntüsü" },
+  "backup_banner": {
+    "message": "Orijinal sekme korumalıydı. Salt okunur ekran görüntüsü kullanılıyor."
+  }
+}

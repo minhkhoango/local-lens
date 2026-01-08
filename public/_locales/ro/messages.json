@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Un extractor de text vizual care pune pe primul loc confidențialitatea și rămâne pe dispozitivul tău"
+  },
+  "ui_cropped_screenshot": { "message": "Regiune capturată" },
+  "ui_processing": { "message": "se procesează..." },
+  "ui_expand": { "message": "Click pentru extindere" },
+  "ui_copied": { "message": "Copiat!" },
+  "ui_extracted": { "message": "Extras" },
+  "ui_error": { "message": "Eroare" },
+  "ui_no_text": { "message": "Fără text" },
+  "ui_clipboard_error": { "message": "Eroare clipboard" },
+  "ui_language": { "message": "Limbă" },
+  "ui_auto_copy": { "message": "Auto-copiere" },
+  "ui_auto_expand": { "message": "Auto-extindere" },
+  "ui_shortcut": { "message": "Scurtătură tastatură" },
+  "ui_set_shortcut": { "message": "Setare scurtătură" },
+  "backup_tab_name": { "message": "Captură de ecran a filei originale" },
+  "backup_screenshot": { "message": "captură de ecran" },
+  "backup_banner": {
+    "message": "Fila originală a fost protejată. Se utilizează captură doar pentru citire."
+  }
+}

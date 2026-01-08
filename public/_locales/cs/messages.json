@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Extraktor textu z obrázků s důrazem na soukromí, který zůstává na vašem zařízení"
+  },
+  "ui_cropped_screenshot": { "message": "Zachycená oblast" },
+  "ui_processing": { "message": "zpracování..." },
+  "ui_expand": { "message": "Kliknutím rozbalíte" },
+  "ui_copied": { "message": "Zkopírováno!" },
+  "ui_extracted": { "message": "Vyjmuto" },
+  "ui_error": { "message": "Chyba" },
+  "ui_no_text": { "message": "Žádný text" },
+  "ui_clipboard_error": { "message": "Chyba schránky" },
+  "ui_language": { "message": "Jazyk" },
+  "ui_auto_copy": { "message": "Auto-kopírování" },
+  "ui_auto_expand": { "message": "Auto-rozbalení" },
+  "ui_shortcut": { "message": "Klávesová zkratka" },
+  "ui_set_shortcut": { "message": "Nastavit zkratku" },
+  "backup_tab_name": { "message": "Snímek původní karty" },
+  "backup_screenshot": { "message": "snímek obrazovky" },
+  "backup_banner": {
+    "message": "Původní karta byla chráněna. Používá se snímek pouze pro čtení."
+  }
+}

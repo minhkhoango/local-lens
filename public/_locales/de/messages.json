@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Ein datenschutzorientierter visueller Textextraktor, der auf Ihrem Gerät bleibt"
+  },
+  "ui_cropped_screenshot": { "message": "Erfasster Bereich" },
+  "ui_processing": { "message": "wird verarbeitet..." },
+  "ui_expand": { "message": "Zum Erweitern klicken" },
+  "ui_copied": { "message": "Kopiert!" },
+  "ui_extracted": { "message": "Extrahiert" },
+  "ui_error": { "message": "Fehler" },
+  "ui_no_text": { "message": "Kein Text" },
+  "ui_clipboard_error": { "message": "Zwischenablage-Fehler" },
+  "ui_language": { "message": "Sprache" },
+  "ui_auto_copy": { "message": "Auto-Kopie" },
+  "ui_auto_expand": { "message": "Auto-Erweitern" },
+  "ui_shortcut": { "message": "Tastenkürzel" },
+  "ui_set_shortcut": { "message": "Kürzel festlegen" },
+  "backup_tab_name": { "message": "Screenshot des Original-Tabs" },
+  "backup_screenshot": { "message": "Screenshot" },
+  "backup_banner": {
+    "message": "Original-Tab war geschützt. Schreibgeschützter Screenshot wird verwendet."
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "appName": {
+    "message": "Local Lens",
+    "description": "The name of the extension"
+  },
+  "appDescription": {
+    "message": "A privacy-first visual text extractor that stays on your device",
+    "description": "The description of the extension"
+  },
+  "ui_cropped_screenshot": {
+    "message": "Captured region",
+    "description": "40x40 image shown in island"
+  },
+  "ui_processing": {
+    "message": "processing...",
+    "description": "Island status when OCR is processing"
+  },
+  "ui_expand": {
+    "message": "Click to expand",
+    "description": "Island hint text for expanding UI"
+  },
+  "ui_copied": {
+    "message": "Copied!",
+    "description": "Island status when OCR text copied to clipboard"
+  },
+  "ui_extracted": {
+    "message": "Extracted",
+    "description": "Island status when OCR extracted some text & not copied"
+  },
+  "ui_error": {
+    "message": "Error",
+    "description": "Island error status"
+  },
+  "ui_no_text": {
+    "message": "No text",
+    "description": "Island textarea message when OCR returns none"
+  },
+  "ui_clipboard_error": {
+    "message": "Clipboard Error",
+    "description": "Island clipboard error status"
+  },
+  "ui_language": {
+    "message": "Language",
+    "description": "Settings language label"
+  },
+  "ui_auto_copy": {
+    "message": "Auto-Copy",
+    "description": "Settings auto-copy label"
+  },
+  "ui_auto_expand": {
+    "message": "Auto-Expand",
+    "description": "Settings auto-expand label"
+  },
+  "ui_shortcut": {
+    "message": "Keyboard shortcut",
+    "description": "Settings shortcut label"
+  },
+  "ui_set_shortcut": {
+    "message": "Set shortcut",
+    "description": "Fallback for cmd output of _execute_action"
+  },
+  "backup_tab_name": {
+    "message": "Screenshot of original tab",
+    "description": "Name of newly created backup tab"
+  },
+  "backup_screenshot": {
+    "message": "screenshot",
+    "description": "Full screenshot covering 100% of backup tab"
+  },
+  "backup_banner": {
+    "message": "Original tab was protected. Using read-only screenshot.",
+    "description": "Bottom floating notification"
+  }
+}

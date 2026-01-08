@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Un extracteur de texte visuel axé sur la confidentialité qui reste sur votre appareil"
+  },
+  "ui_cropped_screenshot": { "message": "Zone capturée" },
+  "ui_processing": { "message": "traitement..." },
+  "ui_expand": { "message": "Cliquer pour agrandir" },
+  "ui_copied": { "message": "Copié !" },
+  "ui_extracted": { "message": "Extrait" },
+  "ui_error": { "message": "Erreur" },
+  "ui_no_text": { "message": "Aucun texte" },
+  "ui_clipboard_error": { "message": "Erreur presse-papiers" },
+  "ui_language": { "message": "Langue" },
+  "ui_auto_copy": { "message": "Copie auto" },
+  "ui_auto_expand": { "message": "Extension auto" },
+  "ui_shortcut": { "message": "Raccourci clavier" },
+  "ui_set_shortcut": { "message": "Définir raccourci" },
+  "backup_tab_name": { "message": "Capture de l'onglet original" },
+  "backup_screenshot": { "message": "capture d'écran" },
+  "backup_banner": {
+    "message": "L'onglet original était protégé. Utilisation d'une capture en lecture seule."
+  }
+}

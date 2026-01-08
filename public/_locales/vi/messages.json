@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Công cụ trích xuất văn bản hình ảnh bảo mật, chạy trực tiếp trên thiết bị"
+  },
+  "ui_cropped_screenshot": { "message": "Ảnh chọn" },
+  "ui_processing": { "message": "Đang xử lý..." },
+  "ui_expand": { "message": "Mở rộng" },
+  "ui_copied": { "message": "Đã sao chép!" },
+  "ui_extracted": { "message": "Đã trích xuất" },
+  "ui_error": { "message": "Lỗi" },
+  "ui_no_text": { "message": "Trống" },
+  "ui_clipboard_error": { "message": "Lỗi bộ nhớ tạm" },
+  "ui_language": { "message": "Ngôn ngữ" },
+  "ui_auto_copy": { "message": "Tự động-sao chép" },
+  "ui_auto_expand": { "message": "Tự động-mở rộng" },
+  "ui_shortcut": { "message": "Phím tắt" },
+  "ui_set_shortcut": { "message": "Cài đặt phím tắt" },
+  "backup_tab_name": { "message": "Ảnh chụp trang gốc" },
+  "backup_screenshot": { "message": "Ảnh chụp" },
+  "backup_banner": {
+    "message": "Trang gốc được bảo mật. Dùng ảnh chụp màn hình."
+  }
+}

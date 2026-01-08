@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Інструмент візуального витягування тексту, орієнтований на конфіденційність і який залишається на вашому пристрої"
+  },
+  "ui_cropped_screenshot": { "message": "Захоплена область" },
+  "ui_processing": { "message": "обробка..." },
+  "ui_expand": { "message": "Натисніть, щоб розгорнути" },
+  "ui_copied": { "message": "Скопійовано!" },
+  "ui_extracted": { "message": "Витягнуто" },
+  "ui_error": { "message": "Помилка" },
+  "ui_no_text": { "message": "Немає тексту" },
+  "ui_clipboard_error": { "message": "Помилка буфера обміну" },
+  "ui_language": { "message": "Мова" },
+  "ui_auto_copy": { "message": "Авто-копіювання" },
+  "ui_auto_expand": { "message": "Авто-розгортання" },
+  "ui_shortcut": { "message": "Комбінація клавіш" },
+  "ui_set_shortcut": { "message": "Встановити ярлик" },
+  "backup_tab_name": { "message": "Скріншот оригінальної вкладки" },
+  "backup_screenshot": { "message": "скріншот" },
+  "backup_banner": {
+    "message": "Оригінальна вкладка була захищена. Використовується скріншот лише для читання."
+  }
+}

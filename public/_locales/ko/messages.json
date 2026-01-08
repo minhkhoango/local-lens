@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "개인정보 보호를 우선시하며 기기에 머무르는 시각적 텍스트 추출기"
+  },
+  "ui_cropped_screenshot": { "message": "캡처된 영역" },
+  "ui_processing": { "message": "처리 중..." },
+  "ui_expand": { "message": "클릭하여 확장" },
+  "ui_copied": { "message": "복사됨!" },
+  "ui_extracted": { "message": "추출됨" },
+  "ui_error": { "message": "오류" },
+  "ui_no_text": { "message": "텍스트 없음" },
+  "ui_clipboard_error": { "message": "클립보드 오류" },
+  "ui_language": { "message": "언어" },
+  "ui_auto_copy": { "message": "자동 복사" },
+  "ui_auto_expand": { "message": "자동 확장" },
+  "ui_shortcut": { "message": "키보드 단축키" },
+  "ui_set_shortcut": { "message": "단축키 설정" },
+  "backup_tab_name": { "message": "원본 탭의 스크린샷" },
+  "backup_screenshot": { "message": "스크린샷" },
+  "backup_banner": {
+    "message": "원본 탭이 보호되었습니다. 읽기 전용 스크린샷을 사용합니다。"
+  }
+}

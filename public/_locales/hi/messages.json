@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "एक गोपनीयता-केंद्रित दृश्य पाठ निष्कर्षक जो आपके डिवाइस पर रहता है"
+  },
+  "ui_cropped_screenshot": { "message": "कैप्चर किया गया क्षेत्र" },
+  "ui_processing": { "message": "प्रक्रिया जारी है..." },
+  "ui_expand": { "message": "विस्तार करने के लिए क्लिक करें" },
+  "ui_copied": { "message": "कॉपी किया गया!" },
+  "ui_extracted": { "message": "निकाला गया" },
+  "ui_error": { "message": "त्रुटि" },
+  "ui_no_text": { "message": "कोई पाठ नहीं" },
+  "ui_clipboard_error": { "message": "क्लिपबोर्ड त्रुटि" },
+  "ui_language": { "message": "भाषा" },
+  "ui_auto_copy": { "message": "ऑटो-कॉपी" },
+  "ui_auto_expand": { "message": "ऑटो-विस्तार" },
+  "ui_shortcut": { "message": "कीबोर्ड शॉर्टकट" },
+  "ui_set_shortcut": { "message": "शॉर्टकट सेट करें" },
+  "backup_tab_name": { "message": "मूल टैब का स्क्रीनशॉट" },
+  "backup_screenshot": { "message": "स्क्रीनशॉट" },
+  "backup_banner": {
+    "message": "मूल टैब सुरक्षित था। केवल पढ़ने योग्य स्क्रीनशॉट का उपयोग कर रहा है।"
+  }
+}

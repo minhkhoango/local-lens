@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Ένας οπτικός εξαγωγέας κειμένου με προτεραιότητα στο απόρρητο που παραμένει στη συσκευή σας"
+  },
+  "ui_cropped_screenshot": { "message": "Καταγεγραμμένη περιοχή" },
+  "ui_processing": { "message": "επεξεργασία..." },
+  "ui_expand": { "message": "Κλικ για επέκταση" },
+  "ui_copied": { "message": "Αντιγράφηκε!" },
+  "ui_extracted": { "message": "Εξήχθη" },
+  "ui_error": { "message": "Σφάλμα" },
+  "ui_no_text": { "message": "Χωρίς κείμενο" },
+  "ui_clipboard_error": { "message": "Σφάλμα προχείρου" },
+  "ui_language": { "message": "Γλώσσα" },
+  "ui_auto_copy": { "message": "Αυτόματη αντιγραφή" },
+  "ui_auto_expand": { "message": "Αυτόματη επέκταση" },
+  "ui_shortcut": { "message": "Συντόμευση πληκτρολογίου" },
+  "ui_set_shortcut": { "message": "Ορισμός συντόμευσης" },
+  "backup_tab_name": { "message": "Στιγμιότυπο αρχικής καρτέλας" },
+  "backup_screenshot": { "message": "στιγμιότυπο" },
+  "backup_banner": {
+    "message": "Η αρχική καρτέλα ήταν προστατευμένη. Χρήση στιγμιότυπου μόνο για ανάγνωση."
+  }
+}

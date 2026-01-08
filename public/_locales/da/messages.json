@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "En privatlivsfokuseret visuel tekstudtrækker, der forbliver på din enhed"
+  },
+  "ui_cropped_screenshot": { "message": "Fanget område" },
+  "ui_processing": { "message": "behandler..." },
+  "ui_expand": { "message": "Klik for at udvide" },
+  "ui_copied": { "message": "Kopieret!" },
+  "ui_extracted": { "message": "Udtrukket" },
+  "ui_error": { "message": "Fejl" },
+  "ui_no_text": { "message": "Ingen tekst" },
+  "ui_clipboard_error": { "message": "Udklipsholderfejl" },
+  "ui_language": { "message": "Sprog" },
+  "ui_auto_copy": { "message": "Auto-kopi" },
+  "ui_auto_expand": { "message": "Auto-udvid" },
+  "ui_shortcut": { "message": "Tastaturgenvej" },
+  "ui_set_shortcut": { "message": "Indstil genvej" },
+  "backup_tab_name": { "message": "Skærmbillede af oprindelig fane" },
+  "backup_screenshot": { "message": "skærmbillede" },
+  "backup_banner": {
+    "message": "Den oprindelige fane var beskyttet. Bruger skrivebeskyttet skærmbillede."
+  }
+}

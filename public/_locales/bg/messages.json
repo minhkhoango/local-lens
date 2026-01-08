@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Инструмент за визуално извличане на текст, който работи локално на вашето устройство и поставя поверителността на първо място"
+  },
+  "ui_cropped_screenshot": { "message": "Заснета област" },
+  "ui_processing": { "message": "обработка..." },
+  "ui_expand": { "message": "Кликнете за разширяване" },
+  "ui_copied": { "message": "Копирано!" },
+  "ui_extracted": { "message": "Извлечено" },
+  "ui_error": { "message": "Грешка" },
+  "ui_no_text": { "message": "Няма текст" },
+  "ui_clipboard_error": { "message": "Грешка в клипборда" },
+  "ui_language": { "message": "Език" },
+  "ui_auto_copy": { "message": "Авто-копиране" },
+  "ui_auto_expand": { "message": "Авто-разширяване" },
+  "ui_shortcut": { "message": "Клавишна комбинация" },
+  "ui_set_shortcut": { "message": "Задаване на пряк път" },
+  "backup_tab_name": { "message": "Снимка на оригиналния раздел" },
+  "backup_screenshot": { "message": "снимка на екрана" },
+  "backup_banner": {
+    "message": "Оригиналният раздел беше защитен. Използване на снимка само за четене."
+  }
+}

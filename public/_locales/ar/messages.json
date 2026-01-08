@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "أداة استخراج نصوص آمنة تعمل كلياً على جهازك."
+  },
+  "ui_cropped_screenshot": { "message": "المنطقة الملتقطة" },
+  "ui_processing": { "message": "جارٍ المعالجة..." },
+  "ui_expand": { "message": "انقر للتوسيع" },
+  "ui_copied": { "message": "تم النسخ!" },
+  "ui_extracted": { "message": "تم الاستخراج" },
+  "ui_error": { "message": "خطأ" },
+  "ui_no_text": { "message": "لا يوجد نص" },
+  "ui_clipboard_error": { "message": "خطأ في الحافظة" },
+  "ui_language": { "message": "لغة" },
+  "ui_auto_copy": { "message": "نسخ تلقائي" },
+  "ui_auto_expand": { "message": "توسيع تلقائي" },
+  "ui_shortcut": { "message": "اختصار لوحة المفاتيح" },
+  "ui_set_shortcut": { "message": "تعيين اختصار" },
+  "backup_tab_name": { "message": "لقطة شاشة لعلامة التبويب الأصلية" },
+  "backup_screenshot": { "message": "لقطة شاشة" },
+  "backup_banner": {
+    "message": "علامة التبويب الأصلية محمية. استخدام لقطة شاشة للقراءة فقط."
+  }
+}

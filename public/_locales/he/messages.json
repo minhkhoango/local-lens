@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "מחלץ טקסט ויזואלי המתעדף פרטיות ונשאר במכשיר שלך"
+  },
+  "ui_cropped_screenshot": { "message": "אזור שנלכד" },
+  "ui_processing": { "message": "מעבד..." },
+  "ui_expand": { "message": "לחץ להרחבה" },
+  "ui_copied": { "message": "הועתק!" },
+  "ui_extracted": { "message": "חולץ" },
+  "ui_error": { "message": "שגיאה" },
+  "ui_no_text": { "message": "אין טקסט" },
+  "ui_clipboard_error": { "message": "שגיאת לוח" },
+  "ui_language": { "message": "שפה" },
+  "ui_auto_copy": { "message": "העתקה אוטומטית" },
+  "ui_auto_expand": { "message": "הרחבה אוטומטית" },
+  "ui_shortcut": { "message": "קיצור מקלדת" },
+  "ui_set_shortcut": { "message": "הגדר קיצור דרך" },
+  "backup_tab_name": { "message": "צילום מסך של הכרטיסייה המקורית" },
+  "backup_screenshot": { "message": "צילום מסך" },
+  "backup_banner": {
+    "message": "הכרטיסייה המקורית הייתה מוגנת. משתמש בצילום מסך לקריאה בלבד."
+  }
+}

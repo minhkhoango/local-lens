@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Adatvédelemre összpontosító vizuális szövegkinyerő, amely az eszközödön marad"
+  },
+  "ui_cropped_screenshot": { "message": "Rögzített terület" },
+  "ui_processing": { "message": "feldolgozás..." },
+  "ui_expand": { "message": "Kattintson a kibontáshoz" },
+  "ui_copied": { "message": "Másolva!" },
+  "ui_extracted": { "message": "Kinyerve" },
+  "ui_error": { "message": "Hiba" },
+  "ui_no_text": { "message": "Nincs szöveg" },
+  "ui_clipboard_error": { "message": "Vágólap hiba" },
+  "ui_language": { "message": "Nyelv" },
+  "ui_auto_copy": { "message": "Auto-másolás" },
+  "ui_auto_expand": { "message": "Auto-kibontás" },
+  "ui_shortcut": { "message": "Billentyűparancs" },
+  "ui_set_shortcut": { "message": "Parancs beállítása" },
+  "backup_tab_name": { "message": "Képernyőkép az eredeti lapról" },
+  "backup_screenshot": { "message": "képernyőkép" },
+  "backup_banner": {
+    "message": "Az eredeti lap védett volt. Csak olvasható képernyőkép használata."
+  }
+}

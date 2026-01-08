@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Инструмент для визуального извлечения текста, ориентированный на конфиденциальность и работающий на вашем устройстве"
+  },
+  "ui_cropped_screenshot": { "message": "Захваченная область" },
+  "ui_processing": { "message": "обработка..." },
+  "ui_expand": { "message": "Нажмите, чтобы развернуть" },
+  "ui_copied": { "message": "Скопировано!" },
+  "ui_extracted": { "message": "Извлечено" },
+  "ui_error": { "message": "Ошибка" },
+  "ui_no_text": { "message": "Нет текста" },
+  "ui_clipboard_error": { "message": "Ошибка буфера обмена" },
+  "ui_language": { "message": "Язык" },
+  "ui_auto_copy": { "message": "Авто-копирование" },
+  "ui_auto_expand": { "message": "Авто-развертывание" },
+  "ui_shortcut": { "message": "Сочетание клавиш" },
+  "ui_set_shortcut": { "message": "Задать сочетание" },
+  "backup_tab_name": { "message": "Скриншот исходной вкладки" },
+  "backup_screenshot": { "message": "скриншот" },
+  "backup_banner": {
+    "message": "Исходная вкладка была защищена. Используется скриншот только для чтения."
+  }
+}

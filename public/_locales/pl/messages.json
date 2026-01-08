@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Ekstraktor tekstu wizualnego stawiający prywatność na pierwszym miejscu, który pozostaje na Twoim urządzeniu"
+  },
+  "ui_cropped_screenshot": { "message": "Przechwycony obszar" },
+  "ui_processing": { "message": "przetwarzanie..." },
+  "ui_expand": { "message": "Kliknij, aby rozwinąć" },
+  "ui_copied": { "message": "Skopiowano!" },
+  "ui_extracted": { "message": "Wyodrębniono" },
+  "ui_error": { "message": "Błąd" },
+  "ui_no_text": { "message": "Brak tekstu" },
+  "ui_clipboard_error": { "message": "Błąd schowka" },
+  "ui_language": { "message": "Język" },
+  "ui_auto_copy": { "message": "Auto-kopiowanie" },
+  "ui_auto_expand": { "message": "Auto-rozwijanie" },
+  "ui_shortcut": { "message": "Skrót klawiszowy" },
+  "ui_set_shortcut": { "message": "Ustaw skrót" },
+  "backup_tab_name": { "message": "Zrzut ekranu oryginalnej karty" },
+  "backup_screenshot": { "message": "zrzut ekranu" },
+  "backup_banner": {
+    "message": "Oryginalna karta była chroniona. Używanie zrzutu ekranu tylko do odczytu."
+  }
+}

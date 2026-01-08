@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "プライバシーを重視し、デバイス上で動作するビジュアルテキスト抽出ツール"
+  },
+  "ui_cropped_screenshot": { "message": "キャプチャ領域" },
+  "ui_processing": { "message": "処理中..." },
+  "ui_expand": { "message": "クリックして展開" },
+  "ui_copied": { "message": "コピーしました！" },
+  "ui_extracted": { "message": "抽出完了" },
+  "ui_error": { "message": "エラー" },
+  "ui_no_text": { "message": "テキストなし" },
+  "ui_clipboard_error": { "message": "クリップボードエラー" },
+  "ui_language": { "message": "言語" },
+  "ui_auto_copy": { "message": "自動コピー" },
+  "ui_auto_expand": { "message": "自動展開" },
+  "ui_shortcut": { "message": "キーボードショートカット" },
+  "ui_set_shortcut": { "message": "ショートカット設定" },
+  "backup_tab_name": { "message": "元のタブのスクリーンショット" },
+  "backup_screenshot": { "message": "スクリーンショット" },
+  "backup_banner": {
+    "message": "元のタブは保護されていました。読み取り専用のスクリーンショットを使用します。"
+  }
+}

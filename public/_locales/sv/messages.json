@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "En integritetsfokuserad visuell textextraherare som stannar på din enhet"
+  },
+  "ui_cropped_screenshot": { "message": "Fångat område" },
+  "ui_processing": { "message": "bearbetar..." },
+  "ui_expand": { "message": "Klicka för att expandera" },
+  "ui_copied": { "message": "Kopierat!" },
+  "ui_extracted": { "message": "Extraherat" },
+  "ui_error": { "message": "Fel" },
+  "ui_no_text": { "message": "Ingen text" },
+  "ui_clipboard_error": { "message": "Urklippsfel" },
+  "ui_language": { "message": "Språk" },
+  "ui_auto_copy": { "message": "Auto-kopiera" },
+  "ui_auto_expand": { "message": "Auto-expandera" },
+  "ui_shortcut": { "message": "Kortkommando" },
+  "ui_set_shortcut": { "message": "Ange genväg" },
+  "backup_tab_name": { "message": "Skärmdump av ursprunglig flik" },
+  "backup_screenshot": { "message": "skärmdump" },
+  "backup_banner": {
+    "message": "Den ursprungliga fliken var skyddad. Använder skrivskyddad skärmdump."
+  }
+}

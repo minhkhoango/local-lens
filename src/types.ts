@@ -68,7 +68,6 @@ export interface UpdateLanguagePayload {
 
 export interface BackupImagePayload {
   imageUrl: string;
-  language: TesseractLang;
 }
 
 export type ExtensionMessage =

@@ -10,7 +10,6 @@ import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island';
 import { BACKUP_STYLES } from './assets';
 import { CLASSES } from './constants';
-import { LANGUAGES } from './language_map';
 
 // State Management
 let activeOverlay: GhostOverlay | null = null;
@@ -88,11 +87,10 @@ function handleOcrResult(payload: OcrResultPayload): void {
 
 function setupBackupDisplay(payload: BackupImagePayload): void {
   try {
-    const { imageUrl, language } = payload;
-    const uiLang = LANGUAGES[language];
+    const { imageUrl } = payload;
 
     const title = document.createElement('title');
-    title.textContent = uiLang.backup.tabName;
+    title.textContent = chrome.i18n.getMessage('backup_tab_name');
     document.head.append(title);
 
     const styleElement = document.createElement('style');
@@ -107,7 +105,7 @@ function setupBackupDisplay(payload: BackupImagePayload): void {
 
     const img = document.createElement('img');
     img.src = imageUrl;
-    img.alt = uiLang.backup.screenshot;
+    img.alt = chrome.i18n.getMessage('backup_screenshot');
     img.onerror = () => {
       console.error('Failed to load backup image');
     };
@@ -115,7 +113,7 @@ function setupBackupDisplay(payload: BackupImagePayload): void {
 
     const banner = document.createElement('div');
     banner.className = CLASSES.banner;
-    banner.textContent = uiLang.backup.banner;
+    banner.textContent = chrome.i18n.getMessage('backup_banner');
     document.body.appendChild(banner);
   } catch (err) {
     console.error('Failed to setup backup display:', err);

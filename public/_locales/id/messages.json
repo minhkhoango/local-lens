@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Pengekstrak teks visual yang mengutamakan privasi dan tetap di perangkat Anda"
+  },
+  "ui_cropped_screenshot": { "message": "Area yang ditangkap" },
+  "ui_processing": { "message": "memproses..." },
+  "ui_expand": { "message": "Klik untuk memperluas" },
+  "ui_copied": { "message": "Disalin!" },
+  "ui_extracted": { "message": "Diekstrak" },
+  "ui_error": { "message": "Kesalahan" },
+  "ui_no_text": { "message": "Tidak ada teks" },
+  "ui_clipboard_error": { "message": "Kesalahan Papan Klip" },
+  "ui_language": { "message": "Bahasa" },
+  "ui_auto_copy": { "message": "Salin-Otomatis" },
+  "ui_auto_expand": { "message": "Perluas-Otomatis" },
+  "ui_shortcut": { "message": "Pintasan keyboard" },
+  "ui_set_shortcut": { "message": "Atur pintasan" },
+  "backup_tab_name": { "message": "Tangkapan layar tab asli" },
+  "backup_screenshot": { "message": "tangkapan layar" },
+  "backup_banner": {
+    "message": "Tab asli dilindungi. Menggunakan tangkapan layar baca-saja."
+  }
+}

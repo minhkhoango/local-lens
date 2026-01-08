@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Yksityisyyteen keskittyvä visuaalinen tekstipoimija, joka pysyy laitteellasi"
+  },
+  "ui_cropped_screenshot": { "message": "Kaapattu alue" },
+  "ui_processing": { "message": "käsitellään..." },
+  "ui_expand": { "message": "Laajenna napsauttamalla" },
+  "ui_copied": { "message": "Kopioitu!" },
+  "ui_extracted": { "message": "Poimittu" },
+  "ui_error": { "message": "Virhe" },
+  "ui_no_text": { "message": "Ei tekstiä" },
+  "ui_clipboard_error": { "message": "Leikepöytävirhe" },
+  "ui_language": { "message": "Kieli" },
+  "ui_auto_copy": { "message": "Automaattinen kopiointi" },
+  "ui_auto_expand": { "message": "Automaattinen laajennus" },
+  "ui_shortcut": { "message": "Pikanäppäin" },
+  "ui_set_shortcut": { "message": "Aseta pikanäppäin" },
+  "backup_tab_name": { "message": "Kuvakaappaus alkuperäisestä välilehdestä" },
+  "backup_screenshot": { "message": "kuvakaappaus" },
+  "backup_banner": {
+    "message": "Alkuperäinen välilehti oli suojattu. Käytetään vain luku -kuvakaappausta."
+  }
+}

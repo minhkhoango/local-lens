@@ -216,15 +216,11 @@ async function createBackupTab(): Promise<number> {
     chrome.tabs.onUpdated.addListener(listener);
   });
 
-  const { language, source } = await getUserLanguage();
-  console.debug(`Get user language for backup: ${language}, source: ${source}`);
-
   // Send the captured image to the backup tab
   await chrome.tabs.sendMessage<ExtensionMessage>(tab.id!, {
     action: ExtensionAction.INITIALIZE_BACKUP,
     payload: {
       imageUrl: capturedImage,
-      language: language,
     },
   });
 

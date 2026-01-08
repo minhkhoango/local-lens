@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Un estrattore di testo visivo che dà priorità alla privacy e rimane sul tuo dispositivo"
+  },
+  "ui_cropped_screenshot": { "message": "Area catturata" },
+  "ui_processing": { "message": "elaborazione..." },
+  "ui_expand": { "message": "Clicca per espandere" },
+  "ui_copied": { "message": "Copiato!" },
+  "ui_extracted": { "message": "Estratto" },
+  "ui_error": { "message": "Errore" },
+  "ui_no_text": { "message": "Nessun testo" },
+  "ui_clipboard_error": { "message": "Errore appunti" },
+  "ui_language": { "message": "Lingua" },
+  "ui_auto_copy": { "message": "Copia automatica" },
+  "ui_auto_expand": { "message": "Espansione automatica" },
+  "ui_shortcut": { "message": "Scorciatoia da tastiera" },
+  "ui_set_shortcut": { "message": "Imposta scorciatoia" },
+  "backup_tab_name": { "message": "Screenshot della scheda originale" },
+  "backup_screenshot": { "message": "screenshot" },
+  "backup_banner": {
+    "message": "La scheda originale era protetta. Uso screenshot di sola lettura."
+  }
+}

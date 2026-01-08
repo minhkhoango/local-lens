@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Un extractor de texto visual que prioriza la privacidad y permanece en tu dispositivo"
+  },
+  "ui_cropped_screenshot": { "message": "Región capturada" },
+  "ui_processing": { "message": "procesando..." },
+  "ui_expand": { "message": "Clic para expandir" },
+  "ui_copied": { "message": "¡Copiado!" },
+  "ui_extracted": { "message": "Extraído" },
+  "ui_error": { "message": "Error" },
+  "ui_no_text": { "message": "Sin texto" },
+  "ui_clipboard_error": { "message": "Error del portapapeles" },
+  "ui_language": { "message": "Idioma" },
+  "ui_auto_copy": { "message": "Auto-copia" },
+  "ui_auto_expand": { "message": "Auto-expansión" },
+  "ui_shortcut": { "message": "Atajo de teclado" },
+  "ui_set_shortcut": { "message": "Configurar atajo" },
+  "backup_tab_name": { "message": "Captura de la pestaña original" },
+  "backup_screenshot": { "message": "captura de pantalla" },
+  "backup_banner": {
+    "message": "La pestaña original estaba protegida. Usando captura de solo lectura."
+  }
+}

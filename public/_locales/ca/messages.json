@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Un extractor de text visual que prioritza la privadesa i roman al vostre dispositiu"
+  },
+  "ui_cropped_screenshot": { "message": "Regió capturada" },
+  "ui_processing": { "message": "processant..." },
+  "ui_expand": { "message": "Clica per expandir" },
+  "ui_copied": { "message": "Copiat!" },
+  "ui_extracted": { "message": "Extret" },
+  "ui_error": { "message": "Error" },
+  "ui_no_text": { "message": "Sense text" },
+  "ui_clipboard_error": { "message": "Error del porta-retalls" },
+  "ui_language": { "message": "Idioma" },
+  "ui_auto_copy": { "message": "Còpia automàtica" },
+  "ui_auto_expand": { "message": "Expansió automàtica" },
+  "ui_shortcut": { "message": "Drecera de teclat" },
+  "ui_set_shortcut": { "message": "Configura drecera" },
+  "backup_tab_name": { "message": "Captura de la pestanya original" },
+  "backup_screenshot": { "message": "captura de pantalla" },
+  "backup_banner": {
+    "message": "La pestanya original estava protegida. S'utilitza una captura de només lectura."
+  }
+}

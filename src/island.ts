@@ -16,12 +16,7 @@ import {
   type IslandState,
   type MessageResponse,
 } from './types';
-import {
-  type LanguageSchema,
-  type TesseractLang,
-  LANGUAGES,
-  LANGUAGES_OPTIONS,
-} from './language_map';
+import { type TesseractLang, LANGUAGES_OPTIONS } from './language_map';
 
 function query<T extends HTMLElement>(
   root: ShadowRoot | Document | HTMLElement,
@@ -40,7 +35,6 @@ export class FloatingIsland {
   private settings: IslandSettings = { ...DEFAULT_SETTINGS };
   private state: IslandState = 'loading';
 
-  private uiLang: LanguageSchema = LANGUAGES['eng'];
   private text = '';
   private imageUrl = '';
   private position: Point;
@@ -144,7 +138,8 @@ export class FloatingIsland {
       const response = await chrome.runtime.sendMessage<ExtensionMessage>({
         action: ExtensionAction.GET_SHORTCUT,
       });
-      this.shortcutText = response?.shortcut || this.uiLang.island.setShortcut;
+      this.shortcutText =
+        response?.shortcut || chrome.i18n.getMessage('ui_set_shortcut');
     } catch {
       // Keep default 'Set shortcut' on error
     }
@@ -164,8 +159,6 @@ export class FloatingIsland {
           ...DEFAULT_SETTINGS,
           ...savedSettings,
         };
-        if (savedSettings.language)
-          this.uiLang = LANGUAGES[savedSettings.language];
       }
     } catch {
       /* ignore */
@@ -222,10 +215,10 @@ export class FloatingIsland {
     console.debug('[Island] Rendering img, icons, settings of widget');
     return `
       <div class="${CLASSES.row}">
-        <img class="${CLASSES.image}" src="${this.imageUrl}" alt="${this.uiLang.island.croppedScreenshot}"/>
+        <img class="${CLASSES.image}" src="${this.imageUrl}" alt="${chrome.i18n.getMessage('ui_cropped_screenshot')}"/>
         <div class="${CLASSES.content}">
-          <span class="${CLASSES.status}">${this.uiLang.island.processing}</span>
-          <div class="${CLASSES.preview}" title="${this.uiLang.island.expand}"></div>
+          <span class="${CLASSES.status}">${chrome.i18n.getMessage('ui_processing')}</span>
+          <div class="${CLASSES.preview}" title="${chrome.i18n.getMessage('ui_expand')}"></div>
         </div>
         <div class="${CLASSES.actions}">
           <button class="${CLASSES.btn} ${CLASSES.copybtn} ${CLASSES.loading}">${ICONS.spinner}</button>
@@ -256,12 +249,12 @@ export class FloatingIsland {
 
     this.els.status.className = `${CLASSES.status} ${this.state}`;
     this.els.status.textContent = isLoading
-      ? this.uiLang.island.processing
+      ? chrome.i18n.getMessage('ui_processing')
       : isSuccess
         ? this.hasCopied
-          ? this.uiLang.island.copied
-          : this.uiLang.island.extracted
-        : this.uiLang.island.error;
+          ? chrome.i18n.getMessage('ui_copied')
+          : chrome.i18n.getMessage('ui_extracted')
+        : chrome.i18n.getMessage('ui_error');
 
     // Button
     this.els.copyBtn.className = `${CLASSES.btn} ${CLASSES.copybtn}
@@ -283,7 +276,7 @@ export class FloatingIsland {
     this.els.preview.textContent =
       cleanText.length > maxLength
         ? cleanText.slice(0, maxLength) + '...'
-        : cleanText || (isLoading ? '' : this.uiLang.island.noText);
+        : cleanText || (isLoading ? '' : chrome.i18n.getMessage('ui_no_text'));
 
     if (
       !this.els.settingsLabelLang ||
@@ -294,15 +287,18 @@ export class FloatingIsland {
       return;
     console.debug('[Island] updateUI(), settings label language');
 
-    this.els.settingsLabelLang.textContent = this.uiLang.island.lang;
-    this.els.settingsLabelAutoCopy.textContent = this.uiLang.island.autoCopy;
+    this.els.settingsLabelLang.textContent =
+      chrome.i18n.getMessage('ui_language');
+    this.els.settingsLabelAutoCopy.textContent =
+      chrome.i18n.getMessage('ui_auto_copy');
     this.els.settingsLabelAutoExpand.textContent =
-      this.uiLang.island.autoExpand;
-    this.els.settingsLabelShortcut.textContent = this.uiLang.island.shortcut;
+      chrome.i18n.getMessage('ui_auto_expand');
+    this.els.settingsLabelShortcut.textContent =
+      chrome.i18n.getMessage('ui_shortcut');
 
     if (!this.els.image || !this.els.preview) return;
-    this.els.image.alt = this.uiLang.island.croppedScreenshot;
-    this.els.preview.title = this.uiLang.island.expand;
+    this.els.image.alt = chrome.i18n.getMessage('ui_cropped_screenshot');
+    this.els.preview.title = chrome.i18n.getMessage('ui_expand');
   }
 
   private renderSettingsRows(): string {
@@ -319,7 +315,7 @@ export class FloatingIsland {
       ).join('') || '';
     const languageRow = `
       <div class="${CLASSES.settingRow}">
-        <span>${this.uiLang.island.lang}</span>
+        <span>${chrome.i18n.getMessage('ui_language')}</span>
         <div class="${CLASSES.selectWrapper}">
           <select class="${CLASSES.settingsSelect}" data-key="language">
             ${languageOptions}
@@ -332,7 +328,7 @@ export class FloatingIsland {
     const autoCopyClass = `${CLASSES.toggle} ${this.settings.autoCopy ? CLASSES.active : ''}`;
     const autoCopyRow = `
       <div class="${CLASSES.settingRow}">
-        <span>${this.uiLang.island.autoCopy}</span>
+        <span>${chrome.i18n.getMessage('ui_auto_copy')}</span>
         <div class="${autoCopyClass}" data-key="autoCopy"></div>
       </div>`;
 
@@ -340,14 +336,14 @@ export class FloatingIsland {
     const autoExpandClass = `${CLASSES.toggle} ${this.settings.autoExpand ? CLASSES.active : ''}`;
     const autoExpandRow = `
       <div class="${CLASSES.settingRow}">
-        <span>${this.uiLang.island.autoExpand}</span>
+        <span>${chrome.i18n.getMessage('ui_auto_expand')}</span>
         <div class="${autoExpandClass}" data-key="autoExpand"></div>
       </div>`;
 
     // Keyboard shortcut button
     const shortcutRow = `
       <div class="${CLASSES.settingRow}">
-        <span>${this.uiLang.island.shortcut}</span>
+        <span>${chrome.i18n.getMessage('ui_shortcut')}</span>
         <button class="${CLASSES.settingsActionBtn}" data-action="openShortcuts">
           ${this.shortcutText}
         </button>
@@ -455,8 +451,6 @@ export class FloatingIsland {
       chrome.storage.local.set({
         [STORAGE_KEYS.ISLAND_SETTINGS]: this.settings,
       });
-      this.uiLang = LANGUAGES[newLanguage];
-      this.updateUI();
 
       // Trigger update language / ocr logic
       if (this.imageUrl) {
@@ -538,7 +532,8 @@ export class FloatingIsland {
     if (!this.text) return;
     if (!navigator.clipboard) {
       console.warn('Clipboard API not available');
-      this.els.status!.textContent = this.uiLang.island.clipboardError;
+      this.els.status!.textContent =
+        chrome.i18n.getMessage('ui_clipboard_error');
       return;
     }
 

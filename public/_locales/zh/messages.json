@@ -1,0 +1,22 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "注重隐私的视觉文本提取工具，在您的设备上运行"
+  },
+  "ui_cropped_screenshot": { "message": "截图区域" },
+  "ui_processing": { "message": "处理中..." },
+  "ui_expand": { "message": "点击展开" },
+  "ui_copied": { "message": "已复制！" },
+  "ui_extracted": { "message": "已提取" },
+  "ui_error": { "message": "错误" },
+  "ui_no_text": { "message": "无文本" },
+  "ui_clipboard_error": { "message": "剪贴板错误" },
+  "ui_language": { "message": "语言" },
+  "ui_auto_copy": { "message": "自动复制" },
+  "ui_auto_expand": { "message": "自动展开" },
+  "ui_shortcut": { "message": "键盘快捷键" },
+  "ui_set_shortcut": { "message": "设置快捷键" },
+  "backup_tab_name": { "message": "原标签页截图" },
+  "backup_screenshot": { "message": "截图" },
+  "backup_banner": { "message": "原标签页受保护。正在使用只读截图。" }
+}

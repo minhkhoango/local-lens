@@ -1,0 +1,24 @@
+{
+  "appName": { "message": "Local Lens" },
+  "appDescription": {
+    "message": "Een privacy-gerichte visuele tekstextractor die op je apparaat blijft"
+  },
+  "ui_cropped_screenshot": { "message": "Vastgelegd gebied" },
+  "ui_processing": { "message": "verwerken..." },
+  "ui_expand": { "message": "Klik om uit te breiden" },
+  "ui_copied": { "message": "Gekopieerd!" },
+  "ui_extracted": { "message": "Geëxtraheerd" },
+  "ui_error": { "message": "Fout" },
+  "ui_no_text": { "message": "Geen tekst" },
+  "ui_clipboard_error": { "message": "Klembordfout" },
+  "ui_language": { "message": "Taal" },
+  "ui_auto_copy": { "message": "Auto-kopiëren" },
+  "ui_auto_expand": { "message": "Auto-uitbreiden" },
+  "ui_shortcut": { "message": "Sneltoets" },
+  "ui_set_shortcut": { "message": "Sneltoets instellen" },
+  "backup_tab_name": { "message": "Screenshot van origineel tabblad" },
+  "backup_screenshot": { "message": "screenshot" },
+  "backup_banner": {
+    "message": "Het originele tabblad was beveiligd. Alleen-lezen screenshot wordt gebruikt."
+  }
+}
