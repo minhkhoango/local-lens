@@ -202,7 +202,8 @@ async function createBackupTab(): Promise<number> {
   }
 
   const tab = await chrome.tabs.create({
-    url: chrome.runtime.getURL('backup.html'),
+    url: FILES_PATH.BACKUP_HTML,
+    active: true,
   });
 
   // Wait for tab to fully load before returning

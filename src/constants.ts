@@ -16,6 +16,7 @@ export const OCR_CONFIG = {
 } as const;
 
 export const FILES_PATH = {
+  BACKUP_HTML: 'backup.html',
   CONTENT_SCRIPT: 'content.js',
   OFFSCREEN_HTML: 'offscreen.html',
   OCR_WORKER: 'tesseract_engine/worker.min.js',
