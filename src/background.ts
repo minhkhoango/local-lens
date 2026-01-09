@@ -15,36 +15,45 @@ import type {
   UserLanguage,
 } from './types';
 
-// Track the tab that initiated OCR (for forwarding CROP_READY)
-let activeOcrTabId: number | undefined;
-let capturedImage: string | null = null;
-let croppedImage: string | null = null;
+/**
+ * Reading from global vars | runtime.sendMessage is faster than chrome.storage
+ * However, service worker die every 30s, so using hybrid approach
+ * image data is transfered using base64 string format, so maybe improvement?
+ */
+let localActiveOcrTabId: number | undefined;
+let localCapturedImage: string | null = null;
+let localCroppedImage: string | null = null;
+let creatingOffscreenPromise: Promise<void> | null = null;
 
 // tool bar icon click, chrome handle the shortcut automatically
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id || !tab.url) return;
+  await chrome.storage.session.set({ [STORAGE_KEYS.TAB_ID]: tab.id });
+  localActiveOcrTabId = tab.id;
 
   try {
     console.debug('screenshot');
-    capturedImage = await chrome.tabs.captureVisibleTab({
+    const capturedImage = await chrome.tabs.captureVisibleTab({
       format: OCR_CONFIG.CAPTURE_FORMAT,
     });
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.CAPTURED_IMAGE]: capturedImage,
+    });
+    localCapturedImage = capturedImage;
 
-    let targetTabId = tab.id;
     const isRestricted = isRestrictedUrl(tab.url);
 
     if (isRestricted) {
       console.debug('Restricted site detected via URL check.');
-      targetTabId = await createBackupTab();
-      await runOcrOnTab(targetTabId, true);
+      await createBackupTab();
+      await runOcrOnTab(true);
     } else {
       try {
-        await runOcrOnTab(targetTabId, false);
+        await runOcrOnTab(false);
       } catch {
         console.debug('Injection failed on standard site, creating backup tab');
-        targetTabId = await createBackupTab();
-
-        await runOcrOnTab(targetTabId, true);
+        await createBackupTab();
+        await runOcrOnTab(true);
       }
     }
   } catch (err) {
@@ -56,7 +65,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 chrome.runtime.onMessage.addListener(
   (
     message: ExtensionMessage,
-    sender: chrome.runtime.MessageSender,
+    _sender: chrome.runtime.MessageSender,
     sendResponse: (response: MessageResponse) => void
   ) => {
     switch (message.action) {
@@ -65,7 +74,7 @@ chrome.runtime.onMessage.addListener(
         // Handle async work in IIFE while returning true synchronously
         (async () => {
           try {
-            await handleCaptureSuccess(message.payload, sender.tab?.id);
+            await handleCaptureSuccess(message.payload);
             sendResponse({ status: 'ok' });
           } catch (err) {
             sendResponse({
@@ -80,12 +89,16 @@ chrome.runtime.onMessage.addListener(
         console.debug(message.action);
         (async () => {
           try {
-            const isOffscreenReady = ensureOffscreenAlive();
+            const isOffscreenReady = await ensureOffscreenAlive();
             if (!isOffscreenReady) {
               throw new Error('Could not start OCR engine');
             }
 
             const { language } = message.payload;
+            const croppedImage = await getCapturedImg(
+              'cropped',
+              'fail language update'
+            );
 
             // Forward command to offscreen doc
             const response = await chrome.runtime.sendMessage<
@@ -132,12 +145,15 @@ chrome.runtime.onMessage.addListener(
       }
       case ExtensionAction.CROP_READY: {
         console.debug(message.action);
-        if (message.payload?.croppedImageUrl) {
-          croppedImage = message.payload.croppedImageUrl;
-        }
-        if (activeOcrTabId) {
-          sendCropReadyToTab(activeOcrTabId, message.payload);
-        }
+        (async () => {
+          if (message.payload?.croppedImageUrl) {
+            await chrome.storage.local.set({
+              [STORAGE_KEYS.CROPPED_IMAGE]: message.payload.croppedImageUrl,
+            });
+            localCroppedImage = message.payload.croppedImageUrl;
+          }
+          sendCropReadyToTab(message.payload);
+        })();
         return false; // No response needed
       }
       case ExtensionAction.OPEN_SHORTCUTS_PAGE: {
@@ -146,6 +162,14 @@ chrome.runtime.onMessage.addListener(
         sendResponse({ status: 'ok' });
         return false; // Synchronous response
       }
+      case ExtensionAction.CLEANUP_STORAGE: {
+        (async () => {
+          console.debug(message.action);
+          await cleanupStorage();
+          sendResponse({ status: 'ok' });
+        })();
+        return false;
+      }
     }
     return false;
   }
@@ -153,7 +177,6 @@ chrome.runtime.onMessage.addListener(
 
 function isRestrictedUrl(url: string | undefined): boolean {
   if (!url) return true;
-
   const newUrl = new URL(url);
 
   // Check protocol (https, chrome://, ...)
@@ -167,7 +190,9 @@ function isRestrictedUrl(url: string | undefined): boolean {
   return false;
 }
 
-async function runOcrOnTab(tabId: number, isBackupTab = false) {
+async function runOcrOnTab(isBackupTab = false): Promise<void> {
+  const tabId = await getTabId('stop run ocr on tab');
+
   try {
     if (!isBackupTab) {
       console.debug('load content.ts on tab:', tabId);
@@ -196,15 +221,17 @@ async function runOcrOnTab(tabId: number, isBackupTab = false) {
   }
 }
 
-async function createBackupTab(): Promise<number> {
-  if (!capturedImage) {
-    throw new Error('capturedImage not found!, no new Tab');
-  }
+async function createBackupTab(): Promise<void> {
+  const capturedImage = await getCapturedImg('captured', 'no new Tab');
 
   const tab = await chrome.tabs.create({
     url: FILES_PATH.BACKUP_HTML,
     active: true,
   });
+
+  if (tab.id === undefined) {
+    throw new Error('Tab created but ID is undefined.');
+  }
 
   // Wait for tab to fully load before returning
   await new Promise<void>((resolve) => {
@@ -218,37 +245,24 @@ async function createBackupTab(): Promise<number> {
   });
 
   // Send the captured image to the backup tab
-  await chrome.tabs.sendMessage<ExtensionMessage>(tab.id!, {
+  await chrome.tabs.sendMessage<ExtensionMessage>(tab.id, {
     action: ExtensionAction.INITIALIZE_BACKUP,
     payload: {
       imageUrl: capturedImage,
     },
   });
 
-  return tab.id!;
+  await chrome.storage.session.set({ [STORAGE_KEYS.TAB_ID]: tab.id });
+  localActiveOcrTabId = tab.id;
 }
 
-async function handleCaptureSuccess(
-  payload: SelectionRect,
-  tabId?: number
-): Promise<void> {
-  // Track active tab for CROP_READY forwarding
-  activeOcrTabId = tabId;
+async function handleCaptureSuccess(payload: SelectionRect): Promise<void> {
+  const tabId = await getTabId('stop handle capture success');
+  const capturedImage = await getCapturedImg(
+    'captured',
+    'no image found in storage'
+  );
 
-  if (!capturedImage) {
-    console.error('No image found in storage');
-    sendOcrResultToTab(tabId, {
-      success: false,
-      text: 'No screenshot found',
-      confidence: 0,
-      croppedImageUrl: '',
-      cursorPosition: {
-        x: payload.x + payload.width,
-        y: payload.y + payload.height,
-      },
-    });
-    return;
-  }
   console.debug('image found in storage, warming offscreen');
 
   try {
@@ -366,11 +380,9 @@ async function sendOcrResultToTab(
   }
 }
 
-async function sendCropReadyToTab(
-  tabId: number | undefined,
-  payload: CropReadyPayload
-): Promise<void> {
-  if (!tabId) return;
+async function sendCropReadyToTab(payload: CropReadyPayload): Promise<void> {
+  const tabId = await getTabId('stop stop sending crop to tab');
+
   try {
     await chrome.tabs.sendMessage<ExtensionMessage>(tabId, {
       action: ExtensionAction.CROP_READY,
@@ -393,8 +405,6 @@ async function ensureContentScriptLoaded(tabId: number): Promise<void> {
     });
   }
 }
-
-let creatingOffscreenPromise: Promise<void> | null = null;
 
 async function setupOffscreenDocument(path: string): Promise<void> {
   // Check if offscreen document exists
@@ -470,4 +480,47 @@ async function getUserLanguage(): Promise<UserLanguage> {
     language: 'eng',
     source: 'default',
   };
+}
+
+async function getTabId(error_message?: string): Promise<number> {
+  if (localActiveOcrTabId) return localActiveOcrTabId;
+
+  const stored = await chrome.storage.session.get(STORAGE_KEYS.TAB_ID);
+  const tabId = stored[STORAGE_KEYS.TAB_ID] as number | undefined;
+  if (!tabId) {
+    console.error('tabId not found', error_message);
+    throw new Error('tabId not found');
+  }
+
+  localActiveOcrTabId = tabId;
+  return tabId;
+}
+
+async function getCapturedImg(
+  type: 'captured' | 'cropped',
+  error_message?: string
+): Promise<string> {
+  if (type === 'captured' && localCapturedImage) return localCapturedImage;
+  if (type === 'cropped' && localCroppedImage) return localCroppedImage;
+
+  // Load from local storage
+  const storageKey =
+    type === 'captured'
+      ? STORAGE_KEYS.CAPTURED_IMAGE
+      : STORAGE_KEYS.CROPPED_IMAGE;
+  const stored = await chrome.storage.local.get(storageKey);
+  const image = stored[storageKey] as string | undefined;
+  if (!image) {
+    console.error(`${type} img not found`, error_message);
+    throw new Error(`${type} img not found`);
+  }
+  if (type === 'captured') localCapturedImage = image;
+  if (type === 'cropped') localCroppedImage = image;
+
+  return image;
+}
+
+async function cleanupStorage() {
+  await chrome.storage.local.remove(STORAGE_KEYS.CAPTURED_IMAGE);
+  await chrome.storage.local.remove(STORAGE_KEYS.CROPPED_IMAGE);
 }

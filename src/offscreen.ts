@@ -5,7 +5,6 @@ import Tesseract from 'tesseract.js';
 
 let worker: Tesseract.Worker | null = null;
 let currentLanguage: string = 'eng';
-let localCroppedImage: string | null = null;
 
 chrome.runtime.onMessage.addListener(
   (
@@ -17,23 +16,23 @@ chrome.runtime.onMessage.addListener(
       case ExtensionAction.PING_OFFSCREEN:
         console.debug(message.action);
         sendResponse({ status: 'ok', message: 'pong' });
-        break;
+        return false;
 
       case ExtensionAction.PERFORM_OCR:
         console.debug(message.action);
         const { imageDataUrl, rect, language } = message.payload;
         currentLanguage = language;
         runTesseractOcr(imageDataUrl, rect, language, sendResponse);
-        break;
+        return true; // Keep channel open for async response
 
       case ExtensionAction.UPDATE_LANGUAGE:
         console.debug(message.action);
         const { language: retryLanguage, croppedImage } = message.payload;
         retryTesseractOcr(retryLanguage, croppedImage, sendResponse);
-        break;
+        return true; // Keep channel open for async response
     }
 
-    return true; // Keep channel open
+    return false;
   }
 );
 
@@ -56,9 +55,6 @@ async function runTesseractOcr(
     let cropped: string;
     try {
       cropped = await cropImage(imageDataUrl, rect);
-
-      // Save cropped image in case of language retry
-      localCroppedImage = cropped;
     } catch (err) {
       console.error('Image cropping error:', err);
       sendResponse({
@@ -94,14 +90,13 @@ async function runTesseractOcr(
 
 async function retryTesseractOcr(
   language: string,
-  bgCroppedImage: string | null,
+  croppedImage: string | null,
   sendResponse: (response: MessageResponse) => void
 ) {
   try {
-    if (!localCroppedImage && !bgCroppedImage) {
+    if (!croppedImage) {
       throw new Error('No saved cropped image found for retry');
     }
-    const croppedImage = (localCroppedImage ?? bgCroppedImage) as string;
 
     console.debug(`Retrying OCR with language: ${language}`);
     await performRecognition(croppedImage, language, sendResponse);

@@ -1,15 +1,13 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
-// Since IIFE doesn't support multiple inputs, we build one file at a time
-// using the VITE_ENTRY environment variable.
-
+// Built seperately to avoid import statement
 const entry = process.env.VITE_ENTRY || 'background';
 
 export default defineConfig({
-  esbuild: {
-    drop: ['console'],
-  },
+  // esbuild: {
+  //   drop: ['console'],
+  // },
   build: {
     rollupOptions: {
       input: resolve(__dirname, `src/${entry}.ts`),

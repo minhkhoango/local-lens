@@ -32,6 +32,7 @@ export const ExtensionAction = {
   OPEN_SHORTCUTS_PAGE: 'OPEN_SHORTCUTS_PAGE',
   GET_SHORTCUT: 'GET_SHORTCUT',
   INITIALIZE_BACKUP: 'INITIALIZE_BACKUP',
+  CLEANUP_STORAGE: 'CLEANUP_STORAGE',
 } as const;
 
 export type ExtensionAction =
@@ -91,7 +92,8 @@ export type ExtensionMessage =
   | {
       action: typeof ExtensionAction.INITIALIZE_BACKUP;
       payload: BackupImagePayload;
-    };
+    }
+  | { action: typeof ExtensionAction.CLEANUP_STORAGE };
 
 export interface MessageResponse {
   status: 'ok' | 'error';

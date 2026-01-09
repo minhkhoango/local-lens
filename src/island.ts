@@ -120,7 +120,7 @@ export class FloatingIsland {
     }
   }
 
-  public destroy(): void {
+  public async destroy(): Promise<void> {
     console.log('[Island] destroy widget & listener');
     document.removeEventListener('mousemove', this.handleDragMove);
     document.removeEventListener('mouseup', this.handleDragEnd);
@@ -129,6 +129,9 @@ export class FloatingIsland {
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('resize', this.handleResize);
     this.host.remove();
+    await chrome.runtime.sendMessage({
+      action: ExtensionAction.CLEANUP_STORAGE,
+    });
   }
 
   // --- Private Methods ---
