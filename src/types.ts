@@ -5,6 +5,8 @@ export interface Point {
   y: number;
 }
 
+export type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
 export const ISLAND_STATES = ['loading', 'success', 'error'] as const;
 export type IslandState = (typeof ISLAND_STATES)[number];
 

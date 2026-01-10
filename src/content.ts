@@ -60,7 +60,7 @@ chrome.runtime.onMessage.addListener(
 );
 
 function handleCropReady(payload: CropReadyPayload): void {
-  if (activeIsland) activeIsland.destroy();
+  if (activeIsland) activeIsland.destroy(false);
 
   activeIsland = new FloatingIsland(
     payload.cursorPosition,
