@@ -15,21 +15,12 @@ import type {
   UserLanguage,
 } from './types';
 
-/**
- * Reading from global vars | runtime.sendMessage is faster than chrome.storage
- * However, service worker die every 30s, so using hybrid approach
- * image data is transfered using base64 string format, so maybe improvement?
- */
-let localActiveOcrTabId: number | undefined;
-let localCapturedImage: string | null = null;
-let localCroppedImage: string | null = null;
 let creatingOffscreenPromise: Promise<void> | null = null;
 
 // tool bar icon click, chrome handle the shortcut automatically
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id || !tab.url) return;
   await chrome.storage.session.set({ [STORAGE_KEYS.TAB_ID]: tab.id });
-  localActiveOcrTabId = tab.id;
 
   try {
     console.debug('screenshot');
@@ -39,7 +30,6 @@ chrome.action.onClicked.addListener(async (tab) => {
     await chrome.storage.local.set({
       [STORAGE_KEYS.CAPTURED_IMAGE]: capturedImage,
     });
-    localCapturedImage = capturedImage;
 
     const isRestricted = isRestrictedUrl(tab.url);
 
@@ -150,7 +140,6 @@ chrome.runtime.onMessage.addListener(
             await chrome.storage.local.set({
               [STORAGE_KEYS.CROPPED_IMAGE]: message.payload.croppedImageUrl,
             });
-            localCroppedImage = message.payload.croppedImageUrl;
           }
           sendCropReadyToTab(message.payload);
         })();
@@ -180,7 +169,7 @@ function isRestrictedUrl(url: string | undefined): boolean {
   const newUrl = new URL(url);
 
   // Check protocol (https, chrome://, ...)
-  const restrictedProtocols = ['chrome:', 'edge:', 'brave:'];
+  const restrictedProtocols = ['chrome:', 'edge:', 'brave:', 'file:'];
   if (restrictedProtocols.includes(newUrl.protocol)) return true;
 
   // Check domain
@@ -222,7 +211,7 @@ async function runOcrOnTab(isBackupTab = false): Promise<void> {
 }
 
 async function createBackupTab(): Promise<void> {
-  const capturedImage = await getCapturedImg('captured', 'no new Tab');
+  const capturedImage = await getCapturedImg('captured');
 
   const tab = await chrome.tabs.create({
     url: FILES_PATH.BACKUP_HTML,
@@ -253,15 +242,11 @@ async function createBackupTab(): Promise<void> {
   });
 
   await chrome.storage.session.set({ [STORAGE_KEYS.TAB_ID]: tab.id });
-  localActiveOcrTabId = tab.id;
 }
 
 async function handleCaptureSuccess(payload: SelectionRect): Promise<void> {
   const tabId = await getTabId('stop handle capture success');
-  const capturedImage = await getCapturedImg(
-    'captured',
-    'no image found in storage'
-  );
+  const capturedImage = await getCapturedImg('captured');
 
   console.debug('image found in storage, warming offscreen');
 
@@ -483,8 +468,6 @@ async function getUserLanguage(): Promise<UserLanguage> {
 }
 
 async function getTabId(error_message?: string): Promise<number> {
-  if (localActiveOcrTabId) return localActiveOcrTabId;
-
   const stored = await chrome.storage.session.get(STORAGE_KEYS.TAB_ID);
   const tabId = stored[STORAGE_KEYS.TAB_ID] as number | undefined;
   if (!tabId) {
@@ -492,7 +475,6 @@ async function getTabId(error_message?: string): Promise<number> {
     throw new Error('tabId not found');
   }
 
-  localActiveOcrTabId = tabId;
   return tabId;
 }
 
@@ -500,9 +482,6 @@ async function getCapturedImg(
   type: 'captured' | 'cropped',
   error_message?: string
 ): Promise<string> {
-  if (type === 'captured' && localCapturedImage) return localCapturedImage;
-  if (type === 'cropped' && localCroppedImage) return localCroppedImage;
-
   // Load from local storage
   const storageKey =
     type === 'captured'
@@ -514,8 +493,6 @@ async function getCapturedImg(
     console.error(`${type} img not found`, error_message);
     throw new Error(`${type} img not found`);
   }
-  if (type === 'captured') localCapturedImage = image;
-  if (type === 'cropped') localCroppedImage = image;
 
   return image;
 }

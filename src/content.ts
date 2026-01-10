@@ -24,14 +24,13 @@ chrome.runtime.onMessage.addListener(
     switch (message.action) {
       case ExtensionAction.PING_CONTENT:
         console.debug(message.action);
-        if (activeIsland) activeIsland.destroy();
+        if (activeIsland) activeIsland.destroy(false);
         sendResponse({ status: 'ok' });
         break;
 
       case ExtensionAction.ACTIVATE_OVERLAY:
         console.debug(message.action);
         if (activeOverlay) activeOverlay.destroy();
-        if (activeIsland) activeIsland.destroy();
         activeOverlay = new GhostOverlay();
         activeOverlay.mount();
         activeOverlay.activate();

@@ -120,18 +120,18 @@ export class FloatingIsland {
     }
   }
 
-  public async destroy(): Promise<void> {
+  public async destroy(clean_storage = true): Promise<void> {
     console.log('[Island] destroy widget & listener');
     document.removeEventListener('mousemove', this.handleDragMove);
     document.removeEventListener('mouseup', this.handleDragEnd);
     document.removeEventListener('click', this.handleClickOutside);
-    window.removeEventListener('blur', this.handleWindowBlur);
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('resize', this.handleResize);
     this.host.remove();
-    await chrome.runtime.sendMessage({
-      action: ExtensionAction.CLEANUP_STORAGE,
-    });
+    if (clean_storage)
+      await chrome.runtime.sendMessage({
+        action: ExtensionAction.CLEANUP_STORAGE,
+      });
   }
 
   // --- Private Methods ---
@@ -361,8 +361,6 @@ export class FloatingIsland {
     console.debug('[Island] Binding events to icons / widget');
     this.container.addEventListener('mousedown', this.handleDragStart);
     document.addEventListener('click', this.handleClickOutside);
-    // To listen on protected file://, pdf
-    window.addEventListener('blur', this.handleWindowBlur);
     window.addEventListener('keydown', this.handleKeyDown);
     window.addEventListener('resize', this.handleResize);
 
@@ -617,15 +615,6 @@ export class FloatingIsland {
   private handleClickOutside = (e: MouseEvent): void => {
     console.debug('[Island] Handle unprotected click outside');
     if (!this.host.contains(e.target as Node)) this.destroy();
-  };
-
-  private handleWindowBlur = (): void => {
-    console.debug('[Island] Handle click outside in pdf / iframe');
-    setTimeout(() => {
-      if (!this.container.matches(':hover') && !this.isDragging) {
-        this.destroy();
-      }
-    }, 100);
   };
 
   private handleKeyDown = (e: KeyboardEvent): void => {
