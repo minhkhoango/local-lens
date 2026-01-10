@@ -15,8 +15,6 @@ import type {
   UserLanguage,
 } from './types';
 
-let creatingOffscreenPromise: Promise<void> | null = null;
-
 // tool bar icon click, chrome handle the shortcut automatically
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id || !tab.url) return;
@@ -79,10 +77,7 @@ chrome.runtime.onMessage.addListener(
         console.debug(message.action);
         (async () => {
           try {
-            const isOffscreenReady = await ensureOffscreenAlive();
-            if (!isOffscreenReady) {
-              throw new Error('Could not start OCR engine');
-            }
+            await ensureOffscreen();
 
             const { language } = message.payload;
             const croppedImage = await getCapturedImg(
@@ -204,7 +199,7 @@ async function runOcrOnTab(isBackupTab = false): Promise<void> {
 
     console.debug('warming up offscreen engine...');
     // warm up the offscreen engine
-    await setupOffscreenDocument(FILES_PATH.OFFSCREEN_HTML);
+    await ensureOffscreen();
   } catch (err) {
     throw err;
   }
@@ -251,21 +246,7 @@ async function handleCaptureSuccess(payload: SelectionRect): Promise<void> {
   console.debug('image found in storage, warming offscreen');
 
   try {
-    const isOffscreenReady = await ensureOffscreenAlive();
-    if (!isOffscreenReady) {
-      console.error('Offscreen not reachable, aborting OCR');
-      sendOcrResultToTab(tabId, {
-        success: false,
-        text: 'OCR engine not ready',
-        confidence: 0,
-        croppedImageUrl: '',
-        cursorPosition: {
-          x: payload.x + payload.width,
-          y: payload.y + payload.height,
-        },
-      });
-      return;
-    }
+    await ensureOffscreen();
 
     const { language, source } = await getUserLanguage();
     console.debug(`User language: ${language}, source: ${source}`);
@@ -327,27 +308,19 @@ async function handleCaptureSuccess(payload: SelectionRect): Promise<void> {
   }
 }
 
-async function ensureOffscreenAlive(): Promise<boolean> {
-  // Ensure the document exists, then ping it; recreate once on failure.
-  const ping = async () => {
-    try {
-      const response = await chrome.runtime.sendMessage<
-        ExtensionMessage,
-        MessageResponse
-      >({
-        action: ExtensionAction.PING_OFFSCREEN,
-      });
-      return response?.status === 'ok';
-    } catch {
-      return false;
-    }
-  };
+async function ensureOffscreen(): Promise<void> {
+  const existing = await chrome.runtime.getContexts({
+    contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
+    documentUrls: [chrome.runtime.getURL(FILES_PATH.OFFSCREEN_HTML)],
+  });
 
-  await setupOffscreenDocument(FILES_PATH.OFFSCREEN_HTML);
-  if (await ping()) return true;
+  if (existing.length > 0) return;
 
-  await setupOffscreenDocument(FILES_PATH.OFFSCREEN_HTML);
-  return await ping();
+  await chrome.offscreen.createDocument({
+    url: FILES_PATH.OFFSCREEN_HTML,
+    reasons: [chrome.offscreen.Reason.BLOBS],
+    justification: OCR_CONFIG.JUSTIFICATION,
+  });
 }
 
 async function sendOcrResultToTab(
@@ -389,31 +362,6 @@ async function ensureContentScriptLoaded(tabId: number): Promise<void> {
       files: [FILES_PATH.CONTENT_SCRIPT],
     });
   }
-}
-
-async function setupOffscreenDocument(path: string): Promise<void> {
-  // Check if offscreen document exists
-  const offscreenDocConext = await chrome.runtime.getContexts({
-    contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
-    documentUrls: [chrome.runtime.getURL(path)],
-  });
-
-  if (offscreenDocConext.length > 0) return;
-
-  if (creatingOffscreenPromise) {
-    await creatingOffscreenPromise;
-    return;
-  }
-
-  console.debug('offscreen doc not found, creating...');
-  creatingOffscreenPromise = chrome.offscreen.createDocument({
-    url: path,
-    reasons: [chrome.offscreen.Reason.BLOBS],
-    justification: OCR_CONFIG.JUSTIFICATION,
-  });
-
-  await creatingOffscreenPromise;
-  creatingOffscreenPromise = null;
 }
 
 async function getShortcutCommand(): Promise<string> {

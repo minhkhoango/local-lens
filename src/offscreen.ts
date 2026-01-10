@@ -13,11 +13,6 @@ chrome.runtime.onMessage.addListener(
     sendResponse: (response: MessageResponse) => void
   ) => {
     switch (message.action) {
-      case ExtensionAction.PING_OFFSCREEN:
-        console.debug(message.action);
-        sendResponse({ status: 'ok', message: 'pong' });
-        return false;
-
       case ExtensionAction.PERFORM_OCR:
         console.debug(message.action);
         const { imageDataUrl, rect, language } = message.payload;
