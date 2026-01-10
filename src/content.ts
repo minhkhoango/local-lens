@@ -8,7 +8,7 @@ import type {
 } from './types';
 import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island';
-import { BACKUP_STYLES } from './assets';
+import backupStyles from './styles/backup.css?inline';
 import { CLASSES } from './constants';
 
 // State Management
@@ -93,7 +93,7 @@ function setupBackupDisplay(payload: BackupImagePayload): void {
     document.head.append(title);
 
     const styleElement = document.createElement('style');
-    styleElement.textContent = BACKUP_STYLES;
+    styleElement.textContent = backupStyles;
     document.head.appendChild(styleElement);
 
     const imageContainer = document.querySelector(`.${CLASSES.imageContainer}`);

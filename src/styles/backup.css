@@ -1,0 +1,50 @@
+:host {
+  --bg: #1e1e1e;
+  --surface: #e9eef6;
+  --text: #1f1f1f;
+  --border: rgba(255, 255, 255, 0.1);
+  --font:
+    'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  --shadow: 0 4px 8px 3px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --img-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  background-color: var(--bg);
+  overflow: hidden;
+}
+
+.image-container {
+  overflow: hidden;
+}
+
+img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  box-shadow: var(--img-shadow);
+}
+
+.banner {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  color: var(--text);
+  padding: 12px 24px;
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1;
+  border: 1px solid var(--border);
+}

@@ -1,11 +1,12 @@
-import { ICONS, ISLAND_STYLES } from './assets';
+import islandStyles from './styles/island.css?inline';
 import {
   IDS,
   CLASSES,
   CONFIG,
   DEFAULT_SETTINGS,
   STORAGE_KEYS,
-  ISLAND_CSS,
+  ISLAND_CONFIG,
+  ICONS,
 } from './constants';
 import {
   ExtensionAction,
@@ -173,7 +174,7 @@ export class FloatingIsland {
     console.log('[Island] Building the full widget, caching refs');
     // Inject styles
     this.styleElement = document.createElement('style');
-    this.styleElement.textContent = ISLAND_STYLES;
+    this.styleElement.textContent = islandStyles;
     this.shadow.appendChild(this.styleElement);
 
     // Build container
@@ -286,7 +287,7 @@ export class FloatingIsland {
       // False in update lang case
       const dynamicWidth = this.isExpanded
         ? this.calculateDynamicWidth()
-        : ISLAND_CSS.layout.widthCollapsed;
+        : ISLAND_CONFIG.widthCollapsed;
       this.container.style.width = `${dynamicWidth}px`;
     }
 
@@ -520,10 +521,8 @@ export class FloatingIsland {
     this.container.style.width = `${dynamicWidth}px`;
 
     // Expand/collapse to the left
-    if (ISLAND_CSS.layout.expandToLeft) {
-      const widthDiff = dynamicWidth - ISLAND_CSS.layout.widthCollapsed;
-      this.position.x += this.isExpanded ? -widthDiff : widthDiff;
-    }
+    const widthDiff = dynamicWidth - ISLAND_CONFIG.widthCollapsed;
+    this.position.x += this.isExpanded ? -widthDiff : widthDiff;
 
     this.container.classList.toggle(CLASSES.expanded, this.isExpanded);
     if (this.els.textarea) {
@@ -581,11 +580,11 @@ export class FloatingIsland {
     console.debug('Measuring width with chunk', longestChunk);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    if (!ctx) return ISLAND_CSS.layout.maxWidthExpanded;
+    if (!ctx) return ISLAND_CONFIG.maxWidthExpanded;
 
     // Use font metrics from ISLAND_CSS
-    const fontSize = ISLAND_CSS.font.sizeSmall;
-    const fontFamily = ISLAND_CSS.font.family;
+    const fontSize = ISLAND_CONFIG.font.sizeSmall;
+    const fontFamily = ISLAND_CONFIG.font.family;
     ctx.font = `${fontSize}px ${fontFamily}`;
 
     try {
@@ -593,16 +592,16 @@ export class FloatingIsland {
       const textWidth = metrics.width;
 
       // Add padding: left padding + right padding + just in case
-      const horizontalPadding = ISLAND_CSS.layout.layoutPad * 3;
+      const horizontalPadding = ISLAND_CONFIG.layoutPad * 3;
       const totalWidth = textWidth + horizontalPadding;
       console.debug('Measured dynamic width', totalWidth);
       // Clamp between 320 and 650
       return Math.max(
-        ISLAND_CSS.layout.widthCollapsed,
-        Math.min(totalWidth, ISLAND_CSS.layout.maxWidthExpanded)
+        ISLAND_CONFIG.widthCollapsed,
+        Math.min(totalWidth, ISLAND_CONFIG.maxWidthExpanded)
       );
     } catch {
-      return ISLAND_CSS.layout.maxWidthExpanded;
+      return ISLAND_CONFIG.maxWidthExpanded;
     }
   }
 
@@ -703,9 +702,9 @@ export class FloatingIsland {
     console.debug(
       '[Island] clamp to viewport, ensure UI spawn inside page on initilization'
     );
-    const pad = ISLAND_CSS.layout.boundaryPad;
-    const width = ISLAND_CSS.layout.widthCollapsed;
-    const height = ISLAND_CSS.layout.heightCollapsed;
+    const pad = ISLAND_CONFIG.boundaryPad;
+    const width = ISLAND_CONFIG.widthCollapsed;
+    const height = ISLAND_CONFIG.heightCollapsed;
 
     const x = Math.min(Math.max(pad, pos.x), window.innerWidth - width - pad);
     const y = Math.min(Math.max(pad, pos.y), window.innerHeight - height - pad);
@@ -716,7 +715,7 @@ export class FloatingIsland {
     console.debug(
       '[Island] constrains to vp, make sure UI never visually leave bounding box'
     );
-    const pad = ISLAND_CSS.layout.boundaryPad;
+    const pad = ISLAND_CONFIG.boundaryPad;
     const containerRect = this.container.getBoundingClientRect();
     const width = containerRect.width;
     const height = containerRect.height;

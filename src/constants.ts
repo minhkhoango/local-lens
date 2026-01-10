@@ -66,15 +66,10 @@ export const CLASSES = {
   toggle: 'toggle',
   loading: 'loading',
   success: 'success',
-  error: 'error',
   active: 'active',
   imageContainer: 'image-container',
   banner: 'banner',
 } as const;
-
-// ============================================================================
-// OVERLAY STYLES
-// ============================================================================
 
 export const OVERLAY_CSS = {
   colors: {
@@ -91,137 +86,24 @@ export const OVERLAY_CSS = {
   },
 } as const;
 
-// ============================================================================
-// ISLAND DESIGN SYSTEM
-// ============================================================================
-
-export const ISLAND_CSS = {
-  colors: {
-    // Material 3 Surface Tokens
-    bg: '#FFFFFF',
-    surfaceContainer: '#F0F4F9',
-    surfaceContainerHigh: '#E9EEF6',
-    textMain: '#1F1F1F', // On Surface
-    textMuted: '#444746', // On Surface Variant
-    textSubtle: '#747775', // Outline variant
-    hoverBg: '#F0F4F9',
-    hoverBgDark: '#DEE3EB',
-    activeBg: '#E3E3E3',
-    activeBgDark: '#D5DBE5',
-    primary: '#0B57D0',
-    accentSuccess: '#146C2E', // Google Green 700
-    accentSuccessBg: 'rgba(24, 128, 56, 0.1)',
-    accentError: '#B3261E', // Google Red 600
-    toggleInactive: '#D0D0D0',
-    toggleActive: '#1DB954',
-    // Gemini Gradient`
-    gradient: 'linear-gradient(135deg, #4285F4, #9B72CB, #D96570)',
-    gradientBorder:
-      'linear-gradient(135deg, rgba(66, 133, 244, 0.5), rgba(155, 114, 203, 0.5), rgba(217, 101, 112, 0.5))',
-    // Scrollbar
-    scrollbarThumb: '#DADCE0',
-    scrollbarThumbHover: '#BDC1C6',
-    // Borders & Overlays
-    borderSubtle: 'rgba(0, 0, 0, 0.06)',
-    overlayDark: 'rgba(0, 0, 0, 0.08)',
-    inputBorder: 'rgba(0, 0, 0, 0.12)',
-  },
-  layout: {
-    layoutPad: 12,
-    boundaryPad: 2,
-    radius: 28,
-    radiusMedium: 12,
-    radiusSmall: 8,
-    radiusFull: '50%',
-    radiusPill: 100,
-    widthCollapsed: 320,
-    // 650 & sizeSmall 11 to fit text of websites
-    // without spilling to the line below
-    maxWidthExpanded: 650,
-    heightCollapsed: 64,
-    heightExpanded: 350,
-    heightMax: 500,
-    imageSize: 40,
-    buttonSize: 40,
-    buttonSizeSmall: 24,
-    buttonHeightCompact: 32,
-    iconSize: 20,
-    iconSizeSmall: 14,
-    toggleWidth: 44,
-    toggleHeight: 24,
-    toggleKnobSize: 16,
-    toggleKnobSizeActive: 20,
-    zIndex: 2147483647,
-    expandToLeft: true,
-    selectHeight: 32,
-  },
-  spacing: {
-    xs: 2,
-    sm: 4,
-    md: 6,
-    lg: 8,
-    xl: 10,
-    xxl: 12,
-    xxxl: 16,
-  },
+export const ISLAND_CONFIG = {
+  widthCollapsed: 320,
+  maxWidthExpanded: 650,
+  heightCollapsed: 64,
+  layoutPad: 12,
+  boundaryPad: 2,
   font: {
     family:
       "'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    mono: "'Roboto Mono', 'SF Mono', 'Menlo', monospace",
     sizeSmall: 11,
-    sizeNormal: 13,
-    weightMedium: 500,
-    lineHeightNormal: 1.4,
-    lineHeightRelaxed: 1.6,
-  },
-  animation: {
-    // Material 3 "Standard Emphasized" easing
-    base: '0.4s cubic-bezier(0.2, 0.0, 0, 1.0)',
-    fast: '0.2s cubic-bezier(0.2, 0.0, 0, 1.0)',
-    quick: '0.12s ease',
-    smooth: '0.25s ease',
-    gradient: '0.3s ease',
-    spin: '1s cubic-bezier(0.4, 0, 0.2, 1) infinite',
-  },
-  shadows: {
-    // Elevation 3 + slight glow
-    base: '0 4px 8px 3px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.3)',
-    expanded:
-      '0 8px 12px 6px rgba(0, 0, 0, 0.15), 0 4px 4px rgba(0, 0, 0, 0.3)',
-    notification: '0 2px 6px rgba(0, 0, 0, 0.1)',
-    toggleKnob: '0 1px 2px rgba(0,0,0,0.2)',
-  },
-  borders: {
-    subtle: '1px solid rgba(0,0,0,0.06)',
-    toggle: '2px solid transparent',
-    gradient: '2px',
   },
 } as const;
 
-// ============================================================================
-// BACKUP TAB STYLES
-// ============================================================================
-
-export const BACKUP_CSS = {
-  colors: {
-    bg: '#1e1e1e',
-    surface: ISLAND_CSS.colors.surfaceContainerHigh,
-    text: ISLAND_CSS.colors.textMain,
-    border: 'rgba(255,255,255,0.1)',
-  },
-  layout: {
-    bannerRadius: 28,
-    bannerBottom: 24,
-    bannerPadding: '12px 24px',
-    zIndex: 1,
-  },
-  font: {
-    family: ISLAND_CSS.font.family,
-    size: 14,
-    weight: 500,
-  },
-  shadows: {
-    base: ISLAND_CSS.shadows.base,
-    image: '0 0 20px rgba(0,0,0,0.5)',
-  },
-} as const;
+export const ICONS = {
+  clipboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.09a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.09a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.09a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.09a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>`,
+  sparkle: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 21.0344C8.76993 21.0344 8.56708 20.9416 8.39143 20.7559C8.21579 20.5702 8.12797 20.3557 8.12797 20.1124C8.12797 19.1226 7.91503 18.2323 7.48915 17.4416C7.06327 16.6509 6.49547 16.0232 5.78575 15.5586C5.07604 15.0939 4.25807 14.8616 3.33185 14.8616C3.10178 14.8616 2.89893 14.7688 2.72329 14.5831C2.54764 14.3975 2.45982 14.1829 2.45982 13.9397C2.45982 13.6964 2.54764 13.4819 2.72329 13.2962C2.89893 13.1105 3.10178 13.0177 3.33185 13.0177C4.25807 13.0177 5.07604 12.7853 5.78575 12.3207C6.49547 11.856 7.06327 11.2283 7.48915 10.4376C7.91503 9.64692 8.12797 8.75664 8.12797 7.76681C8.12797 7.52355 8.21579 7.30903 8.39143 7.12334C8.56708 6.93765 8.76993 6.8448 9 6.8448C9.23007 6.8448 9.43292 6.93765 9.60857 7.12334C9.78421 7.30903 9.87203 7.52355 9.87203 7.76681C9.87203 8.75664 10.085 9.64692 10.5109 10.4376C10.9367 11.2283 11.5045 11.856 12.2143 12.3207C12.924 12.7853 13.742 13.0177 14.6682 13.0177C14.8982 13.0177 15.1011 13.1105 15.2767 13.2962C15.4524 13.4819 15.5402 13.6964 15.5402 13.9397C15.5402 14.1829 15.4524 14.3975 15.2767 14.5831C15.1011 14.7688 14.8982 14.8616 14.6682 14.8616C13.742 14.8616 12.924 15.0939 12.2143 15.5586C11.5045 16.0232 10.9367 16.6509 10.5109 17.4416C10.085 18.2323 9.87203 19.1226 9.87203 20.1124C9.87203 20.3557 9.78421 20.5702 9.60857 20.7559C9.43292 20.9416 9.23007 21.0344 9 21.0344Z"/></svg>`,
+  spinner: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>`,
+  dropdown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`,
+};
