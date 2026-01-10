@@ -137,7 +137,7 @@ export const ISLAND_CSS = {
     widthCollapsed: 320,
     // 650 & sizeSmall 11 to fit text of websites
     // without spilling to the line below
-    widthExpanded: 650,
+    maxWidthExpanded: 650,
     heightCollapsed: 64,
     heightExpanded: 350,
     heightMax: 500,

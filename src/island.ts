@@ -31,6 +31,7 @@ export class FloatingIsland {
   private host: HTMLDivElement;
   private shadow: ShadowRoot;
   private container: HTMLDivElement;
+  private styleElement?: HTMLStyleElement;
 
   private settings: IslandSettings = { ...DEFAULT_SETTINGS };
   private state: IslandState = 'loading';
@@ -171,9 +172,9 @@ export class FloatingIsland {
   private build(): void {
     console.log('[Island] Building the full widget, caching refs');
     // Inject styles
-    const style = document.createElement('style');
-    style.textContent = ISLAND_STYLES;
-    this.shadow.appendChild(style);
+    this.styleElement = document.createElement('style');
+    this.styleElement.textContent = ISLAND_STYLES;
+    this.shadow.appendChild(this.styleElement);
 
     // Build container
     this.container.className = `${CLASSES.island}`;
@@ -235,7 +236,7 @@ export class FloatingIsland {
     `;
   }
 
-  private updateUI(): void {
+  private updateUI(dynamic_width = true): void {
     if (
       !this.els.status ||
       !this.els.copyBtn ||
@@ -280,6 +281,14 @@ export class FloatingIsland {
       cleanText.length > maxLength
         ? cleanText.slice(0, maxLength) + '...'
         : cleanText || (isLoading ? '' : chrome.i18n.getMessage('ui_no_text'));
+
+    if (dynamic_width) {
+      // False in update lang case
+      const dynamicWidth = this.isExpanded
+        ? this.calculateDynamicWidth()
+        : ISLAND_CSS.layout.widthCollapsed;
+      this.container.style.width = `${dynamicWidth}px`;
+    }
 
     if (
       !this.els.settingsLabelLang ||
@@ -460,7 +469,7 @@ export class FloatingIsland {
         this.state = 'loading';
         this.text = '';
         this.hasCopied = false;
-        this.updateUI();
+        this.updateUI(false);
 
         try {
           // Route through background for ensureOff func
@@ -506,10 +515,13 @@ export class FloatingIsland {
     this.isExpanded = force ?? !this.isExpanded;
     if (wasExpanded === this.isExpanded) return;
 
+    // Recalculate dynamic width before expanding/collapsing
+    const dynamicWidth = this.calculateDynamicWidth();
+    this.container.style.width = `${dynamicWidth}px`;
+
     // Expand/collapse to the left
     if (ISLAND_CSS.layout.expandToLeft) {
-      const widthDiff =
-        ISLAND_CSS.layout.widthExpanded - ISLAND_CSS.layout.widthCollapsed;
+      const widthDiff = dynamicWidth - ISLAND_CSS.layout.widthCollapsed;
       this.position.x += this.isExpanded ? -widthDiff : widthDiff;
     }
 
@@ -555,6 +567,42 @@ export class FloatingIsland {
         this.state = 'error';
         this.updateUI();
       }
+    }
+  }
+
+  private calculateDynamicWidth(): number {
+    const chunks = this.text.split('\n').map((chunk) => chunk.trim());
+    const longestChunk = chunks.reduce(
+      (longest, current) =>
+        current.length > longest.length ? current : longest,
+      ''
+    );
+
+    console.debug('Measuring width with chunk', longestChunk);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return ISLAND_CSS.layout.maxWidthExpanded;
+
+    // Use font metrics from ISLAND_CSS
+    const fontSize = ISLAND_CSS.font.sizeSmall;
+    const fontFamily = ISLAND_CSS.font.family;
+    ctx.font = `${fontSize}px ${fontFamily}`;
+
+    try {
+      const metrics = ctx.measureText(longestChunk);
+      const textWidth = metrics.width;
+
+      // Add padding: left padding + right padding + just in case
+      const horizontalPadding = ISLAND_CSS.layout.layoutPad * 3;
+      const totalWidth = textWidth + horizontalPadding;
+      console.debug('Measured dynamic width', totalWidth);
+      // Clamp between 320 and 650
+      return Math.max(
+        ISLAND_CSS.layout.widthCollapsed,
+        Math.min(totalWidth, ISLAND_CSS.layout.maxWidthExpanded)
+      );
+    } catch {
+      return ISLAND_CSS.layout.maxWidthExpanded;
     }
   }
 

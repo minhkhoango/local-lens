@@ -81,7 +81,7 @@ export const ISLAND_STYLES = `
   --p: ${ISLAND_CSS.layout.layoutPad}px;
   --radius: ${ISLAND_CSS.layout.radius}px;
   --w-min: ${ISLAND_CSS.layout.widthCollapsed}px;
-  --w-max: ${ISLAND_CSS.layout.widthExpanded}px;
+  --w-max: ${ISLAND_CSS.layout.maxWidthExpanded}px;
   --h-min: ${ISLAND_CSS.layout.heightCollapsed}px;
   --img-size: ${ISLAND_CSS.layout.imageSize}px;
   
@@ -118,7 +118,6 @@ export const ISLAND_STYLES = `
 }
 
 .${CLASSES.island}.${CLASSES.expanded} {
-  width: var(--w-max);
   box-shadow: var(--shadow-expanded);
 }
 
