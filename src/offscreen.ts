@@ -1,6 +1,7 @@
 import { FILES_PATH, OCR_CONFIG } from './constants';
+import type { TesseractLang } from './language_map';
 import { ExtensionAction } from './types';
-import type { ExtensionMessage, MessageResponse, SelectionRect } from './types';
+import type { ExtensionMessage, MessageResponse } from './types';
 import Tesseract from 'tesseract.js';
 
 let worker: Tesseract.Worker | null = null;
@@ -15,15 +16,9 @@ chrome.runtime.onMessage.addListener(
     switch (message.action) {
       case ExtensionAction.PERFORM_OCR:
         console.debug(message.action);
-        const { imageDataUrl, rect, language } = message.payload;
+        const { croppedImage: cropped, language } = message.payload;
         currentLanguage = language;
-        runTesseractOcr(imageDataUrl, rect, language, sendResponse);
-        return true; // Keep channel open for async response
-
-      case ExtensionAction.UPDATE_LANGUAGE:
-        console.debug(message.action);
-        const { language: retryLanguage, croppedImage } = message.payload;
-        retryTesseractOcr(retryLanguage, croppedImage, sendResponse);
+        runTesseractOcr(language, cropped, sendResponse);
         return true; // Keep channel open for async response
     }
 
@@ -32,59 +27,7 @@ chrome.runtime.onMessage.addListener(
 );
 
 async function runTesseractOcr(
-  imageDataUrl: string,
-  rect: SelectionRect,
-  language: string,
-  sendResponse: (response: MessageResponse) => void
-): Promise<void> {
-  // Calculate cursor position from selection rect (bottom-right corner)
-  const cursorPosition = {
-    x: rect.x + rect.width,
-    y: rect.y + rect.height,
-  };
-
-  try {
-    console.debug(`Processing ${rect.width}x${rect.height} region`);
-
-    // Crop the image to the selected region
-    let cropped: string;
-    try {
-      cropped = await cropImage(imageDataUrl, rect);
-    } catch (err) {
-      console.error('Image cropping error:', err);
-      sendResponse({
-        status: 'error',
-        message: `Image cropping failed: ${(err as Error).message}`,
-        confidence: 0,
-        croppedImageUrl: '',
-      });
-      return;
-    }
-
-    console.debug('sending cropped img -> bg -> content');
-    chrome.runtime.sendMessage<ExtensionMessage>({
-      action: ExtensionAction.CROP_READY,
-      payload: {
-        croppedImageUrl: cropped,
-        cursorPosition,
-      },
-    });
-
-    console.debug('running OCR');
-    await performRecognition(cropped, language, sendResponse);
-  } catch (err) {
-    console.error('OCR recognition error:', err);
-    sendResponse({
-      status: 'error',
-      message: `OCR recognition failed: ${(err as Error).message}`,
-      confidence: 0,
-      croppedImageUrl: '',
-    });
-  }
-}
-
-async function retryTesseractOcr(
-  language: string,
+  language: TesseractLang,
   croppedImage: string | null,
   sendResponse: (response: MessageResponse) => void
 ) {
@@ -184,53 +127,6 @@ async function getWorker(language: string): Promise<Tesseract.Worker> {
 
   currentLanguage = language;
   return worker;
-}
-
-async function cropImage(
-  dataUrl: string,
-  rect: SelectionRect
-): Promise<string> {
-  const img = new Image();
-
-  // wait for image to load from dataUrl
-  await new Promise((resolve, reject) => {
-    img.onload = resolve;
-    img.onerror = reject;
-    img.src = dataUrl;
-  });
-
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
-  if (!ctx) {
-    throw new Error('Canvas context failed');
-  }
-
-  // Scale coordinates from CSS pxl to native
-  const dpr = rect.devicePixelRatio || 1;
-  const scaledX = rect.x * dpr;
-  const scaledY = rect.y * dpr;
-  const scaledWidth = rect.width * dpr;
-  const scaledHeight = rect.height * dpr;
-
-  canvas.width = scaledWidth;
-  canvas.height = scaledHeight;
-
-  ctx.drawImage(
-    img, // source image
-    // 1-4: what to copy (in native/scaled pixels)
-    scaledX,
-    scaledY,
-    scaledWidth,
-    scaledHeight,
-    // where & how to draw it (also in scaled pixels)
-    0,
-    0,
-    scaledWidth,
-    scaledHeight
-  );
-
-  return canvas.toDataURL(OCR_CONFIG.CROP_MIME);
 }
 
 // Start warming up the worker as soon as the offscreen doc loads

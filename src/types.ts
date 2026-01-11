@@ -27,13 +27,11 @@ export const ExtensionAction = {
   PING_CONTENT: 'PING_CONTENT',
   PERFORM_OCR: 'PERFORM_OCR',
   REQUEST_LANGUAGE_UPDATE: 'REQUEST_LANGUAGE_UPDATE',
+  ENSURE_OFFSCREEN: 'ENSURE_OFFSCREEN',
   UPDATE_LANGUAGE: 'UPDATE_LANGUAGE',
-  OCR_RESULT: 'OCR_RESULT',
-  CROP_READY: 'CROP_READY',
   OPEN_SHORTCUTS_PAGE: 'OPEN_SHORTCUTS_PAGE',
   GET_SHORTCUT: 'GET_SHORTCUT',
   INITIALIZE_BACKUP: 'INITIALIZE_BACKUP',
-  CLEANUP_STORAGE: 'CLEANUP_STORAGE',
 } as const;
 
 export type ExtensionAction =
@@ -48,52 +46,40 @@ export interface OcrResultPayload {
 }
 
 /** Payload sent when crop is ready, before OCR starts */
-export interface CropReadyPayload {
-  croppedImageUrl: string;
-  cursorPosition: Point;
-}
 
-export interface OcrPerformPayload {
-  imageDataUrl: string;
-  rect: SelectionRect;
+export interface PerformOcrPayload {
   language: TesseractLang;
+  croppedImage: string;
 }
 
 export interface RequestLanguagePayload {
   language: TesseractLang;
 }
 
-export interface UpdateLanguagePayload {
-  language: TesseractLang;
-  croppedImage: string | null;
-}
-
-export interface BackupImagePayload {
+export interface ImagePayload {
   imageUrl: string;
 }
 
 export type ExtensionMessage =
-  | { action: typeof ExtensionAction.ACTIVATE_OVERLAY }
+  | { action: typeof ExtensionAction.ACTIVATE_OVERLAY; payload: ImagePayload }
   | { action: typeof ExtensionAction.CAPTURE_SUCCESS; payload: SelectionRect }
   | { action: typeof ExtensionAction.PING_CONTENT }
-  | { action: typeof ExtensionAction.PERFORM_OCR; payload: OcrPerformPayload }
+  | { action: typeof ExtensionAction.PERFORM_OCR; payload: PerformOcrPayload }
   | {
       action: typeof ExtensionAction.REQUEST_LANGUAGE_UPDATE;
       payload: RequestLanguagePayload;
     }
+  | { action: typeof ExtensionAction.ENSURE_OFFSCREEN }
   | {
       action: typeof ExtensionAction.UPDATE_LANGUAGE;
-      payload: UpdateLanguagePayload;
+      payload: PerformOcrPayload;
     }
-  | { action: typeof ExtensionAction.OCR_RESULT; payload: OcrResultPayload }
-  | { action: typeof ExtensionAction.CROP_READY; payload: CropReadyPayload }
   | { action: typeof ExtensionAction.OPEN_SHORTCUTS_PAGE }
   | { action: typeof ExtensionAction.GET_SHORTCUT }
   | {
       action: typeof ExtensionAction.INITIALIZE_BACKUP;
-      payload: BackupImagePayload;
-    }
-  | { action: typeof ExtensionAction.CLEANUP_STORAGE };
+      payload: ImagePayload;
+    };
 
 export interface MessageResponse {
   status: 'ok' | 'error';

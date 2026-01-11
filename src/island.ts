@@ -122,7 +122,7 @@ export class FloatingIsland {
     }
   }
 
-  public async destroy(clean_storage = true): Promise<void> {
+  public async destroy(): Promise<void> {
     console.log('[Island] destroy widget & listener');
     document.removeEventListener('mousemove', this.handleDragMove);
     document.removeEventListener('mouseup', this.handleDragEnd);
@@ -130,10 +130,6 @@ export class FloatingIsland {
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('resize', this.handleResize);
     this.host.remove();
-    if (clean_storage)
-      await chrome.runtime.sendMessage({
-        action: ExtensionAction.CLEANUP_STORAGE,
-      });
   }
 
   // --- Private Methods ---
