@@ -16,13 +16,7 @@
     "64": "icons/64.png",
     "128": "icons/128.png"
   },
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "storage",
-    "offscreen",
-    "unlimitedStorage"
-  ],
+  "permissions": ["activeTab", "scripting", "storage", "offscreen"],
   "commands": {
     "_execute_action": {
       "suggested_key": {

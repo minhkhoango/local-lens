@@ -1,12 +1,13 @@
 import { ExtensionAction, type SelectionRect } from './types';
 import type {
   ExtensionMessage,
-  MessageResponse,
-  OcrResultPayload,
+  IslandOcrPayload,
   ImagePayload,
   UserLanguage,
   IslandSettings,
-  RequestLanguagePayload,
+  LanguagePayload,
+  StatusResponse,
+  OcrResponse,
 } from './types';
 import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island';
@@ -28,7 +29,7 @@ chrome.runtime.onMessage.addListener(
   (
     message: ExtensionMessage,
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: MessageResponse) => void
+    sendResponse: (response: StatusResponse | OcrResponse) => void
   ) => {
     switch (message.action) {
       case ExtensionAction.INITIALIZE_BACKUP:
@@ -51,12 +52,19 @@ chrome.runtime.onMessage.addListener(
 
       case ExtensionAction.CAPTURE_SUCCESS:
         console.debug(message.action);
-        handleCaptureSuccess(message.payload);
-        break;
+        (async () => {
+          await handleCaptureSuccess(message.payload);
+          sendResponse({ status: 'ok' });
+        })();
+        return true;
 
-      case ExtensionAction.REQUEST_LANGUAGE_UPDATE:
+      case ExtensionAction.UPDATE_LANGUAGE:
         console.debug(message.action);
-        handleLanguageRequest(message.payload, sendResponse);
+        (async () => {
+          const ocrResult = await handleLanguageUpdate(message.payload);
+          sendResponse(ocrResult);
+        })();
+        return true;
     }
     return false;
   }
@@ -96,7 +104,7 @@ async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
 
     const ocrResult = await chrome.runtime.sendMessage<
       ExtensionMessage,
-      MessageResponse
+      OcrResponse
     >({
       action: ExtensionAction.PERFORM_OCR,
       payload: {
@@ -106,14 +114,13 @@ async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
     });
 
     console.debug('OCR result:', ocrResult);
-    if (ocrResult === undefined) throw new Error('OcrResult is undefined');
+    if (!ocrResult) throw new Error('OcrResult is undefined');
 
     // Forward result to content script for UI display
-    const resultPayload: OcrResultPayload = {
+    const resultPayload: IslandOcrPayload = {
       success: ocrResult.status === 'ok',
-      text: ocrResult.message || '',
-      confidence: ocrResult.confidence || 0,
-      croppedImageUrl: ocrResult.croppedImageUrl || '',
+      text: ocrResult.text,
+      croppedImageUrl: croppedImage,
       cursorPosition: cursorPosition,
     };
 
@@ -213,7 +220,7 @@ function getLanguageFromMap(key: string): TesseractLang | undefined {
   return CHROME_TO_TESSERACT[key as ChromeLang];
 }
 
-function handleOcrResult(payload: OcrResultPayload): void {
+function handleOcrResult(payload: IslandOcrPayload): void {
   if (activeIsland) {
     // Update existing island with result (preserves position/drag state)
     activeIsland.updateWithResult(payload);
@@ -228,26 +235,24 @@ function handleOcrResult(payload: OcrResultPayload): void {
   }
 }
 
-async function handleLanguageRequest(
-  payload: RequestLanguagePayload,
-  sendResponse: (response: MessageResponse) => void
-) {
+async function handleLanguageUpdate(payload: LanguagePayload) {
+  console.debug('handle language_update, content actually receives it');
   try {
     const ensureOffscreen = await chrome.runtime.sendMessage<
       ExtensionMessage,
-      MessageResponse
+      StatusResponse
     >({
       action: ExtensionAction.ENSURE_OFFSCREEN,
     });
 
-    if (ensureOffscreen === undefined || !croppedImage)
+    if (ensureOffscreen.status === 'error' || !croppedImage)
       throw new Error('offscreen is not started, cannot update lang');
 
     const { language } = payload;
 
-    const updateReponse = await chrome.runtime.sendMessage<
+    const ocrResult = await chrome.runtime.sendMessage<
       ExtensionMessage,
-      MessageResponse
+      OcrResponse
     >({
       action: ExtensionAction.PERFORM_OCR,
       payload: {
@@ -256,7 +261,7 @@ async function handleLanguageRequest(
       },
     });
 
-    sendResponse(updateReponse);
+    return ocrResult;
   } catch (err) {
     throw err;
   }

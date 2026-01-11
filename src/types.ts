@@ -23,6 +23,7 @@ export interface UserLanguage {
 
 export const ExtensionAction = {
   ACTIVATE_OVERLAY: 'ACTIVATE_OVERLAY',
+  NOTIFY_CAPTURE_SUCCESS: 'NOTIFY_CAPTURE_SUCCESS',
   CAPTURE_SUCCESS: 'CAPTURE_SUCCESS',
   PING_CONTENT: 'PING_CONTENT',
   PERFORM_OCR: 'PERFORM_OCR',
@@ -37,14 +38,6 @@ export const ExtensionAction = {
 export type ExtensionAction =
   (typeof ExtensionAction)[keyof typeof ExtensionAction];
 
-export interface OcrResultPayload {
-  success: boolean;
-  text: string;
-  confidence: number;
-  croppedImageUrl: string;
-  cursorPosition: Point;
-}
-
 /** Payload sent when crop is ready, before OCR starts */
 
 export interface PerformOcrPayload {
@@ -52,7 +45,7 @@ export interface PerformOcrPayload {
   croppedImage: string;
 }
 
-export interface RequestLanguagePayload {
+export interface LanguagePayload {
   language: TesseractLang;
 }
 
@@ -62,17 +55,21 @@ export interface ImagePayload {
 
 export type ExtensionMessage =
   | { action: typeof ExtensionAction.ACTIVATE_OVERLAY; payload: ImagePayload }
+  | {
+      action: typeof ExtensionAction.NOTIFY_CAPTURE_SUCCESS;
+      payload: SelectionRect;
+    }
   | { action: typeof ExtensionAction.CAPTURE_SUCCESS; payload: SelectionRect }
   | { action: typeof ExtensionAction.PING_CONTENT }
   | { action: typeof ExtensionAction.PERFORM_OCR; payload: PerformOcrPayload }
   | {
       action: typeof ExtensionAction.REQUEST_LANGUAGE_UPDATE;
-      payload: RequestLanguagePayload;
+      payload: LanguagePayload;
     }
   | { action: typeof ExtensionAction.ENSURE_OFFSCREEN }
   | {
       action: typeof ExtensionAction.UPDATE_LANGUAGE;
-      payload: PerformOcrPayload;
+      payload: LanguagePayload;
     }
   | { action: typeof ExtensionAction.OPEN_SHORTCUTS_PAGE }
   | { action: typeof ExtensionAction.GET_SHORTCUT }
@@ -81,13 +78,26 @@ export type ExtensionMessage =
       payload: ImagePayload;
     };
 
-export interface MessageResponse {
+export interface StatusResponse {
   status: 'ok' | 'error';
-  message?: string;
-  confidence?: number;
-  croppedImageUrl?: string;
-  data?: SelectionRect;
-  shortcut?: string;
+}
+
+export interface ShortcutResponse {
+  status: 'ok' | 'error';
+  shortcut: string | null;
+}
+
+export interface OcrResponse {
+  status: 'ok' | 'error';
+  text: string;
+  confidence: number;
+}
+
+export interface IslandOcrPayload {
+  success: boolean;
+  text: string;
+  croppedImageUrl: string;
+  cursorPosition: Point;
 }
 
 export interface IslandSettings {

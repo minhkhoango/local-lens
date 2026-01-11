@@ -104,7 +104,7 @@ export class GhostOverlay {
     ) {
       console.debug('Image captured:', rect);
       chrome.runtime.sendMessage<ExtensionMessage>({
-        action: ExtensionAction.CAPTURE_SUCCESS,
+        action: ExtensionAction.NOTIFY_CAPTURE_SUCCESS,
         payload: rect,
       });
     }

@@ -1,11 +1,16 @@
-import { FILES_PATH, STORAGE_KEYS, OCR_CONFIG } from './constants';
+import { FILES_PATH, OCR_CONFIG } from './constants';
 import { ExtensionAction } from './types';
-import type { ExtensionMessage, MessageResponse } from './types';
+import type {
+  ExtensionMessage,
+  LanguagePayload,
+  SelectionRect,
+  ShortcutResponse,
+  StatusResponse,
+} from './types';
 
 // tool bar icon click, chrome handle the shortcut automatically
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id || !tab.url) return;
-  await chrome.storage.session.set({ [STORAGE_KEYS.TAB_ID]: tab.id });
 
   try {
     console.debug('screenshot');
@@ -17,15 +22,15 @@ chrome.action.onClicked.addListener(async (tab) => {
 
     if (isRestricted) {
       console.debug('Restricted site detected via URL check.');
-      await createBackupTab(capturedImage);
-      await activateOverlay(capturedImage);
+      const backupTabId = await createBackupTab(capturedImage);
+      await activateOverlay(backupTabId, capturedImage);
     } else {
       try {
-        await activateOverlay(capturedImage);
+        await activateOverlay(tab.id, capturedImage);
       } catch {
         console.debug('Injection failed on standard site, creating backup tab');
-        await createBackupTab(capturedImage);
-        await activateOverlay(capturedImage);
+        const backupTabId = await createBackupTab(capturedImage);
+        await activateOverlay(backupTabId, capturedImage);
       }
     }
   } catch (err) {
@@ -37,8 +42,8 @@ chrome.action.onClicked.addListener(async (tab) => {
 chrome.runtime.onMessage.addListener(
   (
     message: ExtensionMessage,
-    _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: MessageResponse) => void
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response: StatusResponse | ShortcutResponse) => void
   ) => {
     switch (message.action) {
       case ExtensionAction.ENSURE_OFFSCREEN: {
@@ -47,7 +52,28 @@ chrome.runtime.onMessage.addListener(
           await ensureOffscreen();
           sendResponse({ status: 'ok' });
         })();
-        return false;
+        return true;
+      }
+      case ExtensionAction.NOTIFY_CAPTURE_SUCCESS: {
+        console.debug(message.action);
+        const targetTabId = getTabId(sender);
+        (async () => {
+          await transferCapture(targetTabId, message.payload);
+          sendResponse({ status: 'ok' });
+        })();
+        return true;
+      }
+      case ExtensionAction.REQUEST_LANGUAGE_UPDATE: {
+        console.debug(message.action);
+        const targetTabId = getTabId(sender);
+        (async () => {
+          const ocrResult = await transferLanguage(
+            targetTabId,
+            message.payload
+          );
+          sendResponse(ocrResult);
+        })();
+        return true;
       }
       case ExtensionAction.GET_SHORTCUT: {
         console.debug(message.action);
@@ -62,7 +88,7 @@ chrome.runtime.onMessage.addListener(
           } catch (err) {
             sendResponse({
               status: 'error',
-              message: (err as Error).message,
+              shortcut: null,
             });
           }
         })();
@@ -79,6 +105,19 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
+function getTabId(sender: chrome.runtime.MessageSender): number {
+  try {
+    const targetTabId = sender.tab?.id;
+    if (!targetTabId) {
+      throw new Error('Missing tab Id');
+    }
+
+    return targetTabId;
+  } catch (err) {
+    throw err;
+  }
+}
+
 function isRestrictedUrl(url: string | undefined): boolean {
   if (!url) return true;
   const newUrl = new URL(url);
@@ -94,9 +133,10 @@ function isRestrictedUrl(url: string | undefined): boolean {
   return false;
 }
 
-async function activateOverlay(capturedImage: string): Promise<void> {
-  const tabId = await getTabId('stop run ocr on tab');
-
+async function activateOverlay(
+  tabId: number,
+  capturedImage: string
+): Promise<void> {
   try {
     await ensureContentScriptLoaded(tabId);
 
@@ -121,7 +161,7 @@ async function activateOverlay(capturedImage: string): Promise<void> {
   }
 }
 
-async function createBackupTab(capturedImage: string): Promise<void> {
+async function createBackupTab(capturedImage: string): Promise<number> {
   const tab = await chrome.tabs.create({
     url: FILES_PATH.BACKUP_HTML,
     active: true,
@@ -149,8 +189,7 @@ async function createBackupTab(capturedImage: string): Promise<void> {
       imageUrl: capturedImage,
     },
   });
-
-  await chrome.storage.session.set({ [STORAGE_KEYS.TAB_ID]: tab.id });
+  return tab.id;
 }
 
 async function ensureOffscreen(): Promise<void> {
@@ -181,21 +220,30 @@ async function ensureContentScriptLoaded(tabId: number): Promise<void> {
   }
 }
 
+async function transferCapture(
+  tabId: number,
+  payload: SelectionRect
+): Promise<void> {
+  console.debug('Transfering capture success bg -> content');
+  await chrome.tabs.sendMessage<ExtensionMessage>(tabId, {
+    action: ExtensionAction.CAPTURE_SUCCESS,
+    payload: payload as SelectionRect,
+  });
+}
+
+async function transferLanguage(tabId: number, payload: LanguagePayload) {
+  console.debug('Transfering language payload bg -> content');
+  const ocrResult = await chrome.tabs.sendMessage<ExtensionMessage>(tabId, {
+    action: ExtensionAction.UPDATE_LANGUAGE,
+    payload: payload,
+  });
+  return ocrResult;
+}
+
 async function getShortcutCommand(): Promise<string> {
   const commands = await chrome.commands.getAll();
   const cmd = commands.find((c) => c.name === '_execute_action');
 
   if (!cmd || !cmd.shortcut) return '';
   return cmd.shortcut;
-}
-
-async function getTabId(error_message?: string): Promise<number> {
-  const stored = await chrome.storage.session.get(STORAGE_KEYS.TAB_ID);
-  const tabId = stored[STORAGE_KEYS.TAB_ID] as number | undefined;
-  if (!tabId) {
-    console.error('tabId not found', error_message);
-    throw new Error('tabId not found');
-  }
-
-  return tabId;
 }

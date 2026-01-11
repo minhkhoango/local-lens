@@ -1,7 +1,7 @@
 import { FILES_PATH, OCR_CONFIG } from './constants';
 import type { TesseractLang } from './language_map';
 import { ExtensionAction } from './types';
-import type { ExtensionMessage, MessageResponse } from './types';
+import type { ExtensionMessage, OcrResponse } from './types';
 import Tesseract from 'tesseract.js';
 
 let worker: Tesseract.Worker | null = null;
@@ -11,14 +11,13 @@ chrome.runtime.onMessage.addListener(
   (
     message: ExtensionMessage,
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: MessageResponse) => void
+    sendResponse: (response: OcrResponse) => void
   ) => {
     switch (message.action) {
       case ExtensionAction.PERFORM_OCR:
         console.debug(message.action);
         const { croppedImage: cropped, language } = message.payload;
-        currentLanguage = language;
-        runTesseractOcr(language, cropped, sendResponse);
+        performRecognition(language, cropped, sendResponse);
         return true; // Keep channel open for async response
     }
 
@@ -26,33 +25,14 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
-async function runTesseractOcr(
-  language: TesseractLang,
-  croppedImage: string | null,
-  sendResponse: (response: MessageResponse) => void
-) {
-  try {
-    if (!croppedImage) {
-      throw new Error('No saved cropped image found for retry');
-    }
-
-    console.debug(`Retrying OCR with language: ${language}`);
-    await performRecognition(croppedImage, language, sendResponse);
-  } catch (err) {
-    console.error('Retry error:', err);
-    sendResponse({
-      status: 'error',
-      message: `Retry failed: ${(err as Error).message}`,
-      confidence: 0,
-    });
-  }
-}
-
 async function performRecognition(
-  image: string,
-  language: string,
-  sendResponse: (response: MessageResponse) => void
+  language: TesseractLang,
+  image: string | null,
+  sendResponse: (response: OcrResponse) => void
 ) {
+  if (!image) {
+    throw new Error('No saved cropped image found for retry');
+  }
   // Initialize or reuse Tesseract worker
   let engine: Tesseract.Worker;
   try {
@@ -61,12 +41,13 @@ async function performRecognition(
     console.error('Worker initialization error:', err);
     sendResponse({
       status: 'error',
-      message: `OCR worker initialization failed: ${(err as Error).message}`,
+      text: '',
       confidence: 0,
-      croppedImageUrl: image,
     });
     return;
   }
+  // Update language after get new worker
+  currentLanguage = language;
 
   console.debug(`engine: ${engine}, perform recognizing`);
   try {
@@ -77,17 +58,15 @@ async function performRecognition(
     console.debug(`OCR SUCCESS [confidence: ${confidence}%]:\n`);
     sendResponse({
       status: 'ok',
-      message: text,
+      text: text,
       confidence,
-      croppedImageUrl: image,
     });
   } catch (err) {
     console.error('Recognition error:', err);
     sendResponse({
       status: 'error',
-      message: `OCR recognition failed: ${(err as Error).message}`,
+      text: '',
       confidence: 0,
-      croppedImageUrl: image,
     });
   }
 }

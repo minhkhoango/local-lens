@@ -13,9 +13,9 @@ import {
   type ExtensionMessage,
   type Point,
   type IslandSettings,
-  type OcrResultPayload,
+  type IslandOcrPayload,
   type IslandState,
-  type MessageResponse,
+  type OcrResponse,
 } from './types';
 import { type TesseractLang, LANGUAGES_OPTIONS } from './language_map';
 
@@ -87,7 +87,7 @@ export class FloatingIsland {
   }
 
   // --- Public Methods ---
-  public updateWithResult(payload: OcrResultPayload): void {
+  public updateWithResult(payload: IslandOcrPayload): void {
     console.debug('[Island]: update widget with cropped img');
     this.state = payload.success ? 'success' : 'error';
     this.text = payload.text;
@@ -140,7 +140,7 @@ export class FloatingIsland {
         action: ExtensionAction.GET_SHORTCUT,
       });
       this.shortcutText =
-        response?.shortcut || chrome.i18n.getMessage('ui_set_shortcut');
+        response.shortcut || chrome.i18n.getMessage('ui_set_shortcut');
     } catch {
       // Keep default 'Set shortcut' on error
     }
@@ -472,18 +472,18 @@ export class FloatingIsland {
           // Route through background for ensureOff func
           const ocrResult = await chrome.runtime.sendMessage<
             ExtensionMessage,
-            MessageResponse
+            OcrResponse
           >({
             action: ExtensionAction.REQUEST_LANGUAGE_UPDATE,
             payload: { language: newLanguage },
           });
 
-          if (!ocrResult || ocrResult.status === 'error') {
-            throw new Error(ocrResult?.message || 'Unknown OCR error');
+          if (ocrResult.status === 'error') {
+            throw new Error('OCR error');
           }
 
           this.state = 'success';
-          this.text = ocrResult.message || '';
+          this.text = ocrResult.text;
 
           if (this.settings.autoCopy) {
             this.copyToClipboard();
@@ -602,7 +602,6 @@ export class FloatingIsland {
   }
 
   private updatePosition(): void {
-    console.debug('[Island] Update widget position');
     this.container.style.left = `${this.position.x}px`;
     this.container.style.top = `${this.position.y}px`;
   }
@@ -639,7 +638,6 @@ export class FloatingIsland {
   };
 
   private handleDragMove = (e: MouseEvent): void => {
-    console.debug('[Island] Handle widget move, constrain its position');
     if (!this.isDragging) return;
     this.position = this.constrainToViewport({
       x: e.clientX - this.dragOffset.x,
@@ -666,7 +664,6 @@ export class FloatingIsland {
   };
 
   private handleResize = (): void => {
-    console.debug('[Island] Reposition widget on viewport resize');
     const { innerWidth, innerHeight } = window;
     const { width: prevWidth, height: prevHeight } = this.viewportSize;
 
@@ -708,9 +705,6 @@ export class FloatingIsland {
   }
 
   private constrainToViewport(pos: Point): Point {
-    console.debug(
-      '[Island] constrains to vp, make sure UI never visually leave bounding box'
-    );
     const pad = ISLAND_CONFIG.boundaryPad;
     const containerRect = this.container.getBoundingClientRect();
     const width = containerRect.width;

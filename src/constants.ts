@@ -31,9 +31,6 @@ export const CONFIG = {
 } as const;
 
 export const STORAGE_KEYS = {
-  TAB_ID: 'tabId',
-  CAPTURED_IMAGE: 'capturedImage',
-  CROPPED_IMAGE: 'croppedImage',
   ISLAND_SETTINGS: 'islandSettings',
 } as const;
 
