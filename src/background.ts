@@ -130,6 +130,9 @@ function isRestrictedUrl(url: string | undefined): boolean {
   const restrictedHosts = ['chromewebstore.google.com'];
   if (restrictedHosts.includes(newUrl.hostname)) return true;
 
+  // Check for PDF files
+  if (newUrl.pathname.toLowerCase().endsWith('.pdf')) return true;
+
   return false;
 }
 

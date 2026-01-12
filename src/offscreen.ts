@@ -86,7 +86,6 @@ async function getWorker(language: string): Promise<Tesseract.Worker> {
     console.debug(`re-init worker from ${currentLanguage} to ${language}`);
     try {
       await worker.reinitialize(language, OCR_CONFIG.OEM);
-      currentLanguage = language;
       return worker;
     } catch (err) {
       console.warn(`worker re-init failed: ${err}, return old worker`);
@@ -103,8 +102,6 @@ async function getWorker(language: string): Promise<Tesseract.Worker> {
     cacheMethod: OCR_CONFIG.CACHE_METHOD,
     logger: (_m) => {},
   });
-
-  currentLanguage = language;
   return worker;
 }
 

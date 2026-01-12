@@ -125,19 +125,18 @@ export class GhostOverlay {
 
     if (this.isDragging || this.startPos.x !== 0) {
       const { x, y, width, height } = this.getSelectionRect();
-      const radius = Math.min(OVERLAY_CSS.layout.radius, width / 3, height / 3);
-      const activeCorner = this.getActiveCorner();
+      const r = Math.min(OVERLAY_CSS.layout.radius, width / 3, height / 3);
+      const corner = this.getActiveCorner();
 
       this.ctx.beginPath();
-      this.drawRoundedRectWithSharpCorner(
-        x,
-        y,
-        width,
-        height,
-        radius,
-        activeCorner
-      );
-      this.ctx.closePath();
+
+      const radii = [r, r, r, r];
+      if (corner === 'top-left') radii[0] = 0;
+      if (corner === 'top-right') radii[1] = 0;
+      if (corner === 'bottom-right') radii[2] = 0;
+      if (corner === 'bottom-left') radii[3] = 0;
+
+      this.ctx.roundRect(x, y, width, height, radii);
 
       // Cut out "hole" for lens effect
       // 'destination-out' removes pixels from existing canvas
@@ -162,66 +161,6 @@ export class GhostOverlay {
     if (draggingRight && !draggingDown) return 'top-right';
     if (!draggingRight && draggingDown) return 'bottom-left';
     return 'top-left';
-  }
-
-  private drawRoundedRectWithSharpCorner(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    radius: number,
-    sharpCorner: Corner
-  ): void {
-    if (!this.ctx) return;
-
-    // Start from top-left, moving clockwise
-    // Top edge
-    if (sharpCorner === 'top-left') {
-      this.ctx.moveTo(x, y);
-      this.ctx.lineTo(x + width - radius, y);
-    } else {
-      this.ctx.moveTo(x + radius, y);
-      this.ctx.lineTo(x + width - radius, y);
-    }
-
-    // Top-right corner
-    if (sharpCorner === 'top-right') {
-      this.ctx.lineTo(x + width, y);
-      this.ctx.lineTo(x + width, y + height - radius);
-    } else {
-      this.ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-      this.ctx.lineTo(x + width, y + height - radius);
-    }
-
-    // Bottom-right corner
-    if (sharpCorner === 'bottom-right') {
-      this.ctx.lineTo(x + width, y + height);
-      this.ctx.lineTo(x + radius, y + height);
-    } else {
-      this.ctx.quadraticCurveTo(
-        x + width,
-        y + height,
-        x + width - radius,
-        y + height
-      );
-      this.ctx.lineTo(x + radius, y + height);
-    }
-
-    // Bottom-left corner
-    if (sharpCorner === 'bottom-left') {
-      this.ctx.lineTo(x, y + height);
-      this.ctx.lineTo(x, y + radius);
-    } else {
-      this.ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-      this.ctx.lineTo(x, y + radius);
-    }
-
-    // Top-left corner
-    if (sharpCorner === 'top-left') {
-      this.ctx.lineTo(x, y);
-    } else {
-      this.ctx.quadraticCurveTo(x, y, x + radius, y);
-    }
   }
 
   private getSelectionRect(): SelectionRect {
