@@ -35,7 +35,7 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const DEFAULT_SETTINGS: IslandSettings = {
-  autoCopy: true,
+  autoCopy: false,
   autoExpand: false,
   language: 'eng',
 } as const;

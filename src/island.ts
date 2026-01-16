@@ -17,7 +17,7 @@ import {
   type IslandState,
   type OcrResponse,
 } from './types';
-import { type TesseractLang, LANGUAGES_OPTIONS } from './language_map';
+import { type TesseractLang, TESSERACT_LANGS } from './language_map';
 
 function query<T extends HTMLElement>(
   root: ShadowRoot | Document | HTMLElement,
@@ -69,6 +69,9 @@ export class FloatingIsland {
   // Drag state
   private isDragging = false;
   private dragOffset: Point = { x: 0, y: 0 };
+
+  // Language options (built on initialization)
+  private languageOptions: { value: TesseractLang; label: string }[] = [];
 
   constructor(cursorPosition: Point, imageUrl = '') {
     console.debug('[Island]: Initiate floating island');
@@ -164,6 +167,15 @@ export class FloatingIsland {
     } catch {
       /* ignore */
     }
+    this.buildLanguageOptions();
+  }
+
+  private buildLanguageOptions(): void {
+    console.debug('[Island] building language options from i18n');
+    this.languageOptions = TESSERACT_LANGS.map((lang) => ({
+      value: lang,
+      label: chrome.i18n.getMessage(lang),
+    }));
   }
 
   private build(): void {
@@ -316,7 +328,7 @@ export class FloatingIsland {
     // Language dropdown
     const currentLanguage = this.settings.language as string;
     const languageOptions =
-      LANGUAGES_OPTIONS?.map(
+      this.languageOptions?.map(
         (opt: { value: string; label: string }) =>
           `<option value="${opt.value}" ${opt.value === currentLanguage ? 'selected' : ''}>
             ${opt.label}

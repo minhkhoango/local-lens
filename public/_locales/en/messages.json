@@ -70,5 +70,133 @@
   "backup_banner": {
     "message": "Original tab was protected. Using read-only screenshot.",
     "description": "Bottom floating notification"
+  },
+  "ara": {
+    "message": "Arabic",
+    "description": "Language name for ara (Arabic)"
+  },
+  "ben": {
+    "message": "Bengali",
+    "description": "Language name for ben (Bengali)"
+  },
+  "bul": {
+    "message": "Bulgarian",
+    "description": "Language name for bul (Bulgarian)"
+  },
+  "cat": {
+    "message": "Catalan",
+    "description": "Language name for cat (Catalan)"
+  },
+  "ces": {
+    "message": "Czech",
+    "description": "Language name for ces (Czech)"
+  },
+  "chi_sim": {
+    "message": "Simplified Chinese",
+    "description": "Language name for chi_sim (Simplified Chinese)"
+  },
+  "chi_tra": {
+    "message": "Traditional Chinese",
+    "description": "Language name for chi_tra (Traditional Chinese)"
+  },
+  "dan": {
+    "message": "Danish",
+    "description": "Language name for dan (Danish)"
+  },
+  "deu": {
+    "message": "German",
+    "description": "Language name for deu (German)"
+  },
+  "ell": {
+    "message": "Greek",
+    "description": "Language name for ell (Greek)"
+  },
+  "eng": {
+    "message": "English",
+    "description": "Language name for eng (English)"
+  },
+  "fin": {
+    "message": "Finnish",
+    "description": "Language name for fin (Finnish)"
+  },
+  "fra": {
+    "message": "French",
+    "description": "Language name for fra (French)"
+  },
+  "heb": {
+    "message": "Hebrew",
+    "description": "Language name for heb (Hebrew)"
+  },
+  "hin": {
+    "message": "Hindi",
+    "description": "Language name for hin (Hindi)"
+  },
+  "hun": {
+    "message": "Hungarian",
+    "description": "Language name for hun (Hungarian)"
+  },
+  "ind": {
+    "message": "Indonesian",
+    "description": "Language name for ind (Indonesian)"
+  },
+  "ita": {
+    "message": "Italian",
+    "description": "Language name for ita (Italian)"
+  },
+  "jpn": {
+    "message": "Japanese",
+    "description": "Language name for jpn (Japanese)"
+  },
+  "kor": {
+    "message": "Korean",
+    "description": "Language name for kor (Korean)"
+  },
+  "nld": {
+    "message": "Dutch",
+    "description": "Language name for nld (Dutch)"
+  },
+  "nor": {
+    "message": "Norwegian",
+    "description": "Language name for nor (Norwegian)"
+  },
+  "pol": {
+    "message": "Polish",
+    "description": "Language name for pol (Polish)"
+  },
+  "por": {
+    "message": "Portuguese",
+    "description": "Language name for por (Portuguese)"
+  },
+  "ron": {
+    "message": "Romanian",
+    "description": "Language name for ron (Romanian)"
+  },
+  "rus": {
+    "message": "Russian",
+    "description": "Language name for rus (Russian)"
+  },
+  "spa": {
+    "message": "Spanish",
+    "description": "Language name for spa (Spanish)"
+  },
+  "swe": {
+    "message": "Swedish",
+    "description": "Language name for swe (Swedish)"
+  },
+  "tha": {
+    "message": "Thai",
+    "description": "Language name for tha (Thai)"
+  },
+  "tur": {
+    "message": "Turkish",
+    "description": "Language name for tur (Turkish)"
+  },
+  "ukr": {
+    "message": "Ukrainian",
+    "description": "Language name for ukr (Ukrainian)"
+  },
+  "vie": {
+    "message": "Vietnamese",
+    "description": "Language name for vie (Vietnamese)"
   }
 }
