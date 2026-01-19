@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Ένας οπτικός εξαγωγέας κειμένου με προτεραιότητα στο απόρρητο που παραμένει στη συσκευή σας"
   },
+  "hint_expand": { "message": "Επέκταση" },
+  "hint_collapse": { "message": "Κλείσιμο" },
+  "hint_copy": { "message": "Αντιγραφή" },
+  "hint_settings": { "message": "Ρυθμίσεις" },
   "ui_cropped_screenshot": { "message": "Καταγεγραμμένη περιοχή" },
   "ui_processing": { "message": "επεξεργασία..." },
-  "ui_expand": { "message": "Κλικ για επέκταση" },
   "ui_copied": { "message": "Αντιγράφηκε!" },
   "ui_extracted": { "message": "Εξήχθη" },
   "ui_error": { "message": "Σφάλμα" },

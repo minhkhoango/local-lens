@@ -1,4 +1,4 @@
-import { FILES_PATH, OCR_CONFIG } from './constants';
+import { OCR_CONFIG } from './constants';
 import { ExtensionAction } from './types';
 import type {
   ExtensionMessage,
@@ -8,14 +8,25 @@ import type {
   StatusResponse,
 } from './types';
 
-// tool bar icon click, chrome handle the shortcut automatically
+const FILES_PATH = {
+  BACKUP_HTML: 'backup.html',
+  CONTENT_SCRIPT: 'content.js',
+  OFFSCREEN_HTML: 'offscreen.html',
+};
+
+/**
+ * Trigger upon icon click / shortcut:
+ * - Capture screenshot of the whole tab
+ * - Create backup tab if current is restricted / overlay fail
+ * - Create an overlay (gray scale on page + drag crop box)
+ * */
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id || !tab.url) return;
 
   try {
     console.debug('screenshot');
     const capturedImage = await chrome.tabs.captureVisibleTab({
-      format: OCR_CONFIG.CAPTURE_FORMAT,
+      format: OCR_CONFIG.FORMAT,
     });
 
     const isRestricted = isRestrictedUrl(tab.url);
@@ -38,18 +49,21 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 });
 
-// Routing messages across scripts
+/**
+ * Ultimate routing system of local-lens since service worker
+ * has higher priviledge (access to commands) compared to offscreen or content
+ */
 chrome.runtime.onMessage.addListener(
   (
     message: ExtensionMessage,
     sender: chrome.runtime.MessageSender,
-    sendResponse: (response: StatusResponse | ShortcutResponse) => void
+    sendResponse: (response: StatusResponse | ShortcutResponse) => void,
   ) => {
     switch (message.action) {
       case ExtensionAction.ENSURE_OFFSCREEN: {
         console.debug(message.action);
         (async () => {
-          await ensureOffscreen();
+          await ensureOffscreenLoaded();
           sendResponse({ status: 'ok' });
         })();
         return true;
@@ -69,7 +83,7 @@ chrome.runtime.onMessage.addListener(
         (async () => {
           const ocrResult = await transferLanguage(
             targetTabId,
-            message.payload
+            message.payload,
           );
           sendResponse(ocrResult);
         })();
@@ -102,9 +116,12 @@ chrome.runtime.onMessage.addListener(
       }
     }
     return false;
-  }
+  },
 );
 
+/**
+ * Get id of the tab that send the message
+ */
 function getTabId(sender: chrome.runtime.MessageSender): number {
   try {
     const targetTabId = sender.tab?.id;
@@ -118,6 +135,9 @@ function getTabId(sender: chrome.runtime.MessageSender): number {
   }
 }
 
+/**
+ * Fast check if tab is restricted
+ */
 function isRestrictedUrl(url: string | undefined): boolean {
   if (!url) return true;
   const newUrl = new URL(url);
@@ -136,12 +156,16 @@ function isRestrictedUrl(url: string | undefined): boolean {
   return false;
 }
 
+/**
+ * Gray out user's screen, listen to click & drag
+ * While waiting for user's selectionRect, warming offscreen
+ */
 async function activateOverlay(
   tabId: number,
-  capturedImage: string
+  capturedImage: string,
 ): Promise<void> {
   try {
-    await ensureContentScriptLoaded(tabId);
+    await ensureContentLoaded(tabId);
 
     console.debug('send ACTIVATE_OVERLAY to content');
     const overlayResponse = await chrome.tabs.sendMessage<ExtensionMessage>(
@@ -149,7 +173,7 @@ async function activateOverlay(
       {
         action: ExtensionAction.ACTIVATE_OVERLAY,
         payload: { imageUrl: capturedImage },
-      }
+      },
     );
     if (overlayResponse.status !== 'ok') {
       console.error('Overlay failed:', overlayResponse.message);
@@ -158,12 +182,17 @@ async function activateOverlay(
 
     console.debug('warming up offscreen engine...');
     // warm up the offscreen engine
-    await ensureOffscreen();
+    await ensureOffscreenLoaded();
   } catch (err) {
     throw err;
   }
 }
 
+/**
+ * When hitting restricted sites, ping content to create a similar backup tab
+ * @param capturedImage base64 string from captureVisibleTab
+ * @returns id of the new tab
+ */
 async function createBackupTab(capturedImage: string): Promise<number> {
   const tab = await chrome.tabs.create({
     url: FILES_PATH.BACKUP_HTML,
@@ -195,7 +224,10 @@ async function createBackupTab(capturedImage: string): Promise<number> {
   return tab.id;
 }
 
-async function ensureOffscreen(): Promise<void> {
+/**
+ * Create / ensure offscreen OCR script is ready
+ */
+async function ensureOffscreenLoaded(): Promise<void> {
   const existing = await chrome.runtime.getContexts({
     contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
     documentUrls: [chrome.runtime.getURL(FILES_PATH.OFFSCREEN_HTML)],
@@ -206,11 +238,14 @@ async function ensureOffscreen(): Promise<void> {
   await chrome.offscreen.createDocument({
     url: FILES_PATH.OFFSCREEN_HTML,
     reasons: [chrome.offscreen.Reason.BLOBS],
-    justification: OCR_CONFIG.JUSTIFICATION,
+    justification: 'Processing screenshot image data for OCR',
   });
 }
 
-async function ensureContentScriptLoaded(tabId: number): Promise<void> {
+/**
+ * Create / ensure floatingIsland UI is ready to be initiated
+ */
+async function ensureContentLoaded(tabId: number): Promise<void> {
   try {
     await chrome.tabs.sendMessage(tabId, {
       action: ExtensionAction.PING_CONTENT,
@@ -223,9 +258,14 @@ async function ensureContentScriptLoaded(tabId: number): Promise<void> {
   }
 }
 
+/**
+ * A inefficient bridge that transfer selectionRect from overlay -> bg -> content
+ * @param tabId Id of the tab of the island that sent PERFORM_OCR request
+ * @param payload dimension of user's cropped rectangle
+ */
 async function transferCapture(
   tabId: number,
-  payload: SelectionRect
+  payload: SelectionRect,
 ): Promise<void> {
   console.debug('Transfering capture success bg -> content');
   await chrome.tabs.sendMessage<ExtensionMessage>(tabId, {
@@ -234,6 +274,11 @@ async function transferCapture(
   });
 }
 
+/**
+ * A inefficient bridge that transfer updated language from island.index -> bg -> content
+ * @param tabId Id of the tab of the island that sent PERFORM_OCR request
+ * @param payload new language
+ */
 async function transferLanguage(tabId: number, payload: LanguagePayload) {
   console.debug('Transfering language payload bg -> content');
   const ocrResult = await chrome.tabs.sendMessage<ExtensionMessage>(tabId, {

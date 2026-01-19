@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Gizliliği ön planda tutan ve cihazınızda kalan görsel metin çıkarıcı"
   },
+  "hint_expand": { "message": "Genişlet" },
+  "hint_collapse": { "message": "Daralt" },
+  "hint_copy": { "message": "Kopyala" },
+  "hint_settings": { "message": "Ayarlar" },
   "ui_cropped_screenshot": { "message": "Yakalanan bölge" },
   "ui_processing": { "message": "işleniyor..." },
-  "ui_expand": { "message": "Genişletmek için tıkla" },
   "ui_copied": { "message": "Kopyalandı!" },
   "ui_extracted": { "message": "Çıkarıldı" },
   "ui_error": { "message": "Hata" },

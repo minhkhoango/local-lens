@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Инструмент за визуално извличане на текст, който работи локално на вашето устройство и поставя поверителността на първо място"
   },
+  "hint_expand": { "message": "Разширяване" },
+  "hint_collapse": { "message": "Затваряне" },
+  "hint_copy": { "message": "Копиране" },
+  "hint_settings": { "message": "Настройки" },
   "ui_cropped_screenshot": { "message": "Заснета област" },
   "ui_processing": { "message": "обработка..." },
-  "ui_expand": { "message": "Кликнете за разширяване" },
   "ui_copied": { "message": "Копирано!" },
   "ui_extracted": { "message": "Извлечено" },
   "ui_error": { "message": "Грешка" },

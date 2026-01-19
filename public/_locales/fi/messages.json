@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Yksityisyyteen keskittyvä visuaalinen tekstipoimija, joka pysyy laitteellasi"
   },
+  "hint_expand": { "message": "Laajenna" },
+  "hint_collapse": { "message": "Sulje" },
+  "hint_copy": { "message": "Kopioi" },
+  "hint_settings": { "message": "Asetukset" },
   "ui_cropped_screenshot": { "message": "Kaapattu alue" },
   "ui_processing": { "message": "käsitellään..." },
-  "ui_expand": { "message": "Laajenna napsauttamalla" },
   "ui_copied": { "message": "Kopioitu!" },
   "ui_extracted": { "message": "Poimittu" },
   "ui_error": { "message": "Virhe" },

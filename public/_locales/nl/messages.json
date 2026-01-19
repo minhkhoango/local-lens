@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Een privacy-gerichte visuele tekstextractor die op je apparaat blijft"
   },
+  "hint_expand": { "message": "Uitbreiden" },
+  "hint_collapse": { "message": "Samenvouwen" },
+  "hint_copy": { "message": "Kopiëren" },
+  "hint_settings": { "message": "Instellingen" },
   "ui_cropped_screenshot": { "message": "Vastgelegd gebied" },
   "ui_processing": { "message": "verwerken..." },
-  "ui_expand": { "message": "Klik om uit te breiden" },
   "ui_copied": { "message": "Gekopieerd!" },
   "ui_extracted": { "message": "Geëxtraheerd" },
   "ui_error": { "message": "Fout" },

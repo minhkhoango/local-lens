@@ -1,7 +1,29 @@
-import { IDS, CONFIG, OVERLAY_CSS } from './constants';
 import { ExtensionAction } from './types';
-import type { ExtensionMessage, SelectionRect, Point, Corner } from './types';
+import type { ExtensionMessage, SelectionRect, Point } from './types';
 
+type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
+const OVERLAY_CSS = {
+  colors: {
+    bg: 'rgba(0, 0, 0, 0.4)',
+    stroke: '#ffffff',
+  },
+  layout: {
+    zIndex: 2147483647,
+    radius: 28,
+  },
+  animation: {
+    cursor: 'crosshair',
+    lineWidth: 3,
+  },
+} as const;
+const ID = 'xr-screenshot-reader-host';
+
+/**
+ * Darkens user's screen, prompt user to click & drag to create a rectangle,
+ * then send the result to background message NOTIFY_CAPTURE_SUCCESS
+ * to forward to content
+ */
 export class GhostOverlay {
   private host: HTMLDivElement;
   private shadow: ShadowRoot;
@@ -15,12 +37,15 @@ export class GhostOverlay {
   constructor() {
     console.debug('[Overlay]: Initiate overlay for screenshot rect');
     this.host = document.createElement('div');
-    this.host.id = IDS.OVERLAY;
+    this.host.id = ID;
     this.shadow = this.host.attachShadow({ mode: 'closed' });
     this.canvas = document.createElement('canvas');
     this.initStructure();
   }
 
+  /**
+   * Create dpr scaled, gray overlay div
+   */
   private initStructure(): void {
     console.debug('[Overlay]: Create top level gray darkening, match dpr');
     Object.assign(this.host.style, {
@@ -48,13 +73,19 @@ export class GhostOverlay {
     this.shadow.appendChild(this.canvas);
   }
 
+  /**
+   * Mount overlay on screen if not already
+   */
   public mount(): void {
     console.debug('[Overlay]: Mount overlay on screen');
-    if (!document.getElementById(IDS.OVERLAY)) {
+    if (!document.getElementById(ID)) {
       document.body.appendChild(this.host);
     }
   }
 
+  /**
+   * Enables '+' mouse, listen to mousedown and 'Escape'
+   */
   public activate(): void {
     console.debug('[Overlay] Enables + mouse, listen to mousedown');
     this.host.style.pointerEvents = 'auto';
@@ -63,6 +94,9 @@ export class GhostOverlay {
     this.draw();
   }
 
+  /**
+   * Remove overlay
+   */
   public destroy(): void {
     console.debug('[Overlay] remove listener, "escape" keydown, & box');
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
@@ -72,6 +106,11 @@ export class GhostOverlay {
     this.host.remove();
   }
 
+  /**
+   * Upon mousedown:
+   * - listen to 'mousemove' to update white rectangle
+   * - listen to 'mouseup' to capture SelectionRect & send to background
+   */
   private handleMouseDown = (e: MouseEvent): void => {
     this.isDragging = true;
     this.startPos = { x: e.clientX, y: e.clientY };
@@ -83,25 +122,28 @@ export class GhostOverlay {
     this.draw();
   };
 
+  /**
+   * Redraws updated white rectangle
+   */
   private handleMouseMove = (e: MouseEvent): void => {
     if (!this.isDragging) return;
     this.currentPos = { x: e.clientX, y: e.clientY };
     this.draw();
   };
 
-  private handleMouseUp = (_e: MouseEvent): void => {
+  /**
+   * Check rect, send image to BG, destroy
+   */
+  private handleMouseUp = (): void => {
     console.debug(
-      '[Overlay] on mouseup, check rect, send image to BG, destroy'
+      '[Overlay] on mouseup, check rect, send image to BG, destroy',
     );
     this.isDragging = false;
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);
     const rect = this.getSelectionRect();
 
-    if (
-      rect.width > CONFIG.MIN_SELECTION_ZX &&
-      rect.height > CONFIG.MIN_SELECTION_ZY
-    ) {
+    if (rect.width > 5 && rect.height > 5) {
       console.debug('Image captured:', rect);
       chrome.runtime.sendMessage<ExtensionMessage>({
         action: ExtensionAction.NOTIFY_CAPTURE_SUCCESS,
@@ -111,11 +153,17 @@ export class GhostOverlay {
     this.destroy();
   };
 
+  /**
+   * Destroy on 'Escape'
+   */
   private handleKeyDown = (e: KeyboardEvent): void => {
     console.debug('[Overlay] destroy on "Escape"');
     if (e.key === 'Escape') this.destroy();
   };
 
+  /**
+   * Draw a google lens style rectangular with 1 sharp coner
+   */
   private draw(): void {
     if (!this.ctx) return;
     const dpr = window.devicePixelRatio || 1;
@@ -152,6 +200,9 @@ export class GhostOverlay {
     }
   }
 
+  /**
+   * Get current sharp corner based on start position and current position
+   */
   private getActiveCorner(): Corner {
     // Determine which corner is active based on drag direction
     const draggingRight = this.currentPos.x >= this.startPos.x;
@@ -163,6 +214,9 @@ export class GhostOverlay {
     return 'top-left';
   }
 
+  /**
+   * The payload of overlay, with bounded coordinates
+   */
   private getSelectionRect(): SelectionRect {
     // Clamp viewport boundaries when mouse leaves window
     const clampedCurrentPos: Point = {

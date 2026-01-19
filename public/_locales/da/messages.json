@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "En privatlivsfokuseret visuel tekstudtrækker, der forbliver på din enhed"
   },
+  "hint_expand": { "message": "Udvid" },
+  "hint_collapse": { "message": "Luk" },
+  "hint_copy": { "message": "Kopier" },
+  "hint_settings": { "message": "Indstillinger" },
   "ui_cropped_screenshot": { "message": "Fanget område" },
   "ui_processing": { "message": "behandler..." },
-  "ui_expand": { "message": "Klik for at udvide" },
   "ui_copied": { "message": "Kopieret!" },
   "ui_extracted": { "message": "Udtrukket" },
   "ui_error": { "message": "Fejl" },

@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "개인정보 보호를 우선시하며 기기에 머무르는 시각적 텍스트 추출기"
   },
+  "hint_expand": { "message": "확장" },
+  "hint_collapse": { "message": "축소" },
+  "hint_copy": { "message": "복사" },
+  "hint_settings": { "message": "설정" },
   "ui_cropped_screenshot": { "message": "캡처된 영역" },
   "ui_processing": { "message": "처리 중..." },
-  "ui_expand": { "message": "클릭하여 확장" },
   "ui_copied": { "message": "복사됨!" },
   "ui_extracted": { "message": "추출됨" },
   "ui_error": { "message": "오류" },

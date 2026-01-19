@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Un extractor de text vizual care pune pe primul loc confidențialitatea și rămâne pe dispozitivul tău"
   },
+  "hint_expand": { "message": "Extindeți" },
+  "hint_collapse": { "message": "Restrângeți" },
+  "hint_copy": { "message": "Copie" },
+  "hint_settings": { "message": "Setări" },
   "ui_cropped_screenshot": { "message": "Regiune capturată" },
   "ui_processing": { "message": "se procesează..." },
-  "ui_expand": { "message": "Click pentru extindere" },
   "ui_copied": { "message": "Copiat!" },
   "ui_extracted": { "message": "Extras" },
   "ui_error": { "message": "Eroare" },

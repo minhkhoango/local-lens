@@ -3,9 +3,13 @@
   "appDescription": {
     "message": "プライバシーを重視し、デバイス上で動作するビジュアルテキスト抽出ツール"
   },
+  "hint_expand": { "message": "展開" },
+  "hint_collapse": { "message": "折りたたみ" },
+  "hint_copy": { "message": "コピー" },
+  "hint_settings": { "message": "設定" },
   "ui_cropped_screenshot": { "message": "キャプチャ領域" },
   "ui_processing": { "message": "処理中..." },
-  "ui_expand": { "message": "クリックして展開" },
+
   "ui_copied": { "message": "コピーしました！" },
   "ui_extracted": { "message": "抽出完了" },
   "ui_error": { "message": "エラー" },

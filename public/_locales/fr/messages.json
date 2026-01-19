@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Un extracteur de texte visuel axé sur la confidentialité qui reste sur votre appareil"
   },
+  "hint_expand": { "message": "Agrandir" },
+  "hint_collapse": { "message": "Fermer" },
+  "hint_copy": { "message": "Copier" },
+  "hint_settings": { "message": "Paramètres" },
   "ui_cropped_screenshot": { "message": "Zone capturée" },
   "ui_processing": { "message": "traitement..." },
-  "ui_expand": { "message": "Cliquer pour agrandir" },
   "ui_copied": { "message": "Copié !" },
   "ui_extracted": { "message": "Extrait" },
   "ui_error": { "message": "Erreur" },

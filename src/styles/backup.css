@@ -1,11 +1,11 @@
-:host {
+:root {
   --bg: #1e1e1e;
   --surface: #e9eef6;
   --text: #1f1f1f;
   --border: rgba(255, 255, 255, 0.1);
   --font:
-    'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    sans-serif;
+    'Google Sans', 'Roboto', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI',
+    'sans-serif';
   --shadow: 0 4px 8px 3px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.3);
   --img-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 }

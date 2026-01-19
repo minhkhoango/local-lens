@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "أداة استخراج نصوص آمنة تعمل كلياً على جهازك."
   },
+  "hint_expand": { "message": "توسيع" },
+  "hint_collapse": { "message": "إغلاق" },
+  "hint_copy": { "message": "نسخ" },
+  "hint_settings": { "message": "إعدادات" },
   "ui_cropped_screenshot": { "message": "المنطقة الملتقطة" },
   "ui_processing": { "message": "جارٍ المعالجة..." },
-  "ui_expand": { "message": "انقر للتوسيع" },
   "ui_copied": { "message": "تم النسخ!" },
   "ui_extracted": { "message": "تم الاستخراج" },
   "ui_error": { "message": "خطأ" },

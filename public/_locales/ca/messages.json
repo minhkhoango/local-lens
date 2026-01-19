@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Un extractor de text visual que prioritza la privadesa i roman al vostre dispositiu"
   },
+  "hint_expand": { "message": "Expandir" },
+  "hint_collapse": { "message": "Tancar" },
+  "hint_copy": { "message": "Copiar" },
+  "hint_settings": { "message": "Configuració" },
   "ui_cropped_screenshot": { "message": "Regió capturada" },
   "ui_processing": { "message": "processant..." },
-  "ui_expand": { "message": "Clica per expandir" },
   "ui_copied": { "message": "Copiat!" },
   "ui_extracted": { "message": "Extret" },
   "ui_error": { "message": "Error" },

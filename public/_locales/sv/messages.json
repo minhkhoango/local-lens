@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "En integritetsfokuserad visuell textextraherare som stannar på din enhet"
   },
+  "hint_expand": { "message": "Expandera" },
+  "hint_collapse": { "message": "Kollaps" },
+  "hint_copy": { "message": "Kopiera" },
+  "hint_settings": { "message": "Inställningar" },
   "ui_cropped_screenshot": { "message": "Fångat område" },
   "ui_processing": { "message": "bearbetar..." },
-  "ui_expand": { "message": "Klicka för att expandera" },
   "ui_copied": { "message": "Kopierat!" },
   "ui_extracted": { "message": "Extraherat" },
   "ui_error": { "message": "Fel" },

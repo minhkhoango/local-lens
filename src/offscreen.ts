@@ -1,8 +1,12 @@
-import { FILES_PATH, OCR_CONFIG } from './constants';
 import type { TesseractLang } from './language_map';
 import { ExtensionAction } from './types';
 import type { ExtensionMessage, OcrResponse } from './types';
 import Tesseract from 'tesseract.js';
+
+const FILES_PATH = {
+  OCR_WORKER: 'tesseract_engine/worker.min.js',
+  OCR_CORE: 'tesseract_engine/tesseract-core-simd-lstm.wasm.js',
+} as const;
 
 let worker: Tesseract.Worker | null = null;
 let currentLanguage: string = 'eng';
@@ -11,7 +15,7 @@ chrome.runtime.onMessage.addListener(
   (
     message: ExtensionMessage,
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: OcrResponse) => void
+    sendResponse: (response: OcrResponse) => void,
   ) => {
     switch (message.action) {
       case ExtensionAction.PERFORM_OCR:
@@ -22,13 +26,16 @@ chrome.runtime.onMessage.addListener(
     }
 
     return false;
-  }
+  },
 );
 
+/**
+ * Run Tesseract OCR given language and image
+ */
 async function performRecognition(
   language: TesseractLang,
   image: string | null,
-  sendResponse: (response: OcrResponse) => void
+  sendResponse: (response: OcrResponse) => void,
 ) {
   if (!image) {
     throw new Error('No saved cropped image found for retry');
@@ -71,7 +78,9 @@ async function performRecognition(
   }
 }
 
-/*
+/**
+ * Get Tesseract worker. Reuse / reinitialize if found, and create new if not.
+ *
  * KNOWN ISSUE: "Parameter not found" warnings during language initialization
  * These are legacy parameters embedded in the .traineddata, and are harmless
  * Infected: chi_sim, chi_tra, greek, italian, japanese, korean, vietnamese
@@ -85,7 +94,7 @@ async function getWorker(language: string): Promise<Tesseract.Worker> {
   if (worker && currentLanguage !== language) {
     console.debug(`re-init worker from ${currentLanguage} to ${language}`);
     try {
-      await worker.reinitialize(language, OCR_CONFIG.OEM);
+      await worker.reinitialize(language, 1);
       return worker;
     } catch (err) {
       console.warn(`worker re-init failed: ${err}, return old worker`);
@@ -94,12 +103,12 @@ async function getWorker(language: string): Promise<Tesseract.Worker> {
   }
 
   console.debug('create new worker lang:', language);
-  worker = await Tesseract.createWorker(language, OCR_CONFIG.OEM, {
+  worker = await Tesseract.createWorker(language, 1, {
     workerBlobURL: false,
     workerPath: FILES_PATH.OCR_WORKER,
     corePath: FILES_PATH.OCR_CORE,
-    langPath: OCR_CONFIG.LANG_PATH,
-    cacheMethod: OCR_CONFIG.CACHE_METHOD,
+    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+    cacheMethod: 'write',
     logger: (_m) => {},
   });
   return worker;

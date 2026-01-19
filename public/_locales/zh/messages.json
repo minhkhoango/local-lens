@@ -3,9 +3,13 @@
   "appDescription": {
     "message": "注重隐私的视觉文本提取工具，在您的设备上运行"
   },
+  "hint_expand": { "message": "展开" },
+  "hint_collapse": { "message": "折叠" },
+  "hint_copy": { "message": "复制" },
+  "hint_settings": { "message": "设置" },
   "ui_cropped_screenshot": { "message": "截图区域" },
   "ui_processing": { "message": "处理中..." },
-  "ui_expand": { "message": "点击展开" },
+
   "ui_copied": { "message": "已复制！" },
   "ui_extracted": { "message": "已提取" },
   "ui_error": { "message": "错误" },

@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Инструмент для визуального извлечения текста, ориентированный на конфиденциальность и работающий на вашем устройстве"
   },
+  "hint_expand": { "message": "Развернуть" },
+  "hint_collapse": { "message": "Свернуть" },
+  "hint_copy": { "message": "Копировать" },
+  "hint_settings": { "message": "Параметры" },
   "ui_cropped_screenshot": { "message": "Захваченная область" },
   "ui_processing": { "message": "обработка..." },
-  "ui_expand": { "message": "Нажмите, чтобы развернуть" },
   "ui_copied": { "message": "Скопировано!" },
   "ui_extracted": { "message": "Извлечено" },
   "ui_error": { "message": "Ошибка" },

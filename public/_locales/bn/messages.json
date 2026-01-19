@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "একটি গোপনীয়তা-প্রথম ভিজ্যুয়াল টেক্সট এক্সট্র্যাক্টর যা আপনার ডিভাইসে থাকে"
   },
+  "hint_expand": { "message": "প্রসারিত করুন" },
+  "hint_collapse": { "message": "বন্ধ করুন" },
+  "hint_copy": { "message": "অনুলিপি করুন" },
+  "hint_settings": { "message": "সেটিংস" },
   "ui_cropped_screenshot": { "message": "ক্যাপচার করা এলাকা" },
   "ui_processing": { "message": "প্রক্রিয়াধীন..." },
-  "ui_expand": { "message": "প্রসারিত করতে ক্লিক করুন" },
   "ui_copied": { "message": "অনুলিপি করা হয়েছে!" },
   "ui_extracted": { "message": "নিষ্কাশিত" },
   "ui_error": { "message": "ত্রুটি" },

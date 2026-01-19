@@ -7,6 +7,22 @@
     "message": "A privacy-first visual text extractor that stays on your device",
     "description": "The description of the extension"
   },
+  "hint_expand": {
+    "message": "Expand",
+    "description": "Island hint text for expanding UI"
+  },
+  "hint_collapse": {
+    "message": "Collapse",
+    "description": "Island hint text for closing UI"
+  },
+  "hint_copy": {
+    "message": "Copy",
+    "description": "Island hint for copy icon"
+  },
+  "hint_settings": {
+    "message": "Settings",
+    "description": "Island hint for settings icon"
+  },
   "ui_cropped_screenshot": {
     "message": "Captured region",
     "description": "40x40 image shown in island"
@@ -14,10 +30,6 @@
   "ui_processing": {
     "message": "processing...",
     "description": "Island status when OCR is processing"
-  },
-  "ui_expand": {
-    "message": "Click to expand",
-    "description": "Island hint text for expanding UI"
   },
   "ui_copied": {
     "message": "Copied!",

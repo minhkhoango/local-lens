@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "एक गोपनीयता-केंद्रित दृश्य पाठ निष्कर्षक जो आपके डिवाइस पर रहता है"
   },
+  "hint_expand": { "message": "विस्तार करें" },
+  "hint_collapse": { "message": "बंद करें" },
+  "hint_copy": { "message": "कॉपी करें" },
+  "hint_settings": { "message": "सेटिंग्स" },
   "ui_cropped_screenshot": { "message": "कैप्चर किया गया क्षेत्र" },
   "ui_processing": { "message": "प्रक्रिया जारी है..." },
-  "ui_expand": { "message": "विस्तार करने के लिए क्लिक करें" },
   "ui_copied": { "message": "कॉपी किया गया!" },
   "ui_extracted": { "message": "निकाला गया" },
   "ui_error": { "message": "त्रुटि" },

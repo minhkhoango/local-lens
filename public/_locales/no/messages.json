@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "En personvernfokusert visuell tekstuttrekker som blir på enheten din"
   },
+  "hint_expand": { "message": "Utvid" },
+  "hint_collapse": { "message": "Skjul" },
+  "hint_copy": { "message": "Kopier" },
+  "hint_settings": { "message": "Innstillinger" },
   "ui_cropped_screenshot": { "message": "Fanget område" },
   "ui_processing": { "message": "behandler..." },
-  "ui_expand": { "message": "Klikk for å utvide" },
   "ui_copied": { "message": "Kopiert!" },
   "ui_extracted": { "message": "Trukket ut" },
   "ui_error": { "message": "Feil" },

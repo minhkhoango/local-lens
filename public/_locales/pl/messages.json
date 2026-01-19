@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Ekstraktor tekstu wizualnego stawiający prywatność na pierwszym miejscu, który pozostaje na Twoim urządzeniu"
   },
+  "hint_expand": { "message": "Rozwiń" },
+  "hint_collapse": { "message": "Zwiń" },
+  "hint_copy": { "message": "Kopiuj" },
+  "hint_settings": { "message": "Ustawienia" },
   "ui_cropped_screenshot": { "message": "Przechwycony obszar" },
   "ui_processing": { "message": "przetwarzanie..." },
-  "ui_expand": { "message": "Kliknij, aby rozwinąć" },
   "ui_copied": { "message": "Skopiowano!" },
   "ui_extracted": { "message": "Wyodrębniono" },
   "ui_error": { "message": "Błąd" },

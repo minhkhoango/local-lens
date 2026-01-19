@@ -1,3 +1,7 @@
+/**
+ * A map to translate chrome's 2 letter language format
+ * recevied from i18n to Tesseract's 3 letter lang format
+ */
 export const CHROME_TO_TESSERACT = {
   ar: 'ara',
   bg: 'bul',
@@ -41,40 +45,12 @@ export const CHROME_TO_TESSERACT = {
   'zh-TW': 'chi_tra',
 } as const;
 
+/**
+ * 40 most common languages in Google Chrome's 2 letter format
+ */
 export type ChromeLang = keyof typeof CHROME_TO_TESSERACT;
-export type TesseractLang = (typeof CHROME_TO_TESSERACT)[ChromeLang];
 
-export const TESSERACT_LANGS: TesseractLang[] = [
-  'ara',
-  'ben',
-  'bul',
-  'cat',
-  'ces',
-  'chi_sim',
-  'chi_tra',
-  'dan',
-  'deu',
-  'ell',
-  'eng',
-  'fin',
-  'fra',
-  'heb',
-  'hin',
-  'hun',
-  'ind',
-  'ita',
-  'jpn',
-  'kor',
-  'nld',
-  'nor',
-  'pol',
-  'por',
-  'ron',
-  'rus',
-  'spa',
-  'swe',
-  'tha',
-  'tur',
-  'ukr',
-  'vie',
-];
+/**
+ * 32 most common languages in Tesseract's 3 letter format
+ */
+export type TesseractLang = (typeof CHROME_TO_TESSERACT)[ChromeLang];

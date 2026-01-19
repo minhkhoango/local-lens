@@ -1,0 +1,280 @@
+import { INITIAL_STATE, CONFIG } from './constants';
+import type {
+  Point,
+  IslandOcrPayload,
+  ExtensionMessage,
+  OcrResponse,
+} from '../types';
+import type { Action, State } from './types';
+import { ExtensionAction } from '../types';
+import type { TesseractLang } from '../language_map';
+import { View } from './view';
+import { Storage } from './storage';
+import { DragController, EventsController } from './behavior';
+import { clampToViewport, calculateDynamicWidth } from './utils';
+
+const ID = 'xr-floating-island-host';
+/**
+ * The draggable pill shaped UI of local-lens
+ */
+export class FloatingIsland {
+  private host: HTMLDivElement;
+  private view: View;
+  private storage: Storage;
+  private dragCtrl?: DragController;
+  private eventsCtrl?: EventsController;
+
+  private state: State;
+  private position: Point;
+
+  /**
+   * Load island settings, UI, positioning
+   * @param cursorPosition position just after overlay
+   * @param imageUrl 40x40 cropped base64 string image
+   */
+  constructor(cursorPosition: Point, imageUrl: string) {
+    console.debug('[Island.index] begin constructor');
+    this.host = document.createElement('div');
+    this.host.id = ID;
+
+    this.state = { ...INITIAL_STATE, imageUrl };
+    this.position = clampToViewport(
+      cursorPosition,
+      CONFIG.widthCollapsed,
+      CONFIG.heightCollapsed,
+    );
+
+    this.storage = new Storage();
+    this.view = new View(this.host, this.handleAction.bind(this));
+
+    this.dragCtrl = new DragController((pos) => this.updatePosition(pos));
+    this.eventsCtrl = new EventsController(this.host, {
+      onDestroy: () => this.destroy(),
+      onReposition: (pos) => this.updatePosition(pos),
+      getCurrentPosition: () => this.position,
+    });
+
+    this.storage.loadSettings().then(async (settings) => {
+      this.state.settings = settings;
+      this.state.shortcutText = await this.storage.getShortcut();
+      this.view.init(this.state);
+      this.updateView();
+      this.eventsCtrl?.attach();
+    });
+  }
+
+  // --- Public functions ---
+  /**
+   * Update UI with (new) OCR result
+   * @param payload OCR result sent fron offscreen
+   */
+  public updateOcrResult(payload: IslandOcrPayload): void {
+    this.state.status = payload.success ? 'success' : 'error';
+    this.state.text = payload.text;
+    if (payload.croppedImageUrl) this.state.imageUrl = payload.croppedImageUrl;
+
+    if (this.state.status === 'success') {
+      if (this.state.settings.autoExpand) this.state.isTextExpanded = true;
+      if (this.state.settings.autoCopy) this.copyToClipboard();
+    }
+    this.updateView();
+  }
+
+  /**
+   * Mount the island if not already
+   */
+  public mount(): void {
+    if (!document.getElementById(ID)) {
+      document.documentElement.appendChild(this.host);
+    }
+  }
+
+  /**
+   * Remove island and its listener
+   */
+  public destroy(): void {
+    console.debug('[Island.index] destroy');
+    this.eventsCtrl?.destroy();
+    this.dragCtrl?.destroy();
+    this.host.remove();
+  }
+
+  // --- Internal logic ---
+  /**
+   * Handle user input sent from view.ts
+   * @param action type & payload? sent from island/view
+   */
+  private handleAction(action: Action): void {
+    console.debug('[Island.action] handAction:', action);
+    switch (action.type) {
+      case 'copy':
+        this.copyToClipboard();
+        break;
+      case 'expandSettings':
+        this.toggleSettingsExpand();
+        break;
+      case 'expandText':
+        this.toggleTextExpand();
+        break;
+      case 'updateText':
+        this.state.text = action.payload;
+        this.state.hasCopied = false;
+        this.updateView();
+        break;
+      case 'startDrag':
+        this.dragCtrl?.start(action.payload, this.position);
+        break;
+      case 'toggleSettings':
+        this.toggleSetting(action.payload);
+        break;
+      case 'updateLang':
+        this.changeLanguage(action.payload);
+        break;
+      case 'openShortcutSettings':
+        this.storage.openShortcutsPage();
+        break;
+    }
+  }
+
+  /**
+   * The general updateUI, calculate dynamic width
+   * then call view.update to update floating island -> update position
+   */
+  private updateView(): void {
+    console.debug('[Island.index] updateView, position:', this.position);
+    const oldWidth =
+      parseFloat(this.view.container.style.width) || CONFIG.widthCollapsed;
+    const width = this.state.isTextExpanded
+      ? calculateDynamicWidth(this.state.text)
+      : CONFIG.widthCollapsed;
+
+    // Expand to left / collapse to right
+    const widthDelta = width - oldWidth;
+    if (widthDelta !== 0) {
+      this.position.x -= widthDelta;
+    }
+
+    this.view.update(this.state, width);
+    this.updatePosition(this.position);
+  }
+
+  /**
+   * Update floating island to new bounded position
+   * @param pos unbounded mouse position
+   */
+  private updatePosition(pos: Point): void {
+    const constrained = clampToViewport(
+      pos,
+      this.view.container.clientWidth || CONFIG.widthCollapsed,
+      this.view.container.clientHeight || CONFIG.heightCollapsed,
+    );
+    this.position = constrained;
+    this.view.updatePosition(constrained);
+  }
+
+  /**
+   * Open / close editable textarea
+   */
+  private toggleTextExpand(): void {
+    this.state.isTextExpanded = !this.state.isTextExpanded;
+    this.updateView();
+    this.updatePosition(this.position);
+  }
+
+  /**
+   * Open / close Settings panel
+   */
+  private toggleSettingsExpand(): void {
+    this.state.isSettingsExpanded = !this.state.isSettingsExpanded;
+    this.updateView();
+    this.updatePosition(this.position);
+  }
+
+  /**
+   * Attempt copy to clipboard with UI update and graceful fail
+   */
+  private async copyToClipboard(): Promise<void> {
+    if (!this.state.text) return;
+    try {
+      await navigator.clipboard.writeText(this.state.text);
+      this.state.hasCopied = true;
+      this.updateView();
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('focus')) {
+        console.debug('Auto-copy blocked, wait for user to click');
+        return;
+      }
+      console.error('Clipboard write failed:', err);
+    }
+  }
+
+  /**
+   * Handle logic & UI update upon setting toggle
+   * @param key auto-expand / auto-copy
+   */
+  private toggleSetting(key: keyof State['settings']): void {
+    if (key === 'language') return;
+
+    this.state.settings[key] = !this.state.settings[key];
+    this.storage.saveSettings(this.state.settings);
+
+    if (key === 'autoExpand') {
+      if (
+        (!this.state.isTextExpanded && this.state.settings[key]) ||
+        (this.state.isTextExpanded && !this.state.settings[key])
+      ) {
+        this.toggleTextExpand();
+        return;
+      }
+      this.updateView();
+      return;
+    }
+
+    // key is autoCopy, logic in case focus error
+    if (!this.state.hasCopied && this.state.settings[key])
+      this.copyToClipboard();
+    if (this.state.hasCopied && !this.state.settings[key])
+      this.state.hasCopied = false;
+    this.updateView();
+  }
+
+  /**
+   * All in one update language with complex, inefficient routing
+   * index -> bg -> content -> offscreen -> content -> bg -> index
+   * @param lang new language
+   */
+  private async changeLanguage(lang: TesseractLang): Promise<void> {
+    this.state.settings.language = lang;
+    this.storage.saveSettings(this.state.settings);
+
+    if (!this.state.imageUrl) return;
+
+    const previousText = this.state.text;
+
+    this.state.status = 'loading';
+    this.state.text = '';
+    this.state.hasCopied = false;
+    this.updateView();
+
+    try {
+      const response = await chrome.runtime.sendMessage<
+        ExtensionMessage,
+        OcrResponse
+      >({
+        action: ExtensionAction.REQUEST_LANGUAGE_UPDATE,
+        payload: { language: lang },
+      });
+
+      if (response.status === 'error') throw new Error('OCR Error');
+
+      this.state.status = 'success';
+      this.state.text = response.text;
+      if (this.state.settings.autoCopy) this.copyToClipboard();
+    } catch (e) {
+      this.state.status = 'error';
+      this.state.text = previousText;
+    }
+
+    this.updateView();
+  }
+}

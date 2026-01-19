@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Adatvédelemre összpontosító vizuális szövegkinyerő, amely az eszközödön marad"
   },
+  "hint_expand": { "message": "Kibontás" },
+  "hint_collapse": { "message": "Bezárás" },
+  "hint_copy": { "message": "Másolás" },
+  "hint_settings": { "message": "Beállítások" },
   "ui_cropped_screenshot": { "message": "Rögzített terület" },
   "ui_processing": { "message": "feldolgozás..." },
-  "ui_expand": { "message": "Kattintson a kibontáshoz" },
   "ui_copied": { "message": "Másolva!" },
   "ui_extracted": { "message": "Kinyerve" },
   "ui_error": { "message": "Hiba" },

@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "מחלץ טקסט ויזואלי המתעדף פרטיות ונשאר במכשיר שלך"
   },
+  "hint_expand": { "message": "הרחבה" },
+  "hint_collapse": { "message": "סגירה" },
+  "hint_copy": { "message": "העתקה" },
+  "hint_settings": { "message": "הגדרות" },
   "ui_cropped_screenshot": { "message": "אזור שנלכד" },
   "ui_processing": { "message": "מעבד..." },
-  "ui_expand": { "message": "לחץ להרחבה" },
   "ui_copied": { "message": "הועתק!" },
   "ui_extracted": { "message": "חולץ" },
   "ui_error": { "message": "שגיאה" },

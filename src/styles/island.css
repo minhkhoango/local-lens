@@ -29,8 +29,7 @@
   --w-min: 320px;
   --w-max: 650px;
   --h-min: 64px;
-  --h-exp: 350px;
-  --h-max: 500px;
+  --h-exp: 250px;
 
   --img-size: 40px;
   --btn-size: 40px;
@@ -176,9 +175,8 @@
   display: none;
   width: 100%;
   min-height: var(--h-exp);
-  max-height: var(--h-max);
   margin-top: var(--p);
-  padding: 12px 16px;
+  padding: 12px;
 
   background: var(--surface);
   border: none;

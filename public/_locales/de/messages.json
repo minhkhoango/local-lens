@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Ein datenschutzorientierter visueller Textextraktor, der auf Ihrem Gerät bleibt"
   },
+  "hint_expand": { "message": "Erweitern" },
+  "hint_collapse": { "message": "Schließen" },
+  "hint_copy": { "message": "Kopieren" },
+  "hint_settings": { "message": "Einstellungen" },
   "ui_cropped_screenshot": { "message": "Erfasster Bereich" },
   "ui_processing": { "message": "wird verarbeitet..." },
-  "ui_expand": { "message": "Zum Erweitern klicken" },
   "ui_copied": { "message": "Kopiert!" },
   "ui_extracted": { "message": "Extrahiert" },
   "ui_error": { "message": "Fehler" },

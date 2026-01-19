@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Un estrattore di testo visivo che dà priorità alla privacy e rimane sul tuo dispositivo"
   },
+  "hint_expand": { "message": "Espandi" },
+  "hint_collapse": { "message": "Comprimi" },
+  "hint_copy": { "message": "Copia" },
+  "hint_settings": { "message": "Impostazioni" },
   "ui_cropped_screenshot": { "message": "Area catturata" },
   "ui_processing": { "message": "elaborazione..." },
-  "ui_expand": { "message": "Clicca per espandere" },
   "ui_copied": { "message": "Copiato!" },
   "ui_extracted": { "message": "Estratto" },
   "ui_error": { "message": "Errore" },

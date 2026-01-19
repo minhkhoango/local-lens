@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Extraktor textu z obrázků s důrazem na soukromí, který zůstává na vašem zařízení"
   },
+  "hint_expand": { "message": "Rozbalit" },
+  "hint_collapse": { "message": "Zavřít" },
+  "hint_copy": { "message": "Kopírovat" },
+  "hint_settings": { "message": "Nastavení" },
   "ui_cropped_screenshot": { "message": "Zachycená oblast" },
   "ui_processing": { "message": "zpracování..." },
-  "ui_expand": { "message": "Kliknutím rozbalíte" },
   "ui_copied": { "message": "Zkopírováno!" },
   "ui_extracted": { "message": "Vyjmuto" },
   "ui_error": { "message": "Chyba" },

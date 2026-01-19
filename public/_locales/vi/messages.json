@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "Công cụ trích xuất văn bản hình ảnh bảo mật, chạy trực tiếp trên thiết bị"
   },
+  "hint_expand": { "message": "Mở rộng" },
+  "hint_collapse": { "message": "Đóng" },
+  "hint_copy": { "message": "Sao chép" },
+  "hint_settings": { "message": "Cài đặt" },
   "ui_cropped_screenshot": { "message": "Ảnh chọn" },
   "ui_processing": { "message": "Đang xử lý..." },
-  "ui_expand": { "message": "Mở rộng" },
   "ui_copied": { "message": "Đã sao chép!" },
   "ui_extracted": { "message": "Đã trích xuất" },
   "ui_error": { "message": "Lỗi" },

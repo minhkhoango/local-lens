@@ -3,21 +3,30 @@ import type {
   ExtensionMessage,
   IslandOcrPayload,
   ImagePayload,
-  UserLanguage,
-  IslandSettings,
   LanguagePayload,
   StatusResponse,
   OcrResponse,
+  Settings,
 } from './types';
 import { GhostOverlay } from './overlay';
-import { FloatingIsland } from './island';
+import { FloatingIsland } from './island/index';
 import backupStyles from './styles/backup.css?inline';
-import { CLASSES, STORAGE_KEYS, OCR_CONFIG } from './constants';
+import { OCR_CONFIG, STORAGE_KEY } from './constants';
 import {
   CHROME_TO_TESSERACT,
   type ChromeLang,
   type TesseractLang,
 } from './language_map';
+
+interface UserLanguage {
+  language: TesseractLang;
+  source: 'local_storage' | 'browser' | 'browser_base' | 'default';
+}
+
+const CLASSES = {
+  imageContainer: 'image-container',
+  banner: 'banner',
+};
 
 // State Management
 let activeOverlay: GhostOverlay | null = null;
@@ -29,7 +38,7 @@ chrome.runtime.onMessage.addListener(
   (
     message: ExtensionMessage,
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: StatusResponse | OcrResponse) => void
+    sendResponse: (response: StatusResponse | OcrResponse) => void,
   ) => {
     switch (message.action) {
       case ExtensionAction.INITIALIZE_BACKUP:
@@ -67,7 +76,7 @@ chrome.runtime.onMessage.addListener(
         return true;
     }
     return false;
-  }
+  },
 );
 
 function handleActivateOverlay(payload: ImagePayload) {
@@ -80,6 +89,13 @@ function handleActivateOverlay(payload: ImagePayload) {
   activeOverlay.activate();
 }
 
+/**
+ * Handle payload from rect payload from bg, do the following:
+ * - Crop user's selected rectangle from screenshot
+ * - Get user's language
+ * - Send payload to offscreen to perform OCR
+ * @param rect payload from bg from overlay
+ */
 async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
   console.debug('handle capture success');
   if (!capturedImage) {
@@ -130,9 +146,16 @@ async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
   }
 }
 
+/**
+ * Takes in base64 string from chrome.captureVisbleTab, take in
+ * account monitor's dpr then return a cropped PNG
+ * @param dataUrl base 64 string from background
+ * @param rect selectionRect from overlay
+ * @returns cropped PNG
+ */
 async function cropImage(
   dataUrl: string,
-  rect: SelectionRect
+  rect: SelectionRect,
 ): Promise<string> {
   const img = new Image();
 
@@ -171,24 +194,26 @@ async function cropImage(
     0,
     0,
     scaledWidth,
-    scaledHeight
+    scaledHeight,
   );
 
-  return canvas.toDataURL(OCR_CONFIG.CROP_MIME);
+  return canvas.toDataURL(`image/${OCR_CONFIG.FORMAT}`);
 }
 
+/**
+ * Attempt to find island's UI language in following order:
+ * saved settings -> i18n -> i18n base lang -> 'eng'
+ * @returns language and lang source for debugging
+ */
 async function getUserLanguage(): Promise<UserLanguage> {
   try {
     // Check user storage
-    const stored = await chrome.storage.local.get(STORAGE_KEYS.ISLAND_SETTINGS);
-    const settings = stored[
-      STORAGE_KEYS.ISLAND_SETTINGS
-    ] as Partial<IslandSettings>;
-    if (settings?.language)
-      return {
-        language: settings.language,
-        source: 'local_storage',
-      };
+    const stored = await chrome.storage.local.get(STORAGE_KEY);
+    const settings = stored[STORAGE_KEY] as Settings;
+    return {
+      language: settings.language,
+      source: 'local_storage',
+    };
   } catch {
     /* ignore */
   }
@@ -220,21 +245,31 @@ function getLanguageFromMap(key: string): TesseractLang | undefined {
   return CHROME_TO_TESSERACT[key as ChromeLang];
 }
 
+/**
+ * Handle UI update when offscreen finishing OCR the image
+ * @param payload payload from offscreen
+ */
 function handleOcrResult(payload: IslandOcrPayload): void {
   if (activeIsland) {
     // Update existing island with result (preserves position/drag state)
-    activeIsland.updateWithResult(payload);
+    activeIsland.updateOcrResult(payload);
   } else {
     // Fallback: create island if somehow missing
     activeIsland = new FloatingIsland(
       payload.cursorPosition,
-      payload.croppedImageUrl
+      payload.croppedImageUrl,
     );
     activeIsland.mount();
-    activeIsland.updateWithResult(payload);
+    activeIsland.updateOcrResult(payload);
   }
 }
 
+/**
+ * All-in-one handling of new language:
+ * - Ping background to ensure offscreen
+ * - Send payload to offscreen for OCR
+ * @param payload new language
+ */
 async function handleLanguageUpdate(payload: LanguagePayload) {
   console.debug('handle language_update, content actually receives it');
   try {
@@ -267,6 +302,10 @@ async function handleLanguageUpdate(payload: LanguagePayload) {
   }
 }
 
+/**
+ * Open a new tab nearly identical to original on restricted sites (chrome://,...)
+ * @param payload base64 string image from captureVisibleTab
+ */
 function setupBackupDisplay(payload: ImagePayload): void {
   try {
     const { imageUrl } = payload;

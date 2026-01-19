@@ -3,9 +3,12 @@
   "appDescription": {
     "message": "เครื่องมือดึงข้อความจากภาพที่ให้ความสำคัญกับความเป็นส่วนตัวและทำงานบนอุปกรณ์ของคุณ"
   },
+  "hint_expand": { "message": "ขยาย" },
+  "hint_collapse": { "message": "ยุบ" },
+  "hint_copy": { "message": "คัดลอก" },
+  "hint_settings": { "message": "การตั้งค่า" },
   "ui_cropped_screenshot": { "message": "พื้นที่ที่จับภาพ" },
   "ui_processing": { "message": "กำลังประมวลผล..." },
-  "ui_expand": { "message": "คลิกเพื่อขยาย" },
   "ui_copied": { "message": "คัดลอกแล้ว!" },
   "ui_extracted": { "message": "สกัดแล้ว" },
   "ui_error": { "message": "ข้อผิดพลาด" },
