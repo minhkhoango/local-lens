@@ -3,11 +3,6 @@ import { ExtensionAction } from './types';
 import type { ExtensionMessage, OcrResponse } from './types';
 import Tesseract from 'tesseract.js';
 
-const FILES_PATH = {
-  OCR_WORKER: 'tesseract_engine/worker.min.js',
-  OCR_CORE: 'tesseract_engine/tesseract-core-simd-lstm.wasm.js',
-} as const;
-
 let worker: Tesseract.Worker | null = null;
 let currentLanguage: string = 'eng';
 
@@ -59,6 +54,8 @@ async function performRecognition(
   console.debug(`engine: ${engine}, perform recognizing`);
   try {
     const result = await engine.recognize(image);
+    console.debug('result:', result);
+    console.debug('data:', result.data);
     const confidence = result.data.confidence;
     const text = result.data.text.trim();
 
@@ -105,10 +102,9 @@ async function getWorker(language: string): Promise<Tesseract.Worker> {
   console.debug('create new worker lang:', language);
   worker = await Tesseract.createWorker(language, 1, {
     workerBlobURL: false,
-    workerPath: FILES_PATH.OCR_WORKER,
-    corePath: FILES_PATH.OCR_CORE,
+    workerPath: 'tesseract_engine/worker.min.js',
+    corePath: 'tesseract_engine/',
     langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-    cacheMethod: 'write',
     logger: (_m) => {},
   });
   return worker;

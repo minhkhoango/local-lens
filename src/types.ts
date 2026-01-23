@@ -81,10 +81,22 @@ export interface ImagePayload {
 }
 
 /**
+ * isPdf for more extreme listener to onDestroy since Chrom's PDF viewer
+ * complete swallow events internally
+ */
+export interface ActivateOverlayPayload {
+  imageUrl: string;
+  isPdf: boolean;
+}
+
+/**
  * Content of message sent using chrome.tabs or chrome.runtime, with optional payload
  */
 export type ExtensionMessage =
-  | { action: typeof ExtensionAction.ACTIVATE_OVERLAY; payload: ImagePayload }
+  | {
+      action: typeof ExtensionAction.ACTIVATE_OVERLAY;
+      payload: ActivateOverlayPayload;
+    }
   | {
       action: typeof ExtensionAction.NOTIFY_CAPTURE_SUCCESS;
       payload: SelectionRect;

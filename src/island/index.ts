@@ -32,7 +32,7 @@ export class FloatingIsland {
    * @param cursorPosition position just after overlay
    * @param imageUrl 40x40 cropped base64 string image
    */
-  constructor(cursorPosition: Point, imageUrl: string) {
+  constructor(cursorPosition: Point, imageUrl: string, isPdf: boolean) {
     console.debug('[Island.index] begin constructor');
     this.host = document.createElement('div');
     this.host.id = ID;
@@ -48,7 +48,7 @@ export class FloatingIsland {
     this.view = new View(this.host, this.handleAction.bind(this));
 
     this.dragCtrl = new DragController((pos) => this.updatePosition(pos));
-    this.eventsCtrl = new EventsController(this.host, {
+    this.eventsCtrl = new EventsController(this.host, isPdf, {
       onDestroy: () => this.destroy(),
       onReposition: (pos) => this.updatePosition(pos),
       getCurrentPosition: () => this.position,

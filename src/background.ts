@@ -8,6 +8,12 @@ import type {
   StatusResponse,
 } from './types';
 
+interface UrlClass {
+  isRestricted: boolean;
+  isPdf: boolean;
+  isFileRestricted?: boolean;
+}
+
 const FILES_PATH = {
   BACKUP_HTML: 'backup.html',
   CONTENT_SCRIPT: 'content.js',
@@ -24,12 +30,17 @@ chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id || !tab.url) return;
 
   try {
-    console.debug('screenshot');
+    const { isRestricted, isPdf, isFileRestricted } = await classifyUrl(
+      tab.url,
+    );
+    if (isFileRestricted) {
+      notifyFilePermission();
+      return;
+    }
+
     const capturedImage = await chrome.tabs.captureVisibleTab({
       format: OCR_CONFIG.FORMAT,
     });
-
-    const isRestricted = isRestrictedUrl(tab.url);
 
     if (isRestricted) {
       console.debug('Restricted site detected via URL check.');
@@ -37,7 +48,7 @@ chrome.action.onClicked.addListener(async (tab) => {
       await activateOverlay(backupTabId, capturedImage);
     } else {
       try {
-        await activateOverlay(tab.id, capturedImage);
+        await activateOverlay(tab.id, capturedImage, isPdf);
       } catch {
         console.debug('Injection failed on standard site, creating backup tab');
         const backupTabId = await createBackupTab(capturedImage);
@@ -136,24 +147,48 @@ function getTabId(sender: chrome.runtime.MessageSender): number {
 }
 
 /**
- * Fast check if tab is restricted
+ * Fast check if tab is restricted & if it is pdf
  */
-function isRestrictedUrl(url: string | undefined): boolean {
-  if (!url) return true;
+async function classifyUrl(url: string | undefined): Promise<UrlClass> {
+  if (!url) return { isRestricted: true, isPdf: false };
   const newUrl = new URL(url);
+  const isPdf = newUrl.pathname.toLowerCase().endsWith('.pdf');
 
-  // Check protocol (https, chrome://, ...)
-  const restrictedProtocols = ['chrome:', 'edge:', 'brave:', 'file:'];
-  if (restrictedProtocols.includes(newUrl.protocol)) return true;
+  if (newUrl.protocol === 'file:') {
+    const isFileAllowed = await chrome.extension.isAllowedFileSchemeAccess();
+    if (!isFileAllowed)
+      return {
+        isRestricted: true,
+        isPdf: isPdf,
+        isFileRestricted: true,
+      };
+  }
 
-  // Check domain
+  const restrictedProtocols = ['chrome:', 'edge:', 'brave:'];
+  if (restrictedProtocols.includes(newUrl.protocol))
+    return {
+      isRestricted: true,
+      isPdf: isPdf,
+    };
+
   const restrictedHosts = ['chromewebstore.google.com'];
-  if (restrictedHosts.includes(newUrl.hostname)) return true;
+  if (restrictedHosts.includes(newUrl.hostname))
+    return {
+      isRestricted: true,
+      isPdf: isPdf,
+    };
 
-  // Check for PDF files
-  if (newUrl.pathname.toLowerCase().endsWith('.pdf')) return true;
+  return { isRestricted: false, isPdf: isPdf };
+}
 
-  return false;
+async function notifyFilePermission() {
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: '/icons/48.png',
+    title: chrome.runtime.getManifest().name,
+    message:
+      'Allow access to file URLs is disabled, enable in "Manage extensions"',
+  });
 }
 
 /**
@@ -163,6 +198,7 @@ function isRestrictedUrl(url: string | undefined): boolean {
 async function activateOverlay(
   tabId: number,
   capturedImage: string,
+  isPdf = false,
 ): Promise<void> {
   try {
     await ensureContentLoaded(tabId);
@@ -172,7 +208,7 @@ async function activateOverlay(
       tabId,
       {
         action: ExtensionAction.ACTIVATE_OVERLAY,
-        payload: { imageUrl: capturedImage },
+        payload: { imageUrl: capturedImage, isPdf: isPdf },
       },
     );
     if (overlayResponse.status !== 'ok') {

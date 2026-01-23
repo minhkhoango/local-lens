@@ -7,10 +7,12 @@ import type {
   StatusResponse,
   OcrResponse,
   Settings,
+  ActivateOverlayPayload,
 } from './types';
 import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island/index';
 import backupStyles from './styles/backup.css?inline';
+import overlayStyles from './styles/overlay.css?inline';
 import { OCR_CONFIG, STORAGE_KEY } from './constants';
 import {
   CHROME_TO_TESSERACT,
@@ -33,6 +35,7 @@ let activeOverlay: GhostOverlay | null = null;
 let activeIsland: FloatingIsland | null = null;
 let capturedImage: string | null = null;
 let croppedImage: string | null = null;
+let isPdf = false;
 
 chrome.runtime.onMessage.addListener(
   (
@@ -79,12 +82,13 @@ chrome.runtime.onMessage.addListener(
   },
 );
 
-function handleActivateOverlay(payload: ImagePayload) {
-  const { imageUrl } = payload;
+function handleActivateOverlay(payload: ActivateOverlayPayload) {
+  const { imageUrl, isPdf: ispdf } = payload;
+  isPdf = ispdf;
   capturedImage = imageUrl;
 
   if (activeOverlay) activeOverlay.destroy();
-  activeOverlay = new GhostOverlay();
+  activeOverlay = new GhostOverlay(overlayStyles);
   activeOverlay.mount();
   activeOverlay.activate();
 }
@@ -112,7 +116,7 @@ async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
     };
 
     console.debug('Update floating island with new image');
-    activeIsland = new FloatingIsland(cursorPosition, croppedImage);
+    activeIsland = new FloatingIsland(cursorPosition, croppedImage, isPdf);
     activeIsland.mount();
 
     const { language, source } = await getUserLanguage();
@@ -258,6 +262,7 @@ function handleOcrResult(payload: IslandOcrPayload): void {
     activeIsland = new FloatingIsland(
       payload.cursorPosition,
       payload.croppedImageUrl,
+      isPdf,
     );
     activeIsland.mount();
     activeIsland.updateOcrResult(payload);

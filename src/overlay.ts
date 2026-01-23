@@ -3,21 +3,14 @@ import type { ExtensionMessage, SelectionRect, Point } from './types';
 
 type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
-const OVERLAY_CSS = {
-  colors: {
-    bg: 'rgba(0, 0, 0, 0.4)',
-    stroke: '#ffffff',
-  },
-  layout: {
-    zIndex: 2147483647,
-    radius: 28,
-  },
-  animation: {
-    cursor: 'crosshair',
-    lineWidth: 3,
-  },
+const CSS = {
+  bg: 'rgba(0, 0, 0, 0.4)',
+  stroke: '#ffffff',
+  radius: 28,
+  lineWidth: 3,
 } as const;
 const ID = 'xr-screenshot-reader-host';
+const ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="12" cy="12" r="4"/><path d="M5 5V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/></svg>`;
 
 /**
  * Darkens user's screen, prompt user to click & drag to create a rectangle,
@@ -30,47 +23,74 @@ export class GhostOverlay {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null = null;
 
+  private notificationBanner: HTMLDivElement;
+  private cursorBubble: HTMLDivElement;
+
   private isDragging = false;
   private startPos: Point = { x: 0, y: 0 };
   private currentPos: Point = { x: 0, y: 0 };
 
-  constructor() {
+  constructor(overlayStyles: string) {
     console.debug('[Overlay]: Initiate overlay for screenshot rect');
     this.host = document.createElement('div');
     this.host.id = ID;
     this.shadow = this.host.attachShadow({ mode: 'closed' });
     this.canvas = document.createElement('canvas');
-    this.initStructure();
+    this.ctx = this.canvas.getContext('2d');
+    this.initStructure(overlayStyles);
+
+    this.notificationBanner = document.createElement('div');
+    this.cursorBubble = document.createElement('div');
+    this.initNotificationUI();
   }
 
   /**
    * Create dpr scaled, gray overlay div
    */
-  private initStructure(): void {
+  private initStructure(overlayStyles: string): void {
     console.debug('[Overlay]: Create top level gray darkening, match dpr');
-    Object.assign(this.host.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: '100vw',
-      height: '100vh',
-      zIndex: OVERLAY_CSS.layout.zIndex,
-      pointerEvents: 'none', // Pass-through
-    });
+
+    const style = document.createElement('style');
+    style.textContent = overlayStyles;
+    this.shadow.appendChild(style);
 
     const dpr = window.devicePixelRatio || 1;
     this.canvas.width = window.innerWidth * dpr;
     this.canvas.height = window.innerHeight * dpr;
+    this.canvas.className = 'canvas';
 
-    Object.assign(this.canvas.style, {
-      width: '100%',
-      height: '100%',
-      cursor: OVERLAY_CSS.animation.cursor,
-    });
-
-    this.ctx = this.canvas.getContext('2d');
-    if (this.ctx) this.ctx.scale(dpr, dpr);
+    if (!this.ctx) return;
+    this.ctx.scale(dpr, dpr);
     this.shadow.appendChild(this.canvas);
+  }
+
+  /**
+   * Create notification banner and cursor bubble UI elements
+   */
+  private initNotificationUI(): void {
+    console.debug('[Overlay]: Create notification banner and cursor bubble');
+
+    this.notificationBanner.className = 'banner';
+
+    const lenIcon = document.createElement('div');
+    lenIcon.innerHTML = ICON;
+    lenIcon.className = 'icon';
+
+    const bannerText = document.createElement('span');
+    bannerText.textContent = 'Click and drag to extract text';
+
+    this.notificationBanner.appendChild(lenIcon);
+    this.notificationBanner.appendChild(bannerText);
+    this.shadow.appendChild(this.notificationBanner);
+
+    this.cursorBubble.className = 'cursor-bubble';
+
+    const bubbleIcon = document.createElement('div');
+    bubbleIcon.innerHTML = ICON;
+    bubbleIcon.className = 'icon';
+
+    this.cursorBubble.appendChild(bubbleIcon);
+    this.shadow.appendChild(this.cursorBubble);
   }
 
   /**
@@ -89,8 +109,13 @@ export class GhostOverlay {
   public activate(): void {
     console.debug('[Overlay] Enables + mouse, listen to mousedown');
     this.host.style.pointerEvents = 'auto';
+    this.canvas.addEventListener('mouseenter', this.handleBubbleMove, {
+      once: true,
+    });
+    this.canvas.addEventListener('mousemove', this.handleBubbleMove);
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
     window.addEventListener('keydown', this.handleKeyDown);
+
     this.draw();
   }
 
@@ -99,7 +124,10 @@ export class GhostOverlay {
    */
   public destroy(): void {
     console.debug('[Overlay] remove listener, "escape" keydown, & box');
+    if (this.notificationBanner) this.notificationBanner.remove();
+    this.cursorBubble.remove();
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
+    this.canvas.removeEventListener('mousemove', this.handleBubbleMove);
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);
     window.removeEventListener('keydown', this.handleKeyDown);
@@ -119,11 +147,13 @@ export class GhostOverlay {
     // document > this.canvas for mouse release outside tab
     document.addEventListener('mousemove', this.handleMouseMove);
     document.addEventListener('mouseup', this.handleMouseUp);
+
+    this.notificationBanner.remove();
     this.draw();
   };
 
   /**
-   * Redraws updated white rectangle
+   * Redraws updated white rectangle & update bubble pos
    */
   private handleMouseMove = (e: MouseEvent): void => {
     if (!this.isDragging) return;
@@ -162,18 +192,19 @@ export class GhostOverlay {
   };
 
   /**
-   * Draw a google lens style rectangular with 1 sharp coner
+   * Draw a google lens style rectangular with 1 sharp coner.
+   * Update bubble position
    */
   private draw(): void {
     if (!this.ctx) return;
     const dpr = window.devicePixelRatio || 1;
     this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
-    this.ctx.fillStyle = OVERLAY_CSS.colors.bg;
+    this.ctx.fillStyle = CSS.bg;
     this.ctx.fillRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
 
     if (this.isDragging || this.startPos.x !== 0) {
       const { x, y, width, height } = this.getSelectionRect();
-      const r = Math.min(OVERLAY_CSS.layout.radius, width / 3, height / 3);
+      const r = Math.min(CSS.radius, width / 3, height / 3);
       const corner = this.getActiveCorner();
 
       this.ctx.beginPath();
@@ -194,11 +225,16 @@ export class GhostOverlay {
 
       // Draw the border
       this.ctx.globalCompositeOperation = 'source-over';
-      this.ctx.strokeStyle = OVERLAY_CSS.colors.stroke;
-      this.ctx.lineWidth = OVERLAY_CSS.animation.lineWidth;
+      this.ctx.strokeStyle = CSS.stroke;
+      this.ctx.lineWidth = CSS.lineWidth;
       this.ctx.stroke();
     }
   }
+
+  private handleBubbleMove = (e: MouseEvent): void => {
+    this.cursorBubble.style.left = `${e.clientX + 6}px`;
+    this.cursorBubble.style.top = `${e.clientY + 6}px`;
+  };
 
   /**
    * Get current sharp corner based on start position and current position

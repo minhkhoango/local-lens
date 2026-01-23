@@ -83,12 +83,20 @@ export class DragController {
 export class EventsController {
   private viewportSize: { width: number; height: number };
   private hostElement: HTMLDivElement;
+  private isPdf: boolean;
+
   private onDestroy: () => void;
   private onReposition: (pos: Point) => void;
   private getCurrentPosition: () => Point;
 
-  constructor(hostElement: HTMLDivElement, callbacks: EventCallbacks) {
+  constructor(
+    hostElement: HTMLDivElement,
+    isPdf: boolean,
+    callbacks: EventCallbacks,
+  ) {
     this.hostElement = hostElement;
+    this.isPdf = isPdf;
+
     this.onDestroy = callbacks.onDestroy;
     this.onReposition = callbacks.onReposition;
     this.getCurrentPosition = callbacks.getCurrentPosition;
@@ -106,10 +114,31 @@ export class EventsController {
     document.addEventListener('mousedown', this.handleClickOutside);
     window.addEventListener('keydown', this.handleKeyDown);
     window.addEventListener('resize', this.handleResize);
+    // For PDF pages: Chrome's PDF viewer captures mouse events internally
+    // and doesn't propagate them to document. We detect this via window blur.
+    if (this.isPdf) window.addEventListener('blur', this.handleWindowBlur);
   }
 
   private handleClickOutside = (e: MouseEvent): void => {
     if (!this.hostElement.contains(e.target as Node)) {
+      this.onDestroy();
+    }
+  };
+
+  /**
+   * Handles window blur to detect clicks on embedded content (like PDF viewers)
+   * that don't propagate mouse events to the document.
+   *
+   * Status: Does not delete island when clicked in new tab / side-to-side next to search bar (good!)
+   * However, if we were to click on another app's tab / another app icon, island still disspear
+   * This means that the inViewport is likely over-excerting its control
+   */
+  private handleWindowBlur = (): void => {
+    const { x, y } = this.getCurrentPosition();
+    const inViewport =
+      x >= 0 && y >= 0 && x <= window.innerWidth && y <= window.innerHeight;
+
+    if (inViewport) {
       this.onDestroy();
     }
   };
@@ -159,5 +188,6 @@ export class EventsController {
     document.removeEventListener('mousedown', this.handleClickOutside);
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('resize', this.handleResize);
+    if (this.isPdf) window.removeEventListener('blur', this.handleWindowBlur);
   }
 }
