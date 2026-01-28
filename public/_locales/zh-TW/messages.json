@@ -7,6 +7,7 @@
   "hint_collapse": { "message": "摺疊" },
   "hint_copy": { "message": "複製" },
   "hint_settings": { "message": "設定" },
+  "ui_instruction_banner": { "message": "點擊並拖動以提取文本" },
   "ui_cropped_screenshot": { "message": "截圖區域" },
   "ui_processing": { "message": "處理中..." },
   "ui_copied": { "message": "已複製！" },
@@ -22,6 +23,9 @@
   "backup_tab_name": { "message": "原分頁截圖" },
   "backup_screenshot": { "message": "截圖" },
   "backup_banner": { "message": "原分頁受保護。正在使用唯讀截圖。" },
+  "backup_file_perm": {
+    "message": "文件URL訪問被禁用，請在 \"管理擴展功能\" 中啟用"
+  },
   "ara": { "message": "阿拉伯文" },
   "ben": { "message": "孟加拉文" },
   "bul": { "message": "保加利亞文" },

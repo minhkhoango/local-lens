@@ -77,7 +77,7 @@ export class GhostOverlay {
     lenIcon.className = 'icon';
 
     const bannerText = document.createElement('span');
-    bannerText.textContent = 'Click and drag to extract text';
+    bannerText.textContent = chrome.i18n.getMessage('ui_instruction_banner');
 
     this.notificationBanner.appendChild(lenIcon);
     this.notificationBanner.appendChild(bannerText);

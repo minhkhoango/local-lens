@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Згорнути" },
   "hint_copy": { "message": "Копіювати" },
   "hint_settings": { "message": "Параметри" },
+  "ui_instruction_banner": {
+    "message": "Натисніть і перетягніть, щоб витягти текст"
+  },
   "ui_cropped_screenshot": { "message": "Захоплена область" },
   "ui_processing": { "message": "обробка..." },
   "ui_copied": { "message": "Скопійовано!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "скріншот" },
   "backup_banner": {
     "message": "Оригінальна вкладка була захищена. Використовується скріншот лише для читання."
+  },
+  "backup_file_perm": {
+    "message": "Доступ до URL-адреси файла вимкнено, ввімкніть у \"Керування розширенням\""
   },
   "ara": { "message": "Арабська" },
   "ben": { "message": "Бенгальська" },

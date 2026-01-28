@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "বন্ধ করুন" },
   "hint_copy": { "message": "অনুলিপি করুন" },
   "hint_settings": { "message": "সেটিংস" },
+  "ui_instruction_banner": {
+    "message": "ক্লিক করুন এবং টেক্সট বের করতে টেনে আনুন"
+  },
   "ui_cropped_screenshot": { "message": "ক্যাপচার করা এলাকা" },
   "ui_processing": { "message": "প্রক্রিয়াধীন..." },
   "ui_copied": { "message": "অনুলিপি করা হয়েছে!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "স্ক্রিনশট" },
   "backup_banner": {
     "message": "মূল ট্যাব সুরক্ষিত ছিল। শুধুমাত্র পাঠযোগ্য স্ক্রিনশট ব্যবহার করা হচ্ছে।"
+  },
+  "backup_file_perm": {
+    "message": "ফাইল URL এ অ্যাক্সেস অক্ষম, \"এক্সটেনশন পরিচালনা\" তে সক্ষম করুন"
   },
   "ara": { "message": "আরবি" },
   "ben": { "message": "বাংলা" },

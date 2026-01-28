@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "बंद करें" },
   "hint_copy": { "message": "कॉपी करें" },
   "hint_settings": { "message": "सेटिंग्स" },
+  "ui_instruction_banner": {
+    "message": "पाठ निकालने के लिए क्लिक करें और खींचें"
+  },
   "ui_cropped_screenshot": { "message": "कैप्चर किया गया क्षेत्र" },
   "ui_processing": { "message": "प्रक्रिया जारी है..." },
   "ui_copied": { "message": "कॉपी किया गया!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "स्क्रीनशॉट" },
   "backup_banner": {
     "message": "मूल टैब सुरक्षित था। केवल पढ़ने योग्य स्क्रीनशॉट का उपयोग कर रहा है।"
+  },
+  "backup_file_perm": {
+    "message": "फ़ाइल URL तक पहुंच अक्षम है, \"एक्सटेंशन प्रबंधित करें\" में सक्षम करें"
   },
   "ara": { "message": "अरबी" },
   "ben": { "message": "बंगाली" },

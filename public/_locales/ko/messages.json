@@ -7,6 +7,7 @@
   "hint_collapse": { "message": "축소" },
   "hint_copy": { "message": "복사" },
   "hint_settings": { "message": "설정" },
+  "ui_instruction_banner": { "message": "클릭 및 드래그하여 텍스트 추출" },
   "ui_cropped_screenshot": { "message": "캡처된 영역" },
   "ui_processing": { "message": "처리 중..." },
   "ui_copied": { "message": "복사됨!" },
@@ -23,6 +24,9 @@
   "backup_screenshot": { "message": "스크린샷" },
   "backup_banner": {
     "message": "원본 탭이 보호되었습니다. 읽기 전용 스크린샷을 사용합니다。"
+  },
+  "backup_file_perm": {
+    "message": "파일 URL 액세스가 비활성화됨, \"확장 프로그램 관리\" 에서 활성화"
   },
   "ara": { "message": "아랍어" },
   "ben": { "message": "벵골어" },

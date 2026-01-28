@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Kollaps" },
   "hint_copy": { "message": "Kopiera" },
   "hint_settings": { "message": "Inställningar" },
+  "ui_instruction_banner": {
+    "message": "Klicka och dra för att extrahera text"
+  },
   "ui_cropped_screenshot": { "message": "Fångat område" },
   "ui_processing": { "message": "bearbetar..." },
   "ui_copied": { "message": "Kopierat!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "skärmdump" },
   "backup_banner": {
     "message": "Den ursprungliga fliken var skyddad. Använder skrivskyddad skärmdump."
+  },
+  "backup_file_perm": {
+    "message": "Åtkomst till fil-URL:er är inaktiverad, aktivera i \"Hantera tillägg\""
   },
   "ara": { "message": "Arabiska" },
   "ben": { "message": "Bengali" },

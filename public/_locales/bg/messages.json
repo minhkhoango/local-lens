@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Затваряне" },
   "hint_copy": { "message": "Копиране" },
   "hint_settings": { "message": "Настройки" },
+  "ui_instruction_banner": {
+    "message": "Щракнете и преместете, за да извлечете текст"
+  },
   "ui_cropped_screenshot": { "message": "Заснета област" },
   "ui_processing": { "message": "обработка..." },
   "ui_copied": { "message": "Копирано!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "снимка на екрана" },
   "backup_banner": {
     "message": "Оригиналният раздел беше защитен. Използване на снимка само за четене."
+  },
+  "backup_file_perm": {
+    "message": "Достъпът до URL адреси на файлове е деактивиран, активирайте в \"Управление на разширения\""
   },
   "ara": { "message": "Арабски" },
   "ben": { "message": "Бенгалски" },

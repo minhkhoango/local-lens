@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Свернуть" },
   "hint_copy": { "message": "Копировать" },
   "hint_settings": { "message": "Параметры" },
+  "ui_instruction_banner": {
+    "message": "Нажмите и перетащите для извлечения текста"
+  },
   "ui_cropped_screenshot": { "message": "Захваченная область" },
   "ui_processing": { "message": "обработка..." },
   "ui_copied": { "message": "Скопировано!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "скриншот" },
   "backup_banner": {
     "message": "Исходная вкладка была защищена. Используется скриншот только для чтения."
+  },
+  "backup_file_perm": {
+    "message": "Доступ к URL-адресам файлов отключен, включите в \"Управление расширениями\""
   },
   "ara": { "message": "Арабский" },
   "ben": { "message": "Бенгальский" },

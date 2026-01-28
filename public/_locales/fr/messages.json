@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Fermer" },
   "hint_copy": { "message": "Copier" },
   "hint_settings": { "message": "Paramètres" },
+  "ui_instruction_banner": {
+    "message": "Cliquez et glissez pour extraire le texte"
+  },
   "ui_cropped_screenshot": { "message": "Zone capturée" },
   "ui_processing": { "message": "traitement..." },
   "ui_copied": { "message": "Copié !" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "capture d'écran" },
   "backup_banner": {
     "message": "L'onglet original était protégé. Utilisation d'une capture en lecture seule."
+  },
+  "backup_file_perm": {
+    "message": "L'accès aux URL de fichiers est désactivé, activez-le dans \"Gérer les extensions\""
   },
   "ara": { "message": "Arabe" },
   "ben": { "message": "Bengali" },

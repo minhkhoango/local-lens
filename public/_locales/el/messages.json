@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Κλείσιμο" },
   "hint_copy": { "message": "Αντιγραφή" },
   "hint_settings": { "message": "Ρυθμίσεις" },
+  "ui_instruction_banner": {
+    "message": "Κάντε κλικ και σύρετε για εξαγωγή κειμένου"
+  },
   "ui_cropped_screenshot": { "message": "Καταγεγραμμένη περιοχή" },
   "ui_processing": { "message": "επεξεργασία..." },
   "ui_copied": { "message": "Αντιγράφηκε!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "στιγμιότυπο" },
   "backup_banner": {
     "message": "Η αρχική καρτέλα ήταν προστατευμένη. Χρήση στιγμιότυπου μόνο για ανάγνωση."
+  },
+  "backup_file_perm": {
+    "message": "Η πρόσβαση σε URL αρχείων είναι απενεργοποιημένη, ενεργοποιήστε στο \"Διαχείριση επεκτάσεων\""
   },
   "ara": { "message": "Αραβικά" },
   "ben": { "message": "Βεγγαλικά" },

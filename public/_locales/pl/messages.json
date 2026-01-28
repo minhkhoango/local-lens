@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Zwiń" },
   "hint_copy": { "message": "Kopiuj" },
   "hint_settings": { "message": "Ustawienia" },
+  "ui_instruction_banner": {
+    "message": "Kliknij i przeciągnij, aby wyodrębnić tekst"
+  },
   "ui_cropped_screenshot": { "message": "Przechwycony obszar" },
   "ui_processing": { "message": "przetwarzanie..." },
   "ui_copied": { "message": "Skopiowano!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "zrzut ekranu" },
   "backup_banner": {
     "message": "Oryginalna karta była chroniona. Używanie zrzutu ekranu tylko do odczytu."
+  },
+  "backup_file_perm": {
+    "message": "Dostęp do adresów URL plików jest wyłączony, włącz w \"Zarządzanie rozszerzeniami\""
   },
   "ara": { "message": "Arabski" },
   "ben": { "message": "Bengalski" },

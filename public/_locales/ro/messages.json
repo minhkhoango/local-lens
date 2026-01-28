@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Restrângeți" },
   "hint_copy": { "message": "Copie" },
   "hint_settings": { "message": "Setări" },
+  "ui_instruction_banner": {
+    "message": "Faceți clic și trageți pentru a extrage text"
+  },
   "ui_cropped_screenshot": { "message": "Regiune capturată" },
   "ui_processing": { "message": "se procesează..." },
   "ui_copied": { "message": "Copiat!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "captură de ecran" },
   "backup_banner": {
     "message": "Fila originală a fost protejată. Se utilizează captură doar pentru citire."
+  },
+  "backup_file_perm": {
+    "message": "Accesul la URL-uri de fișiere este dezactivat, activați în \"Gestiona extensii\""
   },
   "ara": { "message": "Arabă" },
   "ben": { "message": "Bengaleză" },

@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Daralt" },
   "hint_copy": { "message": "Kopyala" },
   "hint_settings": { "message": "Ayarlar" },
+  "ui_instruction_banner": {
+    "message": "Metni çıkarmak için tıklayın ve sürükleyin"
+  },
   "ui_cropped_screenshot": { "message": "Yakalanan bölge" },
   "ui_processing": { "message": "işleniyor..." },
   "ui_copied": { "message": "Kopyalandı!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "ekran görüntüsü" },
   "backup_banner": {
     "message": "Orijinal sekme korumalıydı. Salt okunur ekran görüntüsü kullanılıyor."
+  },
+  "backup_file_perm": {
+    "message": "Dosya URL'sine erişim devre dışı, \"Uzantıları Yönet\" içinde etkinleştirin"
   },
   "ara": { "message": "Arapça" },
   "ben": { "message": "Bengalce" },

@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Cerrar" },
   "hint_copy": { "message": "Copiar" },
   "hint_settings": { "message": "Configuración" },
+  "ui_instruction_banner": {
+    "message": "Haz clic y arrastra para extraer texto"
+  },
   "ui_cropped_screenshot": { "message": "Región capturada" },
   "ui_processing": { "message": "procesando..." },
   "ui_copied": { "message": "¡Copiado!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "captura de pantalla" },
   "backup_banner": {
     "message": "La pestaña original estaba protegida. Usando captura de solo lectura."
+  },
+  "backup_file_perm": {
+    "message": "El acceso a URL de archivo está deshabilitado, habilitar en \"Administrar extensiones\""
   },
   "ara": { "message": "Árabe" },
   "ben": { "message": "Bengalí" },

@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Samenvouwen" },
   "hint_copy": { "message": "Kopiëren" },
   "hint_settings": { "message": "Instellingen" },
+  "ui_instruction_banner": {
+    "message": "Klik en sleep om tekst uit te pakken"
+  },
   "ui_cropped_screenshot": { "message": "Vastgelegd gebied" },
   "ui_processing": { "message": "verwerken..." },
   "ui_copied": { "message": "Gekopieerd!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "screenshot" },
   "backup_banner": {
     "message": "Het originele tabblad was beveiligd. Alleen-lezen screenshot wordt gebruikt."
+  },
+  "backup_file_perm": {
+    "message": "Toegang tot bestandsURL's is uitgeschakeld, inschakelen in \"Extensies beheren\""
   },
   "ara": { "message": "Arabisch" },
   "ben": { "message": "Bengaals" },

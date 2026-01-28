@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Comprimi" },
   "hint_copy": { "message": "Copia" },
   "hint_settings": { "message": "Impostazioni" },
+  "ui_instruction_banner": {
+    "message": "Fai clic e trascina per estrarre il testo"
+  },
   "ui_cropped_screenshot": { "message": "Area catturata" },
   "ui_processing": { "message": "elaborazione..." },
   "ui_copied": { "message": "Copiato!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "screenshot" },
   "backup_banner": {
     "message": "La scheda originale era protetta. Uso screenshot di sola lettura."
+  },
+  "backup_file_perm": {
+    "message": "L'accesso agli URL dei file è disabilitato, abilitare in \"Gestisci estensioni\""
   },
   "ara": { "message": "Arabo" },
   "ben": { "message": "Bengalese" },

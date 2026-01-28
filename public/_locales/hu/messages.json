@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Bezárás" },
   "hint_copy": { "message": "Másolás" },
   "hint_settings": { "message": "Beállítások" },
+  "ui_instruction_banner": {
+    "message": "Kattintson és húzzon a szöveg kibontásához"
+  },
   "ui_cropped_screenshot": { "message": "Rögzített terület" },
   "ui_processing": { "message": "feldolgozás..." },
   "ui_copied": { "message": "Másolva!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "képernyőkép" },
   "backup_banner": {
     "message": "Az eredeti lap védett volt. Csak olvasható képernyőkép használata."
+  },
+  "backup_file_perm": {
+    "message": "A fájl URL-ek elérése letiltva van, engedélyezze a \"Bővítmények kezelése\" menüben"
   },
   "ara": { "message": "Arab" },
   "ben": { "message": "Bengáli" },

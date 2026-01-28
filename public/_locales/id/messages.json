@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Tutup" },
   "hint_copy": { "message": "Salin" },
   "hint_settings": { "message": "Pengaturan" },
+  "ui_instruction_banner": {
+    "message": "Klik dan seret untuk mengekstrak teks"
+  },
   "ui_cropped_screenshot": { "message": "Area yang ditangkap" },
   "ui_processing": { "message": "memproses..." },
   "ui_copied": { "message": "Disalin!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "tangkapan layar" },
   "backup_banner": {
     "message": "Tab asli dilindungi. Menggunakan tangkapan layar baca-saja."
+  },
+  "backup_file_perm": {
+    "message": "Akses ke URL file dinonaktifkan, aktifkan di \"Kelola Ekstensi\""
   },
   "ara": { "message": "Arab" },
   "ben": { "message": "Bengali" },

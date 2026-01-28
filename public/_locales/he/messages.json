@@ -7,6 +7,7 @@
   "hint_collapse": { "message": "סגירה" },
   "hint_copy": { "message": "העתקה" },
   "hint_settings": { "message": "הגדרות" },
+  "ui_instruction_banner": { "message": "לחץ וגרור כדי לחלץ טקסט" },
   "ui_cropped_screenshot": { "message": "אזור שנלכד" },
   "ui_processing": { "message": "מעבד..." },
   "ui_copied": { "message": "הועתק!" },
@@ -23,6 +24,9 @@
   "backup_screenshot": { "message": "צילום מסך" },
   "backup_banner": {
     "message": "הכרטיסייה המקורית הייתה מוגנת. משתמש בצילום מסך לקריאה בלבד."
+  },
+  "backup_file_perm": {
+    "message": "הגישה לכתובות URL של קובץ מושבתת, הפוך לזמינה בתא\"נהול הרחבות\""
   },
   "ara": { "message": "ערבית" },
   "ben": { "message": "בנגלית" },

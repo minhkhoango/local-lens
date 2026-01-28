@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "折りたたみ" },
   "hint_copy": { "message": "コピー" },
   "hint_settings": { "message": "設定" },
+  "ui_instruction_banner": {
+    "message": "クリックしてドラッグしてテキストを抽出"
+  },
   "ui_cropped_screenshot": { "message": "キャプチャ領域" },
   "ui_processing": { "message": "処理中..." },
 
@@ -24,6 +27,9 @@
   "backup_screenshot": { "message": "スクリーンショット" },
   "backup_banner": {
     "message": "元のタブは保護されていました。読み取り専用のスクリーンショットを使用します。"
+  },
+  "backup_file_perm": {
+    "message": "ファイルURLへのアクセスが無効です。\"拡張機能の管理\" で有効にしてください"
   },
   "ara": { "message": "アラビア語" },
   "ben": { "message": "ベンガル語" },

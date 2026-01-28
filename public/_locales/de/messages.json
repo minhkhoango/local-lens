@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Schließen" },
   "hint_copy": { "message": "Kopieren" },
   "hint_settings": { "message": "Einstellungen" },
+  "ui_instruction_banner": {
+    "message": "Klicken und ziehen, um Text zu extrahieren"
+  },
   "ui_cropped_screenshot": { "message": "Erfasster Bereich" },
   "ui_processing": { "message": "wird verarbeitet..." },
   "ui_copied": { "message": "Kopiert!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "Screenshot" },
   "backup_banner": {
     "message": "Original-Tab war geschützt. Schreibgeschützter Screenshot wird verwendet."
+  },
+  "backup_file_perm": {
+    "message": "Der Zugriff auf Datei-URLs ist deaktiviert. Aktivieren Sie ihn unter \"Erweiterungen verwalten\""
   },
   "ara": { "message": "Arabisch" },
   "ben": { "message": "Bengalisch" },

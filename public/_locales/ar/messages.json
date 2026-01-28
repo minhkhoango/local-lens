@@ -7,6 +7,7 @@
   "hint_collapse": { "message": "إغلاق" },
   "hint_copy": { "message": "نسخ" },
   "hint_settings": { "message": "إعدادات" },
+  "ui_instruction_banner": { "message": "اضغط واسحب لاستخراج النص" },
   "ui_cropped_screenshot": { "message": "المنطقة الملتقطة" },
   "ui_processing": { "message": "جارٍ المعالجة..." },
   "ui_copied": { "message": "تم النسخ!" },
@@ -23,6 +24,9 @@
   "backup_screenshot": { "message": "لقطة شاشة" },
   "backup_banner": {
     "message": "علامة التبويب الأصلية محمية. استخدام لقطة شاشة للقراءة فقط."
+  },
+  "backup_file_perm": {
+    "message": "الوصول إلى عناوين URL للملفات معطل، يتم التفعيل في \"إدارة الامتدادات\""
   },
   "ara": { "message": "العربية" },
   "ben": { "message": "البنغالية" },

@@ -7,6 +7,7 @@
   "hint_collapse": { "message": "ยุบ" },
   "hint_copy": { "message": "คัดลอก" },
   "hint_settings": { "message": "การตั้งค่า" },
+  "ui_instruction_banner": { "message": "คลิกและลากเพื่อแยกข้อความ" },
   "ui_cropped_screenshot": { "message": "พื้นที่ที่จับภาพ" },
   "ui_processing": { "message": "กำลังประมวลผล..." },
   "ui_copied": { "message": "คัดลอกแล้ว!" },
@@ -23,6 +24,9 @@
   "backup_screenshot": { "message": "ภาพหน้าจอ" },
   "backup_banner": {
     "message": "แท็บเดิมได้รับการป้องกัน กำลังใช้ภาพหน้าจอแบบอ่านอย่างเดียว"
+  },
+  "backup_file_perm": {
+    "message": "ปิดการใช้งานการเข้าถึง URL ไฟล์ เปิดใช้งาน \"จัดการส่วนขยาย\""
   },
   "ara": { "message": "อารบิก" },
   "ben": { "message": "เบงกาลี" },

@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Đóng" },
   "hint_copy": { "message": "Sao chép" },
   "hint_settings": { "message": "Cài đặt" },
+  "ui_instruction_banner": {
+    "message": "Nhấn và di chuyển chuột để trích xuất văn bản"
+  },
   "ui_cropped_screenshot": { "message": "Ảnh chọn" },
   "ui_processing": { "message": "Đang xử lý..." },
   "ui_copied": { "message": "Đã sao chép!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "Ảnh chụp" },
   "backup_banner": {
     "message": "Trang gốc được bảo mật. Dùng ảnh chụp màn hình."
+  },
+  "backup_file_perm": {
+    "message": "Truy cập file bị tắt, hãy bật trong \"Quản lý tiện ích mở rộng\""
   },
   "ara": { "message": "Tiếng Ả Rập" },
   "ben": { "message": "Tiếng Bengal" },

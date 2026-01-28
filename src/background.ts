@@ -186,8 +186,7 @@ async function notifyFilePermission() {
     type: 'basic',
     iconUrl: '/icons/48.png',
     title: chrome.runtime.getManifest().name,
-    message:
-      'Allow access to file URLs is disabled, enable in "Manage extensions"',
+    message: chrome.i18n.getMessage('backup_file_perm'),
   });
 }
 

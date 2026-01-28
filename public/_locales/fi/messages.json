@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Sulje" },
   "hint_copy": { "message": "Kopioi" },
   "hint_settings": { "message": "Asetukset" },
+  "ui_instruction_banner": {
+    "message": "Napsauta ja vedä tekstin poimimiseksi"
+  },
   "ui_cropped_screenshot": { "message": "Kaapattu alue" },
   "ui_processing": { "message": "käsitellään..." },
   "ui_copied": { "message": "Kopioitu!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "kuvakaappaus" },
   "backup_banner": {
     "message": "Alkuperäinen välilehti oli suojattu. Käytetään vain luku -kuvakaappausta."
+  },
+  "backup_file_perm": {
+    "message": "Tiedoston URL-osoitteen käyttöoikeus on poistettu käytöstä, ota se käyttöön kohdassa \"Hallitse laajennuksia\""
   },
   "ara": { "message": "Arabia" },
   "ben": { "message": "Bengali" },

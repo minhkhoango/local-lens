@@ -7,6 +7,9 @@
   "hint_collapse": { "message": "Tancar" },
   "hint_copy": { "message": "Copiar" },
   "hint_settings": { "message": "Configuració" },
+  "ui_instruction_banner": {
+    "message": "Cliqueu i arrossegueu per extreure text"
+  },
   "ui_cropped_screenshot": { "message": "Regió capturada" },
   "ui_processing": { "message": "processant..." },
   "ui_copied": { "message": "Copiat!" },
@@ -23,6 +26,9 @@
   "backup_screenshot": { "message": "captura de pantalla" },
   "backup_banner": {
     "message": "La pestanya original estava protegida. S'utilitza una captura de només lectura."
+  },
+  "backup_file_perm": {
+    "message": "L'accés als URL de fitxer està desactivat, activar a \"Gestionar extensions\""
   },
   "ara": { "message": "Àrab" },
   "ben": { "message": "Bengalí" },

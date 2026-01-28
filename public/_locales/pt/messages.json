@@ -7,6 +7,7 @@
   "hint_collapse": { "message": "Recolher" },
   "hint_copy": { "message": "Copiar" },
   "hint_settings": { "message": "Configurações" },
+  "ui_instruction_banner": { "message": "Clique e arraste para extrair texto" },
   "ui_cropped_screenshot": { "message": "Região capturada" },
   "ui_processing": { "message": "processando..." },
   "ui_copied": { "message": "Copiado!" },
@@ -23,6 +24,9 @@
   "backup_screenshot": { "message": "captura de tela" },
   "backup_banner": {
     "message": "A aba original estava protegida. Usando captura somente leitura."
+  },
+  "backup_file_perm": {
+    "message": "O acesso a URLs de arquivo está desativado, ative em \"Gerenciar extensões\""
   },
   "ara": { "message": "Árabe" },
   "ben": { "message": "Bengali" },
