@@ -16,7 +16,7 @@ chrome.runtime.onMessage.addListener(
       case ExtensionAction.PERFORM_OCR:
         console.debug(message.action);
         const { croppedImage: cropped, language } = message.payload;
-        performRecognition(language, cropped, sendResponse);
+        TesseractRecognition(language, cropped, sendResponse);
         return true;
     }
 
@@ -24,7 +24,7 @@ chrome.runtime.onMessage.addListener(
   },
 );
 
-async function performRecognition(
+async function TesseractRecognition(
   language: TesseractLang,
   image: string | null,
   sendResponse: (response: OcrResponse) => void,
@@ -34,7 +34,7 @@ async function performRecognition(
   }
   let engine: Tesseract.Worker;
   try {
-    engine = await getWorker(language);
+    engine = await getTesseractWorker(language);
   } catch (err) {
     console.error('Worker initialization error:', err);
     sendResponse({
@@ -71,7 +71,7 @@ async function performRecognition(
   }
 }
 
-async function getWorker(language: string): Promise<Tesseract.Worker> {
+async function getTesseractWorker(language: string): Promise<Tesseract.Worker> {
   if (worker && currentLanguage === language) {
     console.debug('reusing old worker');
     return worker;
@@ -99,4 +99,6 @@ async function getWorker(language: string): Promise<Tesseract.Worker> {
   return worker;
 }
 
-getWorker(currentLanguage).catch((err) => console.error('Warmup failed:', err));
+getTesseractWorker(currentLanguage).catch((err) =>
+  console.error('Warmup failed:', err),
+);

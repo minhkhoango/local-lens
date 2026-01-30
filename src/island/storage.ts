@@ -7,14 +7,9 @@ import {
 } from '../types';
 import type { Settings } from './types';
 
-/**
- * Class for talking with chrome.storage.local
- * for loading / settings
- */
+/** Class for talking with chrome.storage.local for loading / settings */
 export class Storage {
-  /**
-   * Loading settings from storage.local, if none, use INITIAL_STATE
-   */
+  /** Loading settings from storage.local, use INITIAL_STATE if none */
   public async loadSettings(): Promise<Settings> {
     console.debug('[Island.storage] loadSettings');
     try {
@@ -27,10 +22,7 @@ export class Storage {
     }
   }
 
-  /**
-   * Save to storage.local
-   * @param settings Current state of auto toggles & language
-   */
+  /** Save to storage.local */
   public async saveSettings(settings: Settings): Promise<void> {
     console.debug('[Island.storage] saveSettings');
     await chrome.storage.local.set({
@@ -38,9 +30,7 @@ export class Storage {
     });
   }
 
-  /**
-   * Get shortcut string by pinging background for chrome.commands privilege
-   */
+  /** Get shortcut string by pinging bg for chrome.commands privilege */
   public async getShortcut(): Promise<string> {
     console.debug('[Island.storage] getShortcut');
     try {
@@ -55,9 +45,7 @@ export class Storage {
     }
   }
 
-  /**
-   * New tab to browser://extensions/shortcuts
-   */
+  /** New tab to browser://extensions/shortcuts */
   public openShortcutsPage(): void {
     chrome.runtime.sendMessage({ action: ExtensionAction.OPEN_SHORTCUTS_PAGE });
   }
