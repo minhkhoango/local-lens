@@ -28,9 +28,7 @@ export class FloatingIsland {
   private position: Point;
 
   /**
-   * Load island settings, UI, positioning
-   * @param cursorPosition position just after overlay
-   * @param imageUrl 40x40 cropped base64 string image
+   * Load island settings, UI, positioning, and behavior controllers
    */
   constructor(cursorPosition: Point, imageUrl: string, isPdf: boolean) {
     console.debug('[Island.index] begin constructor');
@@ -102,7 +100,6 @@ export class FloatingIsland {
   // --- Internal logic ---
   /**
    * Handle user input sent from view.ts
-   * @param action type & payload? sent from island/view
    */
   private handleAction(action: Action): void {
     console.debug('[Island.action] handAction:', action);
@@ -158,10 +155,6 @@ export class FloatingIsland {
     this.updatePosition(this.position);
   }
 
-  /**
-   * Update floating island to new bounded position
-   * @param pos unbounded mouse position
-   */
   private updatePosition(pos: Point): void {
     const constrained = clampToViewport(
       pos,
@@ -172,27 +165,18 @@ export class FloatingIsland {
     this.view.updatePosition(constrained);
   }
 
-  /**
-   * Open / close editable textarea
-   */
   private toggleTextExpand(): void {
     this.state.isTextExpanded = !this.state.isTextExpanded;
     this.updateView();
     this.updatePosition(this.position);
   }
 
-  /**
-   * Open / close Settings panel
-   */
   private toggleSettingsExpand(): void {
     this.state.isSettingsExpanded = !this.state.isSettingsExpanded;
     this.updateView();
     this.updatePosition(this.position);
   }
 
-  /**
-   * Attempt copy to clipboard with UI update and graceful fail
-   */
   private async copyToClipboard(): Promise<void> {
     if (!this.state.text) return;
     try {
@@ -208,10 +192,6 @@ export class FloatingIsland {
     }
   }
 
-  /**
-   * Handle logic & UI update upon setting toggle
-   * @param key auto-expand / auto-copy
-   */
   private toggleSetting(key: keyof State['settings']): void {
     if (key === 'language') return;
 
@@ -230,7 +210,6 @@ export class FloatingIsland {
       return;
     }
 
-    // key is autoCopy, logic in case focus error
     if (!this.state.hasCopied && this.state.settings[key])
       this.copyToClipboard();
     if (this.state.hasCopied && !this.state.settings[key])

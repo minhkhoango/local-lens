@@ -17,16 +17,13 @@ chrome.runtime.onMessage.addListener(
         console.debug(message.action);
         const { croppedImage: cropped, language } = message.payload;
         performRecognition(language, cropped, sendResponse);
-        return true; // Keep channel open for async response
+        return true;
     }
 
     return false;
   },
 );
 
-/**
- * Run Tesseract OCR given language and image
- */
 async function performRecognition(
   language: TesseractLang,
   image: string | null,
@@ -35,7 +32,6 @@ async function performRecognition(
   if (!image) {
     throw new Error('No saved cropped image found for retry');
   }
-  // Initialize or reuse Tesseract worker
   let engine: Tesseract.Worker;
   try {
     engine = await getWorker(language);
@@ -48,7 +44,7 @@ async function performRecognition(
     });
     return;
   }
-  // Update language after get new worker
+
   currentLanguage = language;
 
   console.debug(`engine: ${engine}, perform recognizing`);
@@ -75,13 +71,6 @@ async function performRecognition(
   }
 }
 
-/**
- * Get Tesseract worker. Reuse / reinitialize if found, and create new if not.
- *
- * KNOWN ISSUE: "Parameter not found" warnings during language initialization
- * These are legacy parameters embedded in the .traineddata, and are harmless
- * Infected: chi_sim, chi_tra, greek, italian, japanese, korean, vietnamese
- */
 async function getWorker(language: string): Promise<Tesseract.Worker> {
   if (worker && currentLanguage === language) {
     console.debug('reusing old worker');
@@ -110,5 +99,4 @@ async function getWorker(language: string): Promise<Tesseract.Worker> {
   return worker;
 }
 
-// Start warming up the worker as soon as the offscreen doc loads
 getWorker(currentLanguage).catch((err) => console.error('Warmup failed:', err));

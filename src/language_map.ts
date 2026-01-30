@@ -1,6 +1,6 @@
 /**
- * A map to translate chrome's 2 letter language format
- * recevied from i18n to Tesseract's 3 letter lang format
+ * Translate chrome's 2 letter language format
+ * to Tesseract's 3 letter lang format
  */
 export const CHROME_TO_TESSERACT = {
   ar: 'ara',
@@ -45,12 +45,5 @@ export const CHROME_TO_TESSERACT = {
   'zh-TW': 'chi_tra',
 } as const;
 
-/**
- * 40 most common languages in Google Chrome's 2 letter format
- */
 export type ChromeLang = keyof typeof CHROME_TO_TESSERACT;
-
-/**
- * 32 most common languages in Tesseract's 3 letter format
- */
 export type TesseractLang = (typeof CHROME_TO_TESSERACT)[ChromeLang];

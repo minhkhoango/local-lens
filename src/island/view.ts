@@ -6,9 +6,6 @@ import type { Action, State } from './types';
 import type { TesseractLang } from '../language_map';
 import { query, queryAll } from './utils';
 
-/**
- * Callback to index to handle each action type
- */
 type ActionHandler = (action: Action) => void;
 
 /**
@@ -30,11 +27,6 @@ export class View {
     langSelect?: HTMLSelectElement;
   } = {};
 
-  /**
-   * Creating styled container and attach it to shadow mode 'closed'
-   * @param host this.container in index
-   * @param onAction Listen to user input and point to handleAction
-   */
   constructor(host: HTMLDivElement, onAction: ActionHandler) {
     this.onAction = onAction;
     this.shadow = host.attachShadow({ mode: 'closed' });
@@ -50,7 +42,6 @@ export class View {
 
   /**
    * Render HTML of island && bind listeners
-   * @param state INITIAL_STATE && saved settings
    */
   public init(state: State): void {
     this.container.innerHTML = renderMainTemplate(state);
@@ -69,9 +60,7 @@ export class View {
   }
 
   /**
-   * Update UI to reflect state, including:
-   * - status, text, copyBtn, toggle / lang settings options,
-   * - expand / contract textarea and setting panels
+   * Update UI to reflect state
    * @param state current state of island
    * @param width calculated dynamic width based on OCR output
    */
@@ -84,14 +73,13 @@ export class View {
 
     this.els.status.className = `${CLASSES.status} ${state.status}`;
     this.els.status.textContent = isLoading
-      ? chrome.i18n.getMessage('ui_processing')
+      ? 'processing...'
       : isSuccess
         ? state.hasCopied
-          ? chrome.i18n.getMessage('ui_copied')
-          : chrome.i18n.getMessage('ui_extracted')
-        : chrome.i18n.getMessage('ui_error');
+          ? 'Copied'
+          : 'Extracted'
+        : 'Error';
 
-    // Copy button logic
     this.els.copyBtn.className = `${CLASSES.btn} ${CLASSES.copybtn}
                                   ${isLoading ? CLASSES.loading : ''} 
                                   ${state.hasCopied ? CLASSES.success : ''}`;
@@ -119,9 +107,7 @@ export class View {
 
     // Preview text
     const max = state.isTextExpanded ? 100 : 25;
-    this.els.preview.title = state.isTextExpanded
-      ? chrome.i18n.getMessage('hint_collapse')
-      : chrome.i18n.getMessage('hint_expand');
+    this.els.preview.title = state.isTextExpanded ? 'Collapse' : 'Expand';
     this.els.preview.textContent =
       state.text.length > max ? state.text.slice(0, max) + '...' : state.text;
 
@@ -141,10 +127,6 @@ export class View {
     }
   }
 
-  /**
-   * Update floating island to new specified Point
-   * @param pos New position
-   */
   public updatePosition(pos: Point): void {
     this.container.style.left = `${pos.x}px`;
     this.container.style.top = `${pos.y}px`;
@@ -197,7 +179,6 @@ export class View {
       }),
     );
 
-    // Preview Click -> expand / contract
     this.els.preview?.addEventListener('click', () =>
       this.onAction({ type: 'expandText' }),
     );

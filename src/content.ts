@@ -14,23 +14,13 @@ import { FloatingIsland } from './island/index';
 import backupStyles from './styles/backup.css?inline';
 import overlayStyles from './styles/overlay.css?inline';
 import { OCR_CONFIG, STORAGE_KEY } from './constants';
-import {
-  CHROME_TO_TESSERACT,
-  type ChromeLang,
-  type TesseractLang,
-} from './language_map';
-
-interface UserLanguage {
-  language: TesseractLang;
-  source: 'local_storage' | 'browser' | 'browser_base' | 'default';
-}
+import type { TesseractLang } from './language_map';
 
 const CLASSES = {
   imageContainer: 'image-container',
   banner: 'banner',
 };
 
-// State Management
 let activeOverlay: GhostOverlay | null = null;
 let activeIsland: FloatingIsland | null = null;
 let capturedImage: string | null = null;
@@ -93,13 +83,7 @@ function handleActivateOverlay(payload: ActivateOverlayPayload) {
   activeOverlay.activate();
 }
 
-/**
- * Handle payload from rect payload from bg, do the following:
- * - Crop user's selected rectangle from screenshot
- * - Get user's language
- * - Send payload to offscreen to perform OCR
- * @param rect payload from bg from overlay
- */
+/** Send rect payload from bg to offscreen for OCR, then update UI */
 async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
   console.debug('handle capture success');
   if (!capturedImage) {
@@ -119,8 +103,7 @@ async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
     activeIsland = new FloatingIsland(cursorPosition, croppedImage, isPdf);
     activeIsland.mount();
 
-    const { language, source } = await getUserLanguage();
-    console.debug(`User language: ${language}, source: ${source}`);
+    const language = await getUserLanguage();
 
     const ocrResult = await chrome.runtime.sendMessage<
       ExtensionMessage,
@@ -153,9 +136,6 @@ async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
 /**
  * Takes in base64 string from chrome.captureVisbleTab, take in
  * account monitor's dpr then return a cropped PNG
- * @param dataUrl base 64 string from background
- * @param rect selectionRect from overlay
- * @returns cropped PNG
  */
 async function cropImage(
   dataUrl: string,
@@ -163,7 +143,6 @@ async function cropImage(
 ): Promise<string> {
   const img = new Image();
 
-  // wait for image to load from dataUrl
   await new Promise((resolve, reject) => {
     img.onload = resolve;
     img.onerror = reject;
@@ -177,7 +156,6 @@ async function cropImage(
     throw new Error('Canvas context failed');
   }
 
-  // Scale coordinates from CSS pxl to native
   const dpr = rect.devicePixelRatio || 1;
   const scaledX = rect.x * dpr;
   const scaledY = rect.y * dpr;
@@ -188,13 +166,11 @@ async function cropImage(
   canvas.height = scaledHeight;
 
   ctx.drawImage(
-    img, // source image
-    // 1-4: what to copy (in native/scaled pixels)
+    img,
     scaledX,
     scaledY,
     scaledWidth,
     scaledHeight,
-    // where & how to draw it (also in scaled pixels)
     0,
     0,
     scaledWidth,
@@ -204,61 +180,22 @@ async function cropImage(
   return canvas.toDataURL(`image/${OCR_CONFIG.FORMAT}`);
 }
 
-/**
- * Attempt to find island's UI language in following order:
- * saved settings -> i18n -> i18n base lang -> 'eng'
- * @returns language and lang source for debugging
- */
-async function getUserLanguage(): Promise<UserLanguage> {
+/** Find translation language */
+async function getUserLanguage(): Promise<TesseractLang> {
   try {
-    // Check user storage
     const stored = await chrome.storage.local.get(STORAGE_KEY);
     const settings = stored[STORAGE_KEY] as Settings;
-    return {
-      language: settings.language,
-      source: 'local_storage',
-    };
-  } catch {
-    /* ignore */
-  }
+    return settings.language;
+  } catch {}
 
-  // Check browser language
-  const uiLang = await chrome.i18n.getUILanguage();
-  const lang = getLanguageFromMap(uiLang);
-  if (lang)
-    return {
-      language: lang,
-      source: 'browser',
-    };
-
-  // Try mapping base language (e.g. 'fr' from 'fr-CA')
-  const baseLang = getLanguageFromMap(uiLang.split('-')[0]);
-  if (baseLang)
-    return {
-      language: baseLang,
-      source: 'browser_base',
-    };
-
-  return {
-    language: 'eng',
-    source: 'default',
-  };
+  return 'eng';
 }
 
-function getLanguageFromMap(key: string): TesseractLang | undefined {
-  return CHROME_TO_TESSERACT[key as ChromeLang];
-}
-
-/**
- * Handle UI update when offscreen finishing OCR the image
- * @param payload payload from offscreen
- */
+/** Handle UI update when offscreen finishing OCR the image */
 function handleOcrResult(payload: IslandOcrPayload): void {
   if (activeIsland) {
-    // Update existing island with result (preserves position/drag state)
     activeIsland.updateOcrResult(payload);
   } else {
-    // Fallback: create island if somehow missing
     activeIsland = new FloatingIsland(
       payload.cursorPosition,
       payload.croppedImageUrl,
@@ -269,12 +206,7 @@ function handleOcrResult(payload: IslandOcrPayload): void {
   }
 }
 
-/**
- * All-in-one handling of new language:
- * - Ping background to ensure offscreen
- * - Send payload to offscreen for OCR
- * @param payload new language
- */
+/** All-in-one handling of new translation language */
 async function handleLanguageUpdate(payload: LanguagePayload) {
   console.debug('handle language_update, content actually receives it');
   try {
@@ -307,17 +239,14 @@ async function handleLanguageUpdate(payload: LanguagePayload) {
   }
 }
 
-/**
- * Open a new tab nearly identical to original on restricted sites (chrome://,...)
- * @param payload base64 string image from captureVisibleTab
- */
+/** Open a identical new tab on restricted sites */
 function setupBackupDisplay(payload: ImagePayload): void {
   try {
     const { imageUrl } = payload;
     capturedImage = imageUrl;
 
     const title = document.createElement('title');
-    title.textContent = chrome.i18n.getMessage('backup_tab_name');
+    title.textContent = 'Screenshot of original tab';
     document.head.append(title);
 
     const styleElement = document.createElement('style');
@@ -332,7 +261,7 @@ function setupBackupDisplay(payload: ImagePayload): void {
 
     const img = document.createElement('img');
     img.src = imageUrl;
-    img.alt = chrome.i18n.getMessage('backup_screenshot');
+    img.alt = 'screenshot';
     img.onerror = () => {
       console.error('Failed to load backup image');
     };
@@ -340,7 +269,8 @@ function setupBackupDisplay(payload: ImagePayload): void {
 
     const banner = document.createElement('div');
     banner.className = CLASSES.banner;
-    banner.textContent = chrome.i18n.getMessage('backup_banner');
+    banner.textContent =
+      'Original tab was protected. Using read-only screenshot.';
     document.body.appendChild(banner);
   } catch (err) {
     console.error('Failed to setup backup display:', err);

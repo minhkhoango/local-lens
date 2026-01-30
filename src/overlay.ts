@@ -77,7 +77,7 @@ export class GhostOverlay {
     lenIcon.className = 'icon';
 
     const bannerText = document.createElement('span');
-    bannerText.textContent = chrome.i18n.getMessage('ui_instruction_banner');
+    bannerText.textContent = 'Click and drag to extract text';
 
     this.notificationBanner.appendChild(lenIcon);
     this.notificationBanner.appendChild(bannerText);
@@ -93,9 +93,7 @@ export class GhostOverlay {
     this.shadow.appendChild(this.cursorBubble);
   }
 
-  /**
-   * Mount overlay on screen if not already
-   */
+  /** Mount overlay on screen if not already */
   public mount(): void {
     console.debug('[Overlay]: Mount overlay on screen');
     if (!document.getElementById(ID)) {
@@ -103,9 +101,7 @@ export class GhostOverlay {
     }
   }
 
-  /**
-   * Enables '+' mouse, listen to mousedown and 'Escape'
-   */
+  /** Enables '+' mouse, listen to mousedown and 'Escape' */
   public activate(): void {
     console.debug('[Overlay] Enables + mouse, listen to mousedown');
     this.host.style.pointerEvents = 'auto';
@@ -119,9 +115,6 @@ export class GhostOverlay {
     this.draw();
   }
 
-  /**
-   * Remove overlay
-   */
   public destroy(): void {
     console.debug('[Overlay] remove listener, "escape" keydown, & box');
     if (this.notificationBanner) this.notificationBanner.remove();
@@ -152,18 +145,13 @@ export class GhostOverlay {
     this.draw();
   };
 
-  /**
-   * Redraws updated white rectangle & update bubble pos
-   */
   private handleMouseMove = (e: MouseEvent): void => {
     if (!this.isDragging) return;
     this.currentPos = { x: e.clientX, y: e.clientY };
     this.draw();
   };
 
-  /**
-   * Check rect, send image to BG, destroy
-   */
+  /** Check rect, send image to BG, destroy */
   private handleMouseUp = (): void => {
     console.debug(
       '[Overlay] on mouseup, check rect, send image to BG, destroy',
@@ -183,9 +171,6 @@ export class GhostOverlay {
     this.destroy();
   };
 
-  /**
-   * Destroy on 'Escape'
-   */
   private handleKeyDown = (e: KeyboardEvent): void => {
     console.debug('[Overlay] destroy on "Escape"');
     if (e.key === 'Escape') this.destroy();
@@ -217,13 +202,10 @@ export class GhostOverlay {
 
       this.ctx.roundRect(x, y, width, height, radii);
 
-      // Cut out "hole" for lens effect
-      // 'destination-out' removes pixels from existing canvas
       this.ctx.globalCompositeOperation = 'destination-out';
       this.ctx.fillStyle = 'black';
       this.ctx.fill();
 
-      // Draw the border
       this.ctx.globalCompositeOperation = 'source-over';
       this.ctx.strokeStyle = CSS.stroke;
       this.ctx.lineWidth = CSS.lineWidth;
@@ -236,11 +218,7 @@ export class GhostOverlay {
     this.cursorBubble.style.top = `${e.clientY + 6}px`;
   };
 
-  /**
-   * Get current sharp corner based on start position and current position
-   */
   private getActiveCorner(): Corner {
-    // Determine which corner is active based on drag direction
     const draggingRight = this.currentPos.x >= this.startPos.x;
     const draggingDown = this.currentPos.y >= this.startPos.y;
 
@@ -254,7 +232,6 @@ export class GhostOverlay {
    * The payload of overlay, with bounded coordinates
    */
   private getSelectionRect(): SelectionRect {
-    // Clamp viewport boundaries when mouse leaves window
     const clampedCurrentPos: Point = {
       x: Math.max(0, Math.min(this.currentPos.x, window.innerWidth)),
       y: Math.max(0, Math.min(this.currentPos.y, window.innerHeight)),

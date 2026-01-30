@@ -113,7 +113,7 @@ chrome.runtime.onMessage.addListener(
           } catch (err) {
             sendResponse({
               status: 'error',
-              shortcut: null,
+              shortcut: 'Set shortcut',
             });
           }
         })();
@@ -186,7 +186,8 @@ async function notifyFilePermission() {
     type: 'basic',
     iconUrl: '/icons/48.png',
     title: chrome.runtime.getManifest().name,
-    message: chrome.i18n.getMessage('backup_file_perm'),
+    message:
+      'Allow access to file URLs is disabled, enable in \"Manage extensions\"',
   });
 }
 

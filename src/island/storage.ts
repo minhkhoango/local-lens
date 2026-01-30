@@ -40,7 +40,6 @@ export class Storage {
 
   /**
    * Get shortcut string by pinging background for chrome.commands privilege
-   * @returns Current shortcut string
    */
   public async getShortcut(): Promise<string> {
     console.debug('[Island.storage] getShortcut');
@@ -50,7 +49,7 @@ export class Storage {
           action: ExtensionAction.GET_SHORTCUT,
         });
 
-      return response.shortcut || chrome.i18n.getMessage('ui_set_shortcut');
+      return response.shortcut;
     } catch {
       return 'Set shortcut';
     }
