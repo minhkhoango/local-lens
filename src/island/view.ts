@@ -1,10 +1,11 @@
 import islandStyles from '../styles/island.css?inline';
 import { ICONS, CLASSES } from './constants';
 import { renderMainTemplate } from './template';
-import type { ToggleSettings, Point } from '../types';
+import type { ToggleSettings, Point, SelectSettings } from '../types';
 import type { Action, State } from './types';
-import type { TesseractLang } from '../language_map';
+// import type { TesseractLang } from '../language_map';
 import { query, queryAll } from './utils';
+import type { TesseractLang } from '../language_map';
 
 type ActionHandler = (action: Action) => void;
 
@@ -24,7 +25,7 @@ export class View {
     copyBtn?: HTMLButtonElement;
     image?: HTMLImageElement;
     toggles?: NodeListOf<HTMLDivElement>;
-    langSelect?: HTMLSelectElement;
+    selects?: NodeListOf<HTMLSelectElement>;
   } = {};
 
   constructor(host: HTMLDivElement, onAction: ActionHandler) {
@@ -55,8 +56,8 @@ export class View {
     this.els.textarea = query(this.container, `.${CLASSES.textarea}`);
     this.els.copyBtn = query(this.container, `.${CLASSES.copybtn}`);
     this.els.image = query(this.container, `.${CLASSES.image}`);
-    this.els.langSelect = query(this.container, `.${CLASSES.settingsSelect}`);
-    this.els.toggles = queryAll(this.container, `.${CLASSES.toggle}`);
+    this.els.selects = queryAll(this.container, `.${CLASSES.settingsSelect}`);
+    this.els.toggles = queryAll(this.container, `.${CLASSES.settingsToggle}`);
   }
 
   /**
@@ -120,11 +121,14 @@ export class View {
       }
     });
 
-    // Lang select
-    if (!this.els.langSelect) return;
-    if (this.els.langSelect.value != state.settings.language) {
-      this.els.langSelect.value = state.settings.language;
-    }
+    // language && engine
+    if (!this.els.selects) return;
+    this.els.selects.forEach((select) => {
+      const key = select.getAttribute('data-key') as keyof SelectSettings;
+      if (key) {
+        select.value = state.settings[key];
+      }
+    });
   }
 
   public updatePosition(pos: Point): void {
@@ -153,21 +157,28 @@ export class View {
       }
 
       // Auto-copy/expand toggles Settings
-      const toggle = target.closest(`.${CLASSES.toggle}`);
-      const key = toggle?.getAttribute('data-key') as keyof ToggleSettings;
+      const toggle = target.closest(`.${CLASSES.settingsToggle}`);
+      const key = toggle?.getAttribute('data-key') as
+        | keyof ToggleSettings
+        | undefined;
       if (key) {
         this.onAction({ type: 'toggleSettings', payload: key });
       }
     });
 
-    // Select Lang Settings
+    // Select Lang / engine Settings
     this.container.addEventListener('change', (e) => {
       const target = e.target as HTMLSelectElement;
       if (target.classList.contains(CLASSES.settingsSelect)) {
-        this.onAction({
-          type: 'updateLang',
-          payload: target.value as TesseractLang,
-        });
+        const key = target.dataset.key as keyof SelectSettings | undefined;
+        if (!key) return;
+
+        if (key === 'language') {
+          this.onAction({
+            type: 'updateLang',
+            payload: target.value as TesseractLang,
+          });
+        }
       }
     });
 

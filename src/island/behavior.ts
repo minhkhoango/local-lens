@@ -22,7 +22,7 @@ export class DragController {
   public start(e: MouseEvent, currentPos: Point): void {
     const nonDraggableSelectors = [
       CLASSES.btn,
-      CLASSES.toggle,
+      CLASSES.settingsToggle,
       CLASSES.textarea,
       CLASSES.preview,
       CLASSES.settingsSelect,

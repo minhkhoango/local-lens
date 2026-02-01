@@ -1,10 +1,5 @@
-import type { SelectSettings, ToggleSettings } from '../types';
+import type { SelectSettings, Settings, ToggleSettings } from '../types';
 import type { TesseractLang } from '../language_map';
-
-/**
- * Hold runtime values of auto-copy, auto-expand, and language
- */
-export interface Settings extends ToggleSettings, SelectSettings {}
 
 /**
  * Hold runtime value for all of island's variables
@@ -28,7 +23,8 @@ export type Action =
   | { type: 'expandSettings' }
   | { type: 'openShortcutSettings' }
   | { type: 'toggleSettings'; payload: keyof ToggleSettings }
+  | { type: 'updateLang'; payload: TesseractLang }
+  | { type: 'switchEngine'; payload: SelectSettings }
   | { type: 'expandText' }
   | { type: 'updateText'; payload: string }
-  | { type: 'startDrag'; payload: MouseEvent }
-  | { type: 'updateLang'; payload: TesseractLang };
+  | { type: 'startDrag'; payload: MouseEvent };

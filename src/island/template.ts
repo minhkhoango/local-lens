@@ -1,10 +1,10 @@
 import { CLASSES } from './constants';
 import { ICONS } from './constants';
-import type { SelectSettings, ToggleSettings } from '../types';
+import type { SelectSettings, ToggleSettings, EngineOption } from '../types';
 import type { State } from './types';
 import type { TesseractLang } from '../language_map';
 
-export const SELECT_OPTIONS: Record<TesseractLang, string> = {
+export const LANGUAGE_OPTIONS: Record<TesseractLang, string> = {
   ara: 'Arabic',
   ben: 'Bengali',
   bul: 'Bulgarian',
@@ -39,6 +39,11 @@ export const SELECT_OPTIONS: Record<TesseractLang, string> = {
   vie: 'Vietnamese',
 } as const;
 
+const ENGINE_OPTIONS: Record<EngineOption, string> = {
+  tesseract: 'Fast',
+  granite: 'Thinking',
+};
+
 interface ToggleSettingsConfig {
   key: keyof ToggleSettings;
   labelKey: 'Auto-Copy' | 'Auto-Expand';
@@ -47,19 +52,25 @@ interface ToggleSettingsConfig {
 
 interface SelectSettingsConfig {
   key: keyof SelectSettings;
-  labelKey: 'Language';
+  labelKey: 'Language' | 'Engine';
   type: 'select';
-  options: Record<TesseractLang, string>;
+  options: Record<TesseractLang, string> | Record<EngineOption, string>;
 }
 
 type SettingsConfig = ToggleSettingsConfig | SelectSettingsConfig;
 
 const SELECT_SETTINGS: SelectSettingsConfig[] = [
   {
+    key: 'engine',
+    labelKey: 'Engine',
+    type: 'select',
+    options: ENGINE_OPTIONS,
+  },
+  {
     key: 'language',
     labelKey: 'Language',
     type: 'select',
-    options: SELECT_OPTIONS,
+    options: LANGUAGE_OPTIONS,
   },
 ];
 
@@ -101,7 +112,7 @@ function renderSettingsRows(state: State): string {
 
     if (config.type === 'toggle') {
       const isActive = state.settings[config.key];
-      const toggleClass = `${CLASSES.toggle} ${isActive ? CLASSES.active : ''}`;
+      const toggleClass = `${CLASSES.settingsToggle} ${isActive ? CLASSES.active : ''}`;
       return `
             <div class="${CLASSES.settingRow}">
             <span>${config.labelKey}</span>

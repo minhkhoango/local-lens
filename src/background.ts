@@ -1,4 +1,4 @@
-import { OCR_CONFIG } from './constants';
+import { OCR_CONFIG, ISLAND_STORAGE } from './constants';
 import { ExtensionAction } from './types';
 import type {
   ExtensionMessage,
@@ -6,7 +6,11 @@ import type {
   SelectionRect,
   ShortcutResponse,
   StatusResponse,
+  Settings,
+  EngineOption,
+  OcrResponse,
 } from './types';
+import type { TesseractLang } from './language_map';
 
 interface UrlClass {
   isRestricted: boolean;
@@ -49,8 +53,8 @@ chrome.action.onClicked.addListener(async (tab) => {
     } else {
       try {
         await activateOverlay(tab.id, capturedImage, isPdf);
-      } catch {
-        console.debug('Injection failed on standard site, creating backup tab');
+      } catch (err) {
+        console.debug('Injection failed, creating backup tab...', err);
         const backupTabId = await createBackupTab(capturedImage);
         await activateOverlay(backupTabId, capturedImage);
       }
@@ -68,7 +72,9 @@ chrome.runtime.onMessage.addListener(
   (
     message: ExtensionMessage,
     sender: chrome.runtime.MessageSender,
-    sendResponse: (response: StatusResponse | ShortcutResponse) => void,
+    sendResponse: (
+      response: StatusResponse | ShortcutResponse | OcrResponse,
+    ) => void,
   ) => {
     switch (message.action) {
       case ExtensionAction.ENSURE_OFFSCREEN: {
@@ -239,7 +245,6 @@ async function createBackupTab(capturedImage: string): Promise<number> {
     throw new Error('Tab created but ID is undefined.');
   }
 
-  // Wait for tab to fully load before returning
   await new Promise<void>((resolve) => {
     const listener = (tabId: number, changeInfo: { status?: string }) => {
       if (tabId === tab.id && changeInfo.status === 'complete') {
@@ -250,7 +255,6 @@ async function createBackupTab(capturedImage: string): Promise<number> {
     chrome.tabs.onUpdated.addListener(listener);
   });
 
-  // Send the captured image to the backup tab
   await chrome.tabs.sendMessage<ExtensionMessage>(tab.id, {
     action: ExtensionAction.INITIALIZE_BACKUP,
     payload: {
@@ -275,6 +279,24 @@ async function ensureOffscreenLoaded(): Promise<void> {
     url: FILES_PATH.OFFSCREEN_HTML,
     reasons: [chrome.offscreen.Reason.BLOBS],
     justification: 'Processing screenshot image data for OCR',
+  });
+
+  let language: TesseractLang = 'eng';
+  let engine: EngineOption = 'tesseract';
+  try {
+    const stored = await chrome.storage.local.get([ISLAND_STORAGE]);
+    const saved = stored[ISLAND_STORAGE] as Partial<Settings>;
+    language = saved.language || 'eng';
+    engine = saved.engine || 'tesseract';
+  } catch {}
+  console.log('Offscreen init with lang:', language, 'engine:', engine);
+
+  await chrome.runtime.sendMessage<ExtensionMessage>({
+    action: ExtensionAction.SET_OCR_ENGINE,
+    payload: {
+      engine: engine,
+      language: language,
+    },
   });
 }
 
@@ -315,7 +337,10 @@ async function transferCapture(
  * @param tabId Id of the tab of the island that sent PERFORM_OCR request
  * @param payload new language
  */
-async function transferLanguage(tabId: number, payload: LanguagePayload) {
+async function transferLanguage(
+  tabId: number,
+  payload: LanguagePayload,
+): Promise<OcrResponse> {
   console.debug('Transfering language payload bg -> content');
   const ocrResult = await chrome.tabs.sendMessage<ExtensionMessage>(tabId, {
     action: ExtensionAction.UPDATE_LANGUAGE,

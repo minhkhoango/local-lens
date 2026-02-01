@@ -1,22 +1,32 @@
-import type { TesseractLang } from './language_map';
 import { ExtensionAction } from './types';
-import type { ExtensionMessage, OcrResponse } from './types';
-import Tesseract from 'tesseract.js';
+import type {
+  ExtensionMessage,
+  OcrResponse,
+  PerformOcrPayload,
+  SetOcrPayload,
+  StatusResponse,
+} from './types';
+import { recognizeGranite, loadGranite } from './engine/granite';
+import { recognizeTesseract, loadTesseract } from './engine/tesseract';
 
-let worker: Tesseract.Worker | null = null;
-let currentLanguage: string = 'eng';
+let engine: 'tesseract' | 'granite' = 'tesseract';
 
 chrome.runtime.onMessage.addListener(
   (
     message: ExtensionMessage,
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: OcrResponse) => void,
+    sendResponse: (response: OcrResponse | StatusResponse) => void,
   ) => {
     switch (message.action) {
+      case ExtensionAction.SET_OCR_ENGINE:
+        console.debug(message.action);
+        initEngine(message.payload);
+        sendResponse({ status: 'ok' });
+        return true;
+
       case ExtensionAction.PERFORM_OCR:
         console.debug(message.action);
-        const { croppedImage: cropped, language } = message.payload;
-        TesseractRecognition(language, cropped, sendResponse);
+        performOcr(message.payload, sendResponse);
         return true;
     }
 
@@ -24,81 +34,27 @@ chrome.runtime.onMessage.addListener(
   },
 );
 
-async function TesseractRecognition(
-  language: TesseractLang,
-  image: string | null,
-  sendResponse: (response: OcrResponse) => void,
-) {
-  if (!image) {
-    throw new Error('No saved cropped image found for retry');
-  }
-  let engine: Tesseract.Worker;
-  try {
-    engine = await getTesseractWorker(language);
-  } catch (err) {
-    console.error('Worker initialization error:', err);
-    sendResponse({
-      status: 'error',
-      text: '',
-      confidence: 0,
+async function initEngine(payload: SetOcrPayload) {
+  const { engine: selectedEngine, language } = payload;
+  if (selectedEngine === 'tesseract' && language) {
+    loadTesseract(language).catch((err) => {
+      console.error('Failed to load Tesseract engine:', err);
     });
     return;
   }
-
-  currentLanguage = language;
-
-  console.debug(`engine: ${engine}, perform recognizing`);
-  try {
-    const result = await engine.recognize(image);
-    console.debug('result:', result);
-    console.debug('data:', result.data);
-    const confidence = result.data.confidence;
-    const text = result.data.text.trim();
-
-    console.debug(`OCR SUCCESS [confidence: ${confidence}%]:\n`);
-    sendResponse({
-      status: 'ok',
-      text: text,
-      confidence,
-    });
-  } catch (err) {
-    console.error('Recognition error:', err);
-    sendResponse({
-      status: 'error',
-      text: '',
-      confidence: 0,
-    });
-  }
-}
-
-async function getTesseractWorker(language: string): Promise<Tesseract.Worker> {
-  if (worker && currentLanguage === language) {
-    console.debug('reusing old worker');
-    return worker;
-  }
-
-  if (worker && currentLanguage !== language) {
-    console.debug(`re-init worker from ${currentLanguage} to ${language}`);
-    try {
-      await worker.reinitialize(language, 1);
-      return worker;
-    } catch (err) {
-      console.warn(`worker re-init failed: ${err}, return old worker`);
-      return worker;
-    }
-  }
-
-  console.debug('create new worker lang:', language);
-  worker = await Tesseract.createWorker(language, 1, {
-    workerBlobURL: false,
-    workerPath: 'tesseract_engine/worker.min.js',
-    corePath: 'tesseract_engine/',
-    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-    logger: (_m) => {},
+  loadGranite().catch((err) => {
+    console.error('Failed to load Granite engine:', err);
   });
-  return worker;
+  engine = selectedEngine;
 }
 
-getTesseractWorker(currentLanguage).catch((err) =>
-  console.error('Warmup failed:', err),
-);
+async function performOcr(
+  payload: PerformOcrPayload,
+  sendResponse: (response: OcrResponse) => void,
+) {
+  if (engine === 'tesseract') {
+    await recognizeTesseract(payload, sendResponse);
+    return;
+  }
+  await recognizeGranite(payload, sendResponse);
+}

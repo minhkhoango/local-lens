@@ -6,14 +6,14 @@ import type {
   LanguagePayload,
   StatusResponse,
   OcrResponse,
-  Settings,
   ActivateOverlayPayload,
+  Settings,
 } from './types';
 import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island/index';
 import backupStyles from './styles/backup.css?inline';
 import overlayStyles from './styles/overlay.css?inline';
-import { OCR_CONFIG, STORAGE_KEY } from './constants';
+import { OCR_CONFIG, ISLAND_STORAGE } from './constants';
 import type { TesseractLang } from './language_map';
 
 const CLASSES = {
@@ -183,8 +183,8 @@ async function cropImage(
 /** Find translation language */
 async function getUserLanguage(): Promise<TesseractLang> {
   try {
-    const stored = await chrome.storage.local.get(STORAGE_KEY);
-    const settings = stored[STORAGE_KEY] as Settings;
+    const stored = await chrome.storage.local.get(ISLAND_STORAGE);
+    const settings = stored[ISLAND_STORAGE] as Settings;
     return settings.language;
   } catch {}
 
@@ -207,7 +207,9 @@ function handleOcrResult(payload: IslandOcrPayload): void {
 }
 
 /** All-in-one handling of new translation language */
-async function handleLanguageUpdate(payload: LanguagePayload) {
+async function handleLanguageUpdate(
+  payload: LanguagePayload,
+): Promise<OcrResponse> {
   console.debug('handle language_update, content actually receives it');
   try {
     const ensureOffscreen = await chrome.runtime.sendMessage<

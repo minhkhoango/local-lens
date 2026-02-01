@@ -1,11 +1,11 @@
-import { STORAGE_KEY } from '../constants';
+import { ISLAND_STORAGE } from '../constants';
 import { INITIAL_STATE } from './constants';
 import {
   ExtensionAction,
   type ExtensionMessage,
   type ShortcutResponse,
 } from '../types';
-import type { Settings } from './types';
+import type { Settings } from '../types';
 
 /** Class for talking with chrome.storage.local for loading / settings */
 export class Storage {
@@ -13,8 +13,8 @@ export class Storage {
   public async loadSettings(): Promise<Settings> {
     console.debug('[Island.storage] loadSettings');
     try {
-      const stored = await chrome.storage.local.get([STORAGE_KEY]);
-      const saved = stored[STORAGE_KEY] as Partial<Settings>;
+      const stored = await chrome.storage.local.get([ISLAND_STORAGE]);
+      const saved = stored[ISLAND_STORAGE] as Partial<Settings>;
       return { ...INITIAL_STATE.settings, ...saved };
     } catch (err) {
       console.warn('Failed to load settings:', err);
@@ -26,7 +26,7 @@ export class Storage {
   public async saveSettings(settings: Settings): Promise<void> {
     console.debug('[Island.storage] saveSettings');
     await chrome.storage.local.set({
-      [STORAGE_KEY]: settings,
+      [ISLAND_STORAGE]: settings,
     });
   }
 

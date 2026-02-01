@@ -25,6 +25,12 @@ export default defineConfig({
           ],
           dest: 'tesseract_engine',
         },
+        {
+          src: [
+            'node_modules/@huggingface/transformers/dist/ort-wasm-simd-threaded.jsep.mjs',
+          ],
+          dest: 'transformer_engine',
+        },
       ],
     }),
   ],
@@ -34,11 +40,21 @@ export default defineConfig({
       output: {
         entryFileNames: `${entry}.js`,
         format: 'iife',
+        assetFileNames: (assetInfo) => {
+          const ext = assetInfo.names[0]
+            ? assetInfo.names[0].split('.').pop()
+            : '';
+          if (ext === 'wasm') {
+            return 'transformer_engine/[name][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
       },
     },
     outDir: 'dist',
     // Don't empty output dir to build multiple entries sequentially
     emptyOutDir: false,
+    chunkSizeWarningLimit: 1000,
   },
   resolve: {
     alias: {

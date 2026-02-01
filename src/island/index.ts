@@ -193,7 +193,7 @@ export class FloatingIsland {
   }
 
   private toggleSetting(key: keyof State['settings']): void {
-    if (key === 'language') return;
+    if (key === 'language' || key === 'engine') return;
 
     this.state.settings[key] = !this.state.settings[key];
     this.storage.saveSettings(this.state.settings);
@@ -226,7 +226,8 @@ export class FloatingIsland {
     this.state.settings.language = lang;
     this.storage.saveSettings(this.state.settings);
 
-    if (!this.state.imageUrl) return;
+    if (!this.state.imageUrl || this.state.settings.engine === 'granite')
+      return;
 
     const previousText = this.state.text;
 
@@ -243,8 +244,6 @@ export class FloatingIsland {
         action: ExtensionAction.REQUEST_LANGUAGE_UPDATE,
         payload: { language: lang },
       });
-
-      if (response.status === 'error') throw new Error('OCR Error');
 
       this.state.status = 'success';
       this.state.text = response.text;

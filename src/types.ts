@@ -12,12 +12,15 @@ export interface ToggleSettings {
   autoExpand: boolean;
 }
 
+export type EngineOption = 'tesseract' | 'granite';
+
 /** Hold runtime values for island select elements */
 export interface SelectSettings {
+  engine: EngineOption;
   language: TesseractLang;
 }
 
-/** Hold runtime values of auto-copy, auto-expand, and language */
+/** Hold runtime values of auto-copy, auto-expand, engine, and tesseract language */
 export interface Settings extends ToggleSettings, SelectSettings {}
 
 /** User's cropped rectangle dimension and dpr */
@@ -33,6 +36,7 @@ export const ExtensionAction = {
   NOTIFY_CAPTURE_SUCCESS: 'NOTIFY_CAPTURE_SUCCESS',
   CAPTURE_SUCCESS: 'CAPTURE_SUCCESS',
   PING_CONTENT: 'PING_CONTENT',
+  SET_OCR_ENGINE: 'SET_OCR_ENGINE',
   PERFORM_OCR: 'PERFORM_OCR',
   REQUEST_LANGUAGE_UPDATE: 'REQUEST_LANGUAGE_UPDATE',
   ENSURE_OFFSCREEN: 'ENSURE_OFFSCREEN',
@@ -44,6 +48,11 @@ export const ExtensionAction = {
 
 export type ExtensionAction =
   (typeof ExtensionAction)[keyof typeof ExtensionAction];
+
+export interface SetOcrPayload {
+  engine: EngineOption;
+  language: TesseractLang;
+}
 
 /** Payload when crop is ready, before OCR starts */
 export interface PerformOcrPayload {
@@ -79,6 +88,7 @@ export type ExtensionMessage =
     }
   | { action: typeof ExtensionAction.CAPTURE_SUCCESS; payload: SelectionRect }
   | { action: typeof ExtensionAction.PING_CONTENT }
+  | { action: typeof ExtensionAction.SET_OCR_ENGINE; payload: SetOcrPayload }
   | { action: typeof ExtensionAction.PERFORM_OCR; payload: PerformOcrPayload }
   | {
       action: typeof ExtensionAction.REQUEST_LANGUAGE_UPDATE;
@@ -111,7 +121,6 @@ export interface ShortcutResponse {
 export interface OcrResponse {
   status: 'ok' | 'error';
   text: string;
-  confidence: number;
 }
 
 /** Processed response from OcrResponse, sent to index */

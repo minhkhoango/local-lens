@@ -21,6 +21,7 @@ export const INITIAL_STATE: State = {
   hasCopied: false,
   shortcutText: 'Set shortcut',
   settings: {
+    engine: 'tesseract',
     language: 'eng',
     autoCopy: false,
     autoExpand: false,
@@ -67,7 +68,7 @@ export const CLASSES = {
   settingsSelect: 'settings-select',
   selectWrapper: 'select-wrapper',
   selectIcon: 'select-icon',
-  toggle: 'toggle',
+  settingsToggle: 'settings-toggle',
   loading: 'loading',
   success: 'success',
   active: 'active',
