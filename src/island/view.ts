@@ -1,7 +1,12 @@
 import islandStyles from '../styles/island.css?inline';
 import { ICONS, CLASSES } from './constants';
 import { renderMainTemplate } from './template';
-import type { ToggleSettings, Point, SelectSettings } from '../types';
+import type {
+  ToggleSettings,
+  Point,
+  SelectSettings,
+  EngineOption,
+} from '../types';
 import type { Action, State } from './types';
 // import type { TesseractLang } from '../language_map';
 import { query, queryAll } from './utils';
@@ -178,7 +183,13 @@ export class View {
             type: 'updateLang',
             payload: target.value as TesseractLang,
           });
+          return;
         }
+
+        this.onAction({
+          type: 'switchEngine',
+          payload: target.value as EngineOption,
+        });
       }
     });
 

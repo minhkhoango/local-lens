@@ -3,7 +3,7 @@ import type {
   Point,
   IslandOcrPayload,
   ExtensionMessage,
-  OcrResponse,
+  EngineOption,
 } from '../types';
 import type { Action, State } from './types';
 import { ExtensionAction } from '../types';
@@ -127,6 +127,9 @@ export class FloatingIsland {
       case 'updateLang':
         this.changeLanguage(action.payload);
         break;
+      case 'switchEngine':
+        this.changeEngine(action.payload);
+        break;
       case 'openShortcutSettings':
         this.storage.openShortcutsPage();
         break;
@@ -226,33 +229,56 @@ export class FloatingIsland {
     this.state.settings.language = lang;
     this.storage.saveSettings(this.state.settings);
 
-    if (!this.state.imageUrl || this.state.settings.engine === 'granite')
-      return;
+    if (this.state.settings.engine === 'granite') return;
 
     const previousText = this.state.text;
-
     this.state.status = 'loading';
     this.state.text = '';
     this.state.hasCopied = false;
     this.updateView();
 
     try {
-      const response = await chrome.runtime.sendMessage<
-        ExtensionMessage,
-        OcrResponse
-      >({
-        action: ExtensionAction.REQUEST_LANGUAGE_UPDATE,
-        payload: { language: lang },
+      await chrome.runtime.sendMessage<ExtensionMessage>({
+        action: ExtensionAction.BG_PERFORM_OCR,
+        payload: {
+          engine: 'tesseract',
+          language: 'tha', // not used
+          croppedImage: '', // not used
+        },
       });
-
-      this.state.status = 'success';
-      this.state.text = response.text;
-      if (this.state.settings.autoCopy) this.copyToClipboard();
-    } catch (e) {
+    } catch (err) {
+      console.error('Language update failed:', err);
       this.state.status = 'error';
       this.state.text = previousText;
+      this.updateView();
     }
+  }
 
+  private async changeEngine(engine: EngineOption): Promise<void> {
+    console.log('[Island.index] changeEngine to', engine);
+    this.state.settings.engine = engine;
+    this.storage.saveSettings(this.state.settings);
+
+    const previousText = this.state.text;
+    this.state.status = 'loading';
+    this.state.text = '';
+    this.state.hasCopied = false;
     this.updateView();
+
+    try {
+      await chrome.runtime.sendMessage<ExtensionMessage>({
+        action: ExtensionAction.BG_PERFORM_OCR,
+        payload: {
+          engine: engine,
+          language: 'tha', // not used
+          croppedImage: '', // not used
+        },
+      });
+    } catch (err) {
+      console.error('Language update failed:', err);
+      this.state.status = 'error';
+      this.state.text = previousText;
+      this.updateView();
+    }
   }
 }

@@ -33,14 +33,12 @@ export interface SelectionRect extends Point {
 /** Cross .ts files actions messaged using chrome */
 export const ExtensionAction = {
   ACTIVATE_OVERLAY: 'ACTIVATE_OVERLAY',
-  NOTIFY_CAPTURE_SUCCESS: 'NOTIFY_CAPTURE_SUCCESS',
   CAPTURE_SUCCESS: 'CAPTURE_SUCCESS',
   PING_CONTENT: 'PING_CONTENT',
-  SET_OCR_ENGINE: 'SET_OCR_ENGINE',
+  SETUP_ENGINE: 'SETUP_ENGINE',
+  BG_PERFORM_OCR: 'BG_PERFORM_OCR',
   PERFORM_OCR: 'PERFORM_OCR',
-  REQUEST_LANGUAGE_UPDATE: 'REQUEST_LANGUAGE_UPDATE',
   ENSURE_OFFSCREEN: 'ENSURE_OFFSCREEN',
-  UPDATE_LANGUAGE: 'UPDATE_LANGUAGE',
   OPEN_SHORTCUTS_PAGE: 'OPEN_SHORTCUTS_PAGE',
   GET_SHORTCUT: 'GET_SHORTCUT',
   INITIALIZE_BACKUP: 'INITIALIZE_BACKUP',
@@ -49,20 +47,16 @@ export const ExtensionAction = {
 export type ExtensionAction =
   (typeof ExtensionAction)[keyof typeof ExtensionAction];
 
-export interface SetOcrPayload {
+export interface SetupEnginePayload {
   engine: EngineOption;
   language: TesseractLang;
 }
 
 /** Payload when crop is ready, before OCR starts */
 export interface PerformOcrPayload {
+  engine: 'auto' | EngineOption;
   language: TesseractLang;
   croppedImage: string;
-}
-
-/** Payload when user select a new language for OCR */
-export interface LanguagePayload {
-  language: TesseractLang;
 }
 
 /** Payload for backup tab */
@@ -82,23 +76,15 @@ export type ExtensionMessage =
       action: typeof ExtensionAction.ACTIVATE_OVERLAY;
       payload: ActivateOverlayPayload;
     }
-  | {
-      action: typeof ExtensionAction.NOTIFY_CAPTURE_SUCCESS;
-      payload: SelectionRect;
-    }
   | { action: typeof ExtensionAction.CAPTURE_SUCCESS; payload: SelectionRect }
   | { action: typeof ExtensionAction.PING_CONTENT }
-  | { action: typeof ExtensionAction.SET_OCR_ENGINE; payload: SetOcrPayload }
+  | { action: typeof ExtensionAction.SETUP_ENGINE; payload: SetupEnginePayload }
+  | {
+      action: typeof ExtensionAction.BG_PERFORM_OCR;
+      payload: PerformOcrPayload;
+    }
   | { action: typeof ExtensionAction.PERFORM_OCR; payload: PerformOcrPayload }
-  | {
-      action: typeof ExtensionAction.REQUEST_LANGUAGE_UPDATE;
-      payload: LanguagePayload;
-    }
   | { action: typeof ExtensionAction.ENSURE_OFFSCREEN }
-  | {
-      action: typeof ExtensionAction.UPDATE_LANGUAGE;
-      payload: LanguagePayload;
-    }
   | { action: typeof ExtensionAction.OPEN_SHORTCUTS_PAGE }
   | { action: typeof ExtensionAction.GET_SHORTCUT }
   | {

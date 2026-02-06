@@ -6,8 +6,7 @@ let currentLanguage: string = 'eng';
 
 export async function recognizeTesseract(
   payload: PerformOcrPayload,
-  sendResponse: (response: OcrResponse) => void,
-) {
+): Promise<OcrResponse> {
   const { croppedImage, language } = payload;
   if (!croppedImage || !language) {
     throw new Error('No saved cropped image or language found for retry');
@@ -20,11 +19,10 @@ export async function recognizeTesseract(
     }
   } catch (err) {
     console.error('Worker initialization error:', err);
-    sendResponse({
+    return {
       status: 'error',
       text: '',
-    });
-    return;
+    };
   }
 
   currentLanguage = language;
@@ -38,16 +36,16 @@ export async function recognizeTesseract(
     const text = result.data.text.trim();
 
     console.debug(`OCR SUCCESS [confidence: ${confidence}%]:\n`);
-    sendResponse({
+    return {
       status: 'ok',
       text: text,
-    });
+    };
   } catch (err) {
     console.error('Recognition error:', err);
-    sendResponse({
+    return {
       status: 'error',
       text: '',
-    });
+    };
   }
 }
 

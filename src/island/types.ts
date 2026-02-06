@@ -1,4 +1,4 @@
-import type { SelectSettings, Settings, ToggleSettings } from '../types';
+import type { EngineOption, Settings, ToggleSettings } from '../types';
 import type { TesseractLang } from '../language_map';
 
 /**
@@ -24,7 +24,7 @@ export type Action =
   | { type: 'openShortcutSettings' }
   | { type: 'toggleSettings'; payload: keyof ToggleSettings }
   | { type: 'updateLang'; payload: TesseractLang }
-  | { type: 'switchEngine'; payload: SelectSettings }
+  | { type: 'switchEngine'; payload: EngineOption }
   | { type: 'expandText' }
   | { type: 'updateText'; payload: string }
   | { type: 'startDrag'; payload: MouseEvent };

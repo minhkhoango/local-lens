@@ -3,11 +3,12 @@ import type {
   ExtensionMessage,
   IslandOcrPayload,
   ImagePayload,
-  LanguagePayload,
   StatusResponse,
   OcrResponse,
   ActivateOverlayPayload,
   Settings,
+  Point,
+  EngineOption,
 } from './types';
 import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island/index';
@@ -23,9 +24,10 @@ const CLASSES = {
 
 let activeOverlay: GhostOverlay | null = null;
 let activeIsland: FloatingIsland | null = null;
-let capturedImage: string | null = null;
-let croppedImage: string | null = null;
+let capturedImage: string = '';
+let croppedImage: string = '';
 let isPdf = false;
+let cursorPosition: Point = { x: 0, y: 0 };
 
 chrome.runtime.onMessage.addListener(
   (
@@ -58,13 +60,13 @@ chrome.runtime.onMessage.addListener(
           await handleCaptureSuccess(message.payload);
           sendResponse({ status: 'ok' });
         })();
-        return true;
+        break;
 
-      case ExtensionAction.UPDATE_LANGUAGE:
+      case ExtensionAction.BG_PERFORM_OCR:
         console.debug(message.action);
         (async () => {
-          const ocrResult = await handleLanguageUpdate(message.payload);
-          sendResponse(ocrResult);
+          await handlePerformOcr(message.payload.engine, true);
+          sendResponse({ status: 'ok' });
         })();
         return true;
     }
@@ -86,15 +88,11 @@ function handleActivateOverlay(payload: ActivateOverlayPayload) {
 /** Send rect payload from bg to offscreen for OCR, then update UI */
 async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
   console.debug('handle capture success');
-  if (!capturedImage) {
-    console.error('capturedImage not found, cannot hand capture');
-    return;
-  }
 
   try {
     console.debug(`cropping capturedImage to rect: ${rect}`);
     croppedImage = await cropImage(capturedImage, rect);
-    const cursorPosition = {
+    cursorPosition = {
       x: rect.x + rect.width,
       y: rect.y + rect.height,
     };
@@ -103,33 +101,59 @@ async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
     activeIsland = new FloatingIsland(cursorPosition, croppedImage, isPdf);
     activeIsland.mount();
 
-    const language = await getUserLanguage();
-
-    const ocrResult = await chrome.runtime.sendMessage<
-      ExtensionMessage,
-      OcrResponse
-    >({
-      action: ExtensionAction.PERFORM_OCR,
-      payload: {
-        croppedImage: croppedImage,
-        language: language,
-      },
-    });
-
-    console.debug('OCR result:', ocrResult);
-    if (!ocrResult) throw new Error('OcrResult is undefined');
-
-    // Forward result to content script for UI display
-    const resultPayload: IslandOcrPayload = {
-      success: ocrResult.status === 'ok',
-      text: ocrResult.text,
-      croppedImageUrl: croppedImage,
-      cursorPosition: cursorPosition,
-    };
-
-    handleOcrResult(resultPayload);
+    await handlePerformOcr('auto');
   } catch (err) {
     throw err;
+  }
+}
+
+/** Handle UI update when offscreen finishing OCR the image */
+async function handlePerformOcr(
+  engine: 'auto' | EngineOption,
+  ensureOffscreen = false,
+): Promise<void> {
+  if (ensureOffscreen) {
+    const ensureOffscreen = await chrome.runtime.sendMessage<
+      ExtensionMessage,
+      StatusResponse
+    >({
+      action: ExtensionAction.ENSURE_OFFSCREEN,
+    });
+
+    if (ensureOffscreen.status === 'error' || !croppedImage)
+      throw new Error('offscreen is not started, cannot update lang');
+  }
+
+  const language = await getUserLanguage();
+  const ocrResult = await chrome.runtime.sendMessage<
+    ExtensionMessage,
+    OcrResponse
+  >({
+    action: ExtensionAction.PERFORM_OCR,
+    payload: {
+      engine: engine,
+      language: language,
+      croppedImage: croppedImage,
+    },
+  });
+
+  const load: IslandOcrPayload = {
+    success: ocrResult.status === 'ok',
+    text: ocrResult.text,
+    croppedImageUrl: croppedImage,
+    cursorPosition: cursorPosition,
+  };
+
+  if (activeIsland) {
+    activeIsland.updateOcrResult(load);
+  } else {
+    activeIsland = new FloatingIsland(
+      load.cursorPosition,
+      load.croppedImageUrl,
+      isPdf,
+    );
+    activeIsland.mount();
+    activeIsland.updateOcrResult(load);
   }
 }
 
@@ -189,56 +213,6 @@ async function getUserLanguage(): Promise<TesseractLang> {
   } catch {}
 
   return 'eng';
-}
-
-/** Handle UI update when offscreen finishing OCR the image */
-function handleOcrResult(payload: IslandOcrPayload): void {
-  if (activeIsland) {
-    activeIsland.updateOcrResult(payload);
-  } else {
-    activeIsland = new FloatingIsland(
-      payload.cursorPosition,
-      payload.croppedImageUrl,
-      isPdf,
-    );
-    activeIsland.mount();
-    activeIsland.updateOcrResult(payload);
-  }
-}
-
-/** All-in-one handling of new translation language */
-async function handleLanguageUpdate(
-  payload: LanguagePayload,
-): Promise<OcrResponse> {
-  console.debug('handle language_update, content actually receives it');
-  try {
-    const ensureOffscreen = await chrome.runtime.sendMessage<
-      ExtensionMessage,
-      StatusResponse
-    >({
-      action: ExtensionAction.ENSURE_OFFSCREEN,
-    });
-
-    if (ensureOffscreen.status === 'error' || !croppedImage)
-      throw new Error('offscreen is not started, cannot update lang');
-
-    const { language } = payload;
-
-    const ocrResult = await chrome.runtime.sendMessage<
-      ExtensionMessage,
-      OcrResponse
-    >({
-      action: ExtensionAction.PERFORM_OCR,
-      payload: {
-        language: language,
-        croppedImage: croppedImage,
-      },
-    });
-
-    return ocrResult;
-  } catch (err) {
-    throw err;
-  }
 }
 
 /** Open a identical new tab on restricted sites */

@@ -14,7 +14,7 @@ const ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 
 /**
  * Darkens user's screen, prompt user to click & drag to create a rectangle,
- * then send the result to background message NOTIFY_CAPTURE_SUCCESS
+ * then send the result to background message BG_CAPTURE_SUCCESS
  * to forward to content
  */
 export class GhostOverlay {
@@ -164,7 +164,7 @@ export class GhostOverlay {
     if (rect.width > 5 && rect.height > 5) {
       console.debug('Image captured:', rect);
       chrome.runtime.sendMessage<ExtensionMessage>({
-        action: ExtensionAction.NOTIFY_CAPTURE_SUCCESS,
+        action: ExtensionAction.CAPTURE_SUCCESS,
         payload: rect,
       });
     }

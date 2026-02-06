@@ -44,8 +44,7 @@ export async function loadGranite() {
 
 export async function recognizeGranite(
   payload: PerformOcrPayload,
-  sendResponse: (response: OcrResponse) => void,
-) {
+): Promise<OcrResponse> {
   try {
     await loadGranite();
     if (!processor || !model) {
@@ -70,7 +69,11 @@ export async function recognizeGranite(
     const inputs = await processor(text, [image], { do_image_splitting: true });
     console.log('Model inputs:', inputs);
 
-    if (!processor.tokenizer) return;
+    if (!processor.tokenizer)
+      return {
+        status: 'error',
+        text: 'processor tokenizer not found',
+      };
 
     let content = '';
     await model.generate({
@@ -87,16 +90,15 @@ export async function recognizeGranite(
     });
     console.debug('Generated text: ', content);
 
-    sendResponse({
+    return {
       status: 'ok',
       text: content,
-    });
+    };
   } catch (err) {
     console.error('Recognition error:', err);
-    sendResponse({
+    return {
       status: 'error',
       text: '',
-    });
-    return;
+    };
   }
 }

@@ -2,13 +2,13 @@ import { OCR_CONFIG, ISLAND_STORAGE } from './constants';
 import { ExtensionAction } from './types';
 import type {
   ExtensionMessage,
-  LanguagePayload,
   SelectionRect,
   ShortcutResponse,
   StatusResponse,
   Settings,
   EngineOption,
   OcrResponse,
+  PerformOcrPayload,
 } from './types';
 import type { TesseractLang } from './language_map';
 
@@ -85,20 +85,20 @@ chrome.runtime.onMessage.addListener(
         })();
         return true;
       }
-      case ExtensionAction.NOTIFY_CAPTURE_SUCCESS: {
-        console.debug(message.action);
+      case ExtensionAction.CAPTURE_SUCCESS: {
         const targetTabId = getTabId(sender);
+        console.debug(message.action);
         (async () => {
           await transferCapture(targetTabId, message.payload);
           sendResponse({ status: 'ok' });
         })();
         return true;
       }
-      case ExtensionAction.REQUEST_LANGUAGE_UPDATE: {
+      case ExtensionAction.BG_PERFORM_OCR: {
         console.debug(message.action);
-        const targetTabId = getTabId(sender);
         (async () => {
-          const ocrResult = await transferLanguage(
+          const targetTabId = getTabId(sender);
+          const ocrResult = await transferPerformOcr(
             targetTabId,
             message.payload,
           );
@@ -273,14 +273,15 @@ async function ensureOffscreenLoaded(): Promise<void> {
     documentUrls: [chrome.runtime.getURL(FILES_PATH.OFFSCREEN_HTML)],
   });
 
-  if (existing.length > 0) return;
+  if (existing.length == 0) {
+    await chrome.offscreen.createDocument({
+      url: FILES_PATH.OFFSCREEN_HTML,
+      reasons: [chrome.offscreen.Reason.BLOBS],
+      justification: 'Processing screenshot image data for OCR',
+    });
+  }
 
-  await chrome.offscreen.createDocument({
-    url: FILES_PATH.OFFSCREEN_HTML,
-    reasons: [chrome.offscreen.Reason.BLOBS],
-    justification: 'Processing screenshot image data for OCR',
-  });
-
+  // Initialize engine with saved settings
   let language: TesseractLang = 'eng';
   let engine: EngineOption = 'tesseract';
   try {
@@ -292,7 +293,7 @@ async function ensureOffscreenLoaded(): Promise<void> {
   console.log('Offscreen init with lang:', language, 'engine:', engine);
 
   await chrome.runtime.sendMessage<ExtensionMessage>({
-    action: ExtensionAction.SET_OCR_ENGINE,
+    action: ExtensionAction.SETUP_ENGINE,
     payload: {
       engine: engine,
       language: language,
@@ -337,13 +338,13 @@ async function transferCapture(
  * @param tabId Id of the tab of the island that sent PERFORM_OCR request
  * @param payload new language
  */
-async function transferLanguage(
+async function transferPerformOcr(
   tabId: number,
-  payload: LanguagePayload,
+  payload: PerformOcrPayload,
 ): Promise<OcrResponse> {
   console.debug('Transfering language payload bg -> content');
   const ocrResult = await chrome.tabs.sendMessage<ExtensionMessage>(tabId, {
-    action: ExtensionAction.UPDATE_LANGUAGE,
+    action: ExtensionAction.BG_PERFORM_OCR,
     payload: payload,
   });
   return ocrResult;
