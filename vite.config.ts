@@ -17,10 +17,10 @@ export default defineConfig({
           src: [
             'node_modules/tesseract.js-core/tesseract-core-lstm.wasm.js',
             'node_modules/tesseract.js-core/tesseract-core-relaxedsimd-lstm.wasm.js',
-            'node_modules/tesseract.js-core/tesseract-core-relaxedsimd.wasm.js',
+            // 'node_modules/tesseract.js-core/tesseract-core-relaxedsimd.wasm.js',
             'node_modules/tesseract.js-core/tesseract-core-simd-lstm.wasm.js',
-            'node_modules/tesseract.js-core/tesseract-core-simd.wasm.js',
-            'node_modules/tesseract.js-core/tesseract-core.wasm.js',
+            // 'node_modules/tesseract.js-core/tesseract-core-simd.wasm.js',
+            // 'node_modules/tesseract.js-core/tesseract-core.wasm.js',
             'node_modules/tesseract.js/dist/worker.min.js',
           ],
           dest: 'tesseract_engine',

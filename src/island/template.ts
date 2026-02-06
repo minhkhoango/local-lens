@@ -1,8 +1,12 @@
 import { CLASSES } from './constants';
 import { ICONS } from './constants';
-import type { SelectSettings, ToggleSettings, EngineOption } from '../types';
+import type {
+  SelectSettings,
+  ToggleSettings,
+  EngineOption,
+  TesseractLang,
+} from '../types';
 import type { State } from './types';
-import type { TesseractLang } from '../language_map';
 
 export const LANGUAGE_OPTIONS: Record<TesseractLang, string> = {
   ara: 'Arabic',

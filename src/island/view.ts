@@ -6,11 +6,10 @@ import type {
   Point,
   SelectSettings,
   EngineOption,
+  TesseractLang,
 } from '../types';
 import type { Action, State } from './types';
-// import type { TesseractLang } from '../language_map';
 import { query, queryAll } from './utils';
-import type { TesseractLang } from '../language_map';
 
 type ActionHandler = (action: Action) => void;
 

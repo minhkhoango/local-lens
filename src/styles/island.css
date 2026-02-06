@@ -278,7 +278,7 @@
   padding: 0 2px;
 }
 
-.toggle {
+.settings-toggle {
   position: relative;
   width: 44px;
   height: 24px;
@@ -290,11 +290,11 @@
     border var(--ease-fast);
   border: 2px solid transparent;
 }
-.toggle.active {
+.settings-toggle.active {
   background: var(--toggle-active);
   border-color: var(--toggle-active);
 }
-.toggle::after {
+.settings-toggle::after {
   content: '';
   position: absolute;
   top: 2px;
@@ -309,10 +309,10 @@
     width var(--ease-fast),
     height var(--ease-fast);
 }
-.toggle:active::after {
+.settings-toggle:active::after {
   width: 20px;
 }
-.toggle.active::after {
+.settings-toggle.active::after {
   transform: translateX(20px);
   background: var(--bg);
 }

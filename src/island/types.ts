@@ -1,5 +1,9 @@
-import type { EngineOption, Settings, ToggleSettings } from '../types';
-import type { TesseractLang } from '../language_map';
+import type {
+  EngineOption,
+  Settings,
+  ToggleSettings,
+  TesseractLang,
+} from '../types';
 
 /**
  * Hold runtime value for all of island's variables

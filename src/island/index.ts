@@ -4,10 +4,10 @@ import type {
   IslandOcrPayload,
   ExtensionMessage,
   EngineOption,
+  TesseractLang,
 } from '../types';
 import type { Action, State } from './types';
 import { ExtensionAction } from '../types';
-import type { TesseractLang } from '../language_map';
 import { View } from './view';
 import { Storage } from './storage';
 import { DragController, EventsController } from './behavior';
@@ -90,11 +90,15 @@ export class FloatingIsland {
   /**
    * Remove island and its listener
    */
-  public destroy(): void {
+  public async destroy(): Promise<void> {
     console.debug('[Island.index] destroy');
     this.eventsCtrl?.destroy();
     this.dragCtrl?.destroy();
     this.host.remove();
+
+    await chrome.runtime.sendMessage<ExtensionMessage>({
+      action: ExtensionAction.DESTROY_OFFSCREEN,
+    });
   }
 
   // --- Internal logic ---

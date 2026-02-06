@@ -1,5 +1,3 @@
-import type { TesseractLang } from './language_map';
-
 /** Coordinate variable */
 export interface Point {
   x: number;
@@ -13,6 +11,41 @@ export interface ToggleSettings {
 }
 
 export type EngineOption = 'tesseract' | 'granite';
+
+/** Tesseract 3 letter language code */
+export type TesseractLang =
+  | 'ara'
+  | 'bul'
+  | 'ben'
+  | 'cat'
+  | 'ces'
+  | 'dan'
+  | 'deu'
+  | 'ell'
+  | 'eng'
+  | 'spa'
+  | 'fin'
+  | 'fra'
+  | 'heb'
+  | 'hin'
+  | 'hun'
+  | 'ind'
+  | 'ita'
+  | 'jpn'
+  | 'kor'
+  | 'nor'
+  | 'nld'
+  | 'pol'
+  | 'por'
+  | 'ron'
+  | 'rus'
+  | 'swe'
+  | 'tha'
+  | 'tur'
+  | 'ukr'
+  | 'vie'
+  | 'chi_sim'
+  | 'chi_tra';
 
 /** Hold runtime values for island select elements */
 export interface SelectSettings {
@@ -39,6 +72,7 @@ export const ExtensionAction = {
   BG_PERFORM_OCR: 'BG_PERFORM_OCR',
   PERFORM_OCR: 'PERFORM_OCR',
   ENSURE_OFFSCREEN: 'ENSURE_OFFSCREEN',
+  DESTROY_OFFSCREEN: 'DESTROY_OFFSCREEN',
   OPEN_SHORTCUTS_PAGE: 'OPEN_SHORTCUTS_PAGE',
   GET_SHORTCUT: 'GET_SHORTCUT',
   INITIALIZE_BACKUP: 'INITIALIZE_BACKUP',
@@ -85,6 +119,7 @@ export type ExtensionMessage =
     }
   | { action: typeof ExtensionAction.PERFORM_OCR; payload: PerformOcrPayload }
   | { action: typeof ExtensionAction.ENSURE_OFFSCREEN }
+  | { action: typeof ExtensionAction.DESTROY_OFFSCREEN }
   | { action: typeof ExtensionAction.OPEN_SHORTCUTS_PAGE }
   | { action: typeof ExtensionAction.GET_SHORTCUT }
   | {

@@ -9,13 +9,13 @@ import type {
   Settings,
   Point,
   EngineOption,
+  TesseractLang,
 } from './types';
 import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island/index';
 import backupStyles from './styles/backup.css?inline';
 import overlayStyles from './styles/overlay.css?inline';
 import { OCR_CONFIG, ISLAND_STORAGE } from './constants';
-import type { TesseractLang } from './language_map';
 
 const CLASSES = {
   imageContainer: 'image-container',

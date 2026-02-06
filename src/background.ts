@@ -9,8 +9,8 @@ import type {
   EngineOption,
   OcrResponse,
   PerformOcrPayload,
+  TesseractLang,
 } from './types';
-import type { TesseractLang } from './language_map';
 
 interface UrlClass {
   isRestricted: boolean;
@@ -130,6 +130,14 @@ chrome.runtime.onMessage.addListener(
         chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
         sendResponse({ status: 'ok' });
         return false; // Synchronous response
+      }
+      case ExtensionAction.DESTROY_OFFSCREEN: {
+        console.debug(message.action);
+        (async () => {
+          await chrome.offscreen.closeDocument();
+          sendResponse({ status: 'ok' });
+        })();
+        return false;
       }
     }
     return false;
@@ -265,7 +273,7 @@ async function createBackupTab(capturedImage: string): Promise<number> {
 }
 
 /**
- * Create / ensure offscreen OCR script is ready
+ * Ensure offscreen engine is ready
  */
 async function ensureOffscreenLoaded(): Promise<void> {
   const existing = await chrome.runtime.getContexts({
