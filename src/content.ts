@@ -1,7 +1,6 @@
 import { ExtensionAction, type SelectionRect } from './types';
 import type {
   ExtensionMessage,
-  IslandOcrPayload,
   ImagePayload,
   StatusResponse,
   OcrResponse,
@@ -10,12 +9,13 @@ import type {
   Point,
   EngineOption,
   TesseractLang,
+  PortMessage,
 } from './types';
 import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island/index';
 import backupStyles from './styles/backup.css?inline';
 import overlayStyles from './styles/overlay.css?inline';
-import { OCR_CONFIG, ISLAND_STORAGE } from './constants';
+import { OCR_CONFIG, ISLAND_STORAGE, OCR_PORT } from './constants';
 
 const CLASSES = {
   imageContainer: 'image-container',
@@ -125,11 +125,18 @@ async function handlePerformOcr(
   }
 
   const language = await getUserLanguage();
-  const ocrResult = await chrome.runtime.sendMessage<
-    ExtensionMessage,
-    OcrResponse
-  >({
-    action: ExtensionAction.PERFORM_OCR,
+
+  // switch to chrome.runtime.connect for streaming of OCR progress
+  const port = await chrome.runtime.connect({ name: OCR_PORT });
+
+  port.onMessage.addListener((msg: PortMessage) => {
+    console.debug('Received port message:', msg);
+    if (!activeIsland) return;
+    activeIsland.updateOcrProgress(msg);
+  });
+
+  port.postMessage({
+    action: 'PERFORM_OCR',
     payload: {
       engine: engine,
       language: language,
@@ -137,24 +144,36 @@ async function handlePerformOcr(
     },
   });
 
-  const load: IslandOcrPayload = {
-    success: ocrResult.status === 'ok',
-    text: ocrResult.text,
-    croppedImageUrl: croppedImage,
-    cursorPosition: cursorPosition,
-  };
+  // const ocrResult = await chrome.runtime.sendMessage<
+  //   ExtensionMessage,
+  //   OcrResponse
+  // >({
+  //   action: ExtensionAction.PERFORM_OCR,
+  //   payload: {
+  //     engine: engine,
+  //     language: language,
+  //     croppedImage: croppedImage,
+  //   },
+  // });
 
-  if (activeIsland) {
-    activeIsland.updateOcrResult(load);
-  } else {
-    activeIsland = new FloatingIsland(
-      load.cursorPosition,
-      load.croppedImageUrl,
-      isPdf,
-    );
-    activeIsland.mount();
-    activeIsland.updateOcrResult(load);
-  }
+  // const load: IslandOcrPayload = {
+  //   success: ocrResult.status === 'ok',
+  //   text: ocrResult.text,
+  //   croppedImageUrl: croppedImage,
+  //   cursorPosition: cursorPosition,
+  // };
+
+  // if (activeIsland) {
+  //   activeIsland.updateOcrResult(load);
+  // } else {
+  //   activeIsland = new FloatingIsland(
+  //     load.cursorPosition,
+  //     load.croppedImageUrl,
+  //     isPdf,
+  //   );
+  //   activeIsland.mount();
+  //   activeIsland.updateOcrResult(load);
+  // }
 }
 
 /**

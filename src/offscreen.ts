@@ -9,6 +9,7 @@ import type {
 } from './types';
 import { recognizeGranite, loadGranite } from './engine/granite';
 import { recognizeTesseract, loadTesseract } from './engine/tesseract';
+import { OCR_PORT } from './constants';
 
 let engine: EngineOption = 'tesseract';
 
@@ -25,15 +26,25 @@ chrome.runtime.onMessage.addListener(
         sendResponse({ status: 'ok' });
         break;
 
-      case ExtensionAction.PERFORM_OCR:
-        console.debug(message.action, 'payload:', message.payload);
-        performOcr(message.payload, sendResponse);
-        return true;
+      // case ExtensionAction.PERFORM_OCR:
+      //   console.debug(message.action, 'payload:', message.payload);
+      //   performOcr(message.payload, sendResponse);
+      //   return true;
     }
 
     return false;
   },
 );
+
+chrome.runtime.onConnect.addListener((port) => {
+  console.debug('Content script connected to port:', port.name);
+  if (port.name !== OCR_PORT) return;
+
+  port.onMessage.addListener(async (msg) => {
+    if (msg.action !== 'PERFORM_OCR') return;
+    await performOcr(msg.payload, port);
+  });
+});
 
 async function initEngine(payload: SetupEnginePayload) {
   const { engine: selectedEngine, language } = payload;
@@ -51,9 +62,8 @@ async function initEngine(payload: SetupEnginePayload) {
 
 async function performOcr(
   payload: PerformOcrPayload,
-  sendResponse: (response: OcrResponse) => void,
+  port: chrome.runtime.Port,
 ): Promise<void> {
-  let ocrResult: OcrResponse;
   if (
     (payload.engine === 'auto' && engine === 'tesseract') ||
     payload.engine === 'tesseract'
@@ -62,16 +72,15 @@ async function performOcr(
       console.error('Tesseract engine requires a language', payload);
       return;
     }
-    ocrResult = await recognizeTesseract(payload);
+    await recognizeTesseract(payload, port);
   } else if (
     (payload.engine === 'auto' && engine === 'granite') ||
     payload.engine === 'granite'
   ) {
-    ocrResult = await recognizeGranite(payload);
+    await recognizeGranite(payload, port);
   } else {
     console.error('Unsupported engine specified:', payload.engine);
     return;
   }
-  sendResponse(ocrResult);
   return;
 }

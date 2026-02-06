@@ -13,7 +13,7 @@ export const ICONS = {
  * Initial state of variables, can be overwrited by saved settings
  */
 export const INITIAL_STATE: State = {
-  status: 'loading',
+  status: 'loading-model',
   text: '',
   imageUrl: '',
   isTextExpanded: false,

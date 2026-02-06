@@ -1,10 +1,10 @@
 import { INITIAL_STATE, CONFIG } from './constants';
 import type {
   Point,
-  IslandOcrPayload,
   ExtensionMessage,
   EngineOption,
   TesseractLang,
+  PortMessage,
 } from '../types';
 import type { Action, State } from './types';
 import { ExtensionAction } from '../types';
@@ -66,12 +66,22 @@ export class FloatingIsland {
    * Update UI with (new) OCR result
    * @param payload OCR result sent fron offscreen
    */
-  public updateOcrResult(payload: IslandOcrPayload): void {
-    this.state.status = payload.success ? 'success' : 'error';
-    this.state.text = payload.text;
-    if (payload.croppedImageUrl) this.state.imageUrl = payload.croppedImageUrl;
+  // public updateOcrResult(payload: IslandOcrPayload): void {
+  //   this.state.status = payload.success ? 'done' : 'error';
+  //   this.state.text = payload.text;
+  //   if (payload.croppedImageUrl) this.state.imageUrl = payload.croppedImageUrl;
 
-    if (this.state.status === 'success') {
+  //   if (this.state.status === 'done') {
+  //     if (this.state.settings.autoExpand) this.state.isTextExpanded = true;
+  //     if (this.state.settings.autoCopy) this.copyToClipboard();
+  //   }
+  //   this.updateView();
+  // }
+
+  public updateOcrProgress(payload: PortMessage): void {
+    this.state.status = payload.stage;
+    this.state.text = payload.text;
+    if (this.state.status === 'done') {
       if (this.state.settings.autoExpand) this.state.isTextExpanded = true;
       if (this.state.settings.autoCopy) this.copyToClipboard();
     }
@@ -236,7 +246,7 @@ export class FloatingIsland {
     if (this.state.settings.engine === 'granite') return;
 
     const previousText = this.state.text;
-    this.state.status = 'loading';
+    this.state.status = 'loading-model';
     this.state.text = '';
     this.state.hasCopied = false;
     this.updateView();
@@ -264,7 +274,7 @@ export class FloatingIsland {
     this.storage.saveSettings(this.state.settings);
 
     const previousText = this.state.text;
-    this.state.status = 'loading';
+    this.state.status = 'loading-model';
     this.state.text = '';
     this.state.hasCopied = false;
     this.updateView();

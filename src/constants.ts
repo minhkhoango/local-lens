@@ -3,3 +3,4 @@ export const OCR_CONFIG = {
 } as const;
 
 export const ISLAND_STORAGE = 'islandSettings';
+export const OCR_PORT = 'ocrPort';

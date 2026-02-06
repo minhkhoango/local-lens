@@ -1,4 +1,4 @@
-import type { OcrResponse, PerformOcrPayload } from '../types';
+import type { PerformOcrPayload, PortMessage } from '../types';
 import Tesseract from 'tesseract.js';
 
 let worker: Tesseract.Worker | null = null;
@@ -6,28 +6,31 @@ let currentLanguage: string = 'eng';
 
 export async function recognizeTesseract(
   payload: PerformOcrPayload,
-): Promise<OcrResponse> {
+  port: chrome.runtime.Port,
+): Promise<void> {
   const { croppedImage, language } = payload;
   if (!croppedImage || !language) {
     throw new Error('No saved cropped image or language found for retry');
   }
 
   try {
+    port.postMessage({ stage: 'loading-model', text: '' } as PortMessage);
     await loadTesseract(language);
     if (!worker) {
       throw new Error('Failed to load Tesseract worker');
     }
   } catch (err) {
-    console.error('Worker initialization error:', err);
-    return {
-      status: 'error',
-      text: '',
-    };
+    port.postMessage({
+      stage: 'error',
+      text: 'Failed to initialize Tesseract worker',
+    } as PortMessage);
+    throw err;
   }
 
   currentLanguage = language;
 
   console.debug(`perform recognizing`);
+  port.postMessage({ stage: 'recognizing', text: '' } as PortMessage);
   try {
     const result = await worker.recognize(croppedImage);
     console.debug('result:', result);
@@ -36,16 +39,16 @@ export async function recognizeTesseract(
     const text = result.data.text.trim();
 
     console.debug(`OCR SUCCESS [confidence: ${confidence}%]:\n`);
-    return {
-      status: 'ok',
+    port.postMessage({
+      stage: 'done',
       text: text,
-    };
+    } as PortMessage);
   } catch (err) {
     console.error('Recognition error:', err);
-    return {
-      status: 'error',
-      text: '',
-    };
+    port.postMessage({
+      stage: 'error',
+      text: 'Tesseract recognition failed',
+    } as PortMessage);
   }
 }
 

@@ -9,7 +9,7 @@ import type {
  * Hold runtime value for all of island's variables
  */
 export interface State {
-  status: 'loading' | 'success' | 'error';
+  status: 'loading-model' | 'recognizing' | 'done' | 'error';
   text: string;
   imageUrl: string;
   isTextExpanded: boolean;

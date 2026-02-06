@@ -8,7 +8,7 @@ import {
   TextStreamer,
   type Message,
 } from '@huggingface/transformers';
-import type { OcrResponse, PerformOcrPayload } from '../types';
+import type { PerformOcrPayload, PortMessage } from '../types';
 
 if (env.backends.onnx.wasm) {
   env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL(
@@ -44,8 +44,10 @@ export async function loadGranite() {
 
 export async function recognizeGranite(
   payload: PerformOcrPayload,
-): Promise<OcrResponse> {
+  port: chrome.runtime.Port,
+): Promise<void> {
   try {
+    port.postMessage({ stage: 'loading-model', text: '' } as PortMessage);
     await loadGranite();
     if (!processor || !model) {
       throw new Error('Failed to load Granite model or processor');
@@ -69,11 +71,15 @@ export async function recognizeGranite(
     const inputs = await processor(text, [image], { do_image_splitting: true });
     console.log('Model inputs:', inputs);
 
-    if (!processor.tokenizer)
-      return {
-        status: 'error',
+    if (!processor.tokenizer) {
+      port.postMessage({
+        stage: 'error',
         text: 'processor tokenizer not found',
-      };
+      } as PortMessage);
+      throw new Error('processor tokenizer not found');
+    }
+
+    port.postMessage({ stage: 'recognizing', text: '' } as PortMessage);
 
     let content = '';
     await model.generate({
@@ -85,20 +91,24 @@ export async function recognizeGranite(
         callback_function(streamedText) {
           console.debug('Streamed text:', streamedText);
           content += streamedText;
+          port.postMessage({
+            stage: 'recognizing',
+            text: content,
+          } as PortMessage);
         },
       }),
     });
     console.debug('Generated text: ', content);
 
-    return {
-      status: 'ok',
+    port.postMessage({
+      stage: 'done',
       text: content,
-    };
+    } as PortMessage);
   } catch (err) {
     console.error('Recognition error:', err);
-    return {
-      status: 'error',
-      text: '',
-    };
+    port.postMessage({
+      stage: 'error',
+      text: 'Granite recognition failed',
+    } as PortMessage);
   }
 }

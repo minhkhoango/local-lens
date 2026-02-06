@@ -199,7 +199,7 @@ async function notifyFilePermission() {
   chrome.notifications.create({
     type: 'basic',
     iconUrl: '/icons/48.png',
-    title: chrome.runtime.getManifest().name,
+    title: 'Local Lens',
     message:
       'Allow access to file URLs is disabled, enable in \"Manage extensions\"',
   });
@@ -231,7 +231,6 @@ async function activateOverlay(
     }
 
     console.debug('warming up offscreen engine...');
-    // warm up the offscreen engine
     await ensureOffscreenLoaded();
   } catch (err) {
     throw err;

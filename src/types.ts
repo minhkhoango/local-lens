@@ -70,7 +70,7 @@ export const ExtensionAction = {
   PING_CONTENT: 'PING_CONTENT',
   SETUP_ENGINE: 'SETUP_ENGINE',
   BG_PERFORM_OCR: 'BG_PERFORM_OCR',
-  PERFORM_OCR: 'PERFORM_OCR',
+  // PERFORM_OCR: 'PERFORM_OCR',
   ENSURE_OFFSCREEN: 'ENSURE_OFFSCREEN',
   DESTROY_OFFSCREEN: 'DESTROY_OFFSCREEN',
   OPEN_SHORTCUTS_PAGE: 'OPEN_SHORTCUTS_PAGE',
@@ -117,7 +117,7 @@ export type ExtensionMessage =
       action: typeof ExtensionAction.BG_PERFORM_OCR;
       payload: PerformOcrPayload;
     }
-  | { action: typeof ExtensionAction.PERFORM_OCR; payload: PerformOcrPayload }
+  // | { action: typeof ExtensionAction.PERFORM_OCR; payload: PerformOcrPayload }
   | { action: typeof ExtensionAction.ENSURE_OFFSCREEN }
   | { action: typeof ExtensionAction.DESTROY_OFFSCREEN }
   | { action: typeof ExtensionAction.OPEN_SHORTCUTS_PAGE }
@@ -144,10 +144,8 @@ export interface OcrResponse {
   text: string;
 }
 
-/** Processed response from OcrResponse, sent to index */
-export interface IslandOcrPayload {
-  success: boolean;
+/** Port message for streaming OCR progress */
+export type PortMessage = {
+  stage: 'loading-model' | 'recognizing' | 'done' | 'error';
   text: string;
-  croppedImageUrl: string;
-  cursorPosition: Point;
-}
+};

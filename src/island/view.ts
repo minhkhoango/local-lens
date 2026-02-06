@@ -73,27 +73,31 @@ export class View {
     console.debug(`[Island.view] update, state: ${state}, width: ${width}`);
     if (!this.els.status || !this.els.copyBtn) return;
 
-    const isLoading = state.status === 'loading';
-    const isSuccess = state.status === 'success';
+    const isLoadingModel = state.status === 'loading-model';
+    const isRecognizing = state.status === 'recognizing';
+    const isSuccess = state.status === 'done';
 
     this.els.status.className = `${CLASSES.status} ${state.status}`;
-    this.els.status.textContent = isLoading
-      ? 'processing...'
-      : isSuccess
-        ? state.hasCopied
-          ? 'Copied'
-          : 'Extracted'
-        : 'Error';
+    this.els.status.textContent = isLoadingModel
+      ? 'Loading model...'
+      : isRecognizing
+        ? 'Recognizing...'
+        : isSuccess
+          ? state.hasCopied
+            ? 'Copied'
+            : 'Extracted'
+          : 'Error';
 
     this.els.copyBtn.className = `${CLASSES.btn} ${CLASSES.copybtn}
-                                  ${isLoading ? CLASSES.loading : ''} 
+                                  ${isLoadingModel || isRecognizing ? CLASSES.loading : ''} 
                                   ${state.hasCopied ? CLASSES.success : ''}`;
-    this.els.copyBtn.innerHTML = isLoading
-      ? ICONS.spinner
-      : state.hasCopied
-        ? ICONS.check
-        : ICONS.clipboard;
-    this.els.copyBtn.disabled = isLoading;
+    this.els.copyBtn.innerHTML =
+      isLoadingModel || isRecognizing
+        ? ICONS.spinner
+        : state.hasCopied
+          ? ICONS.check
+          : ICONS.clipboard;
+    this.els.copyBtn.disabled = isLoadingModel || isRecognizing;
 
     // Expand / contract textarea + width
     if (!this.els.preview || !this.els.textarea) return;
