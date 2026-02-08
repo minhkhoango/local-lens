@@ -1,8 +1,8 @@
 import { ISLAND_STORAGE } from '../constants';
 import { INITIAL_STATE } from './constants';
 import {
-  ExtensionAction,
-  type ExtensionMessage,
+  RuntimeMessageAction,
+  type RuntimeMessage,
   type ShortcutResponse,
 } from '../types';
 import type { Settings } from '../types';
@@ -35,8 +35,8 @@ export class Storage {
     console.debug('[Island.storage] getShortcut');
     try {
       const response: ShortcutResponse =
-        await chrome.runtime.sendMessage<ExtensionMessage>({
-          action: ExtensionAction.GET_SHORTCUT,
+        await chrome.runtime.sendMessage<RuntimeMessage>({
+          action: RuntimeMessageAction.GET_SHORTCUT,
         });
 
       return response.shortcut;
@@ -47,6 +47,8 @@ export class Storage {
 
   /** New tab to browser://extensions/shortcuts */
   public openShortcutsPage(): void {
-    chrome.runtime.sendMessage({ action: ExtensionAction.OPEN_SHORTCUTS_PAGE });
+    chrome.runtime.sendMessage({
+      action: RuntimeMessageAction.OPEN_SHORTCUTS_PAGE,
+    });
   }
 }

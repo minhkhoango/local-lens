@@ -8,7 +8,8 @@ import {
   TextStreamer,
   type Message,
 } from '@huggingface/transformers';
-import type { PerformOcrPayload, PortMessage } from '../types';
+import type { PerformOcrPayload, TabsConnectMessage } from '../types';
+import { doclingToHtml } from './parser';
 
 if (env.backends.onnx.wasm) {
   env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL(
@@ -18,37 +19,64 @@ if (env.backends.onnx.wasm) {
 
 let processor: Processor | null = null;
 let model: PreTrainedModel | null = null;
+let loadingPromise: Promise<void> | null = null;
 
 export async function loadGranite() {
-  if (!processor) {
-    console.log('Loading Granite processor');
-    processor = await AutoProcessor.from_pretrained(
-      'onnx-community/granite-docling-258M-ONNX',
-    );
+  if (model && processor) {
+    console.debug('Granite model and processor already loaded');
+    return;
   }
-  if (!model) {
-    console.log('Loading Granite model');
-    model = await AutoModelForVision2Seq.from_pretrained(
-      'onnx-community/granite-docling-258M-ONNX',
-      {
-        dtype: {
-          embed_tokens: 'fp16',
-          vision_encoder: 'fp32',
-          decoder_model_merged: 'fp32',
+  if (loadingPromise) {
+    console.debug('Granite is currently loading, awaiting existing promise');
+    await loadingPromise;
+    return;
+  }
+
+  loadingPromise = (async () => {
+    if (!model) {
+      console.debug('Loading Granite model');
+      model = await AutoModelForVision2Seq.from_pretrained(
+        'onnx-community/granite-docling-258M-ONNX',
+        {
+          dtype: {
+            embed_tokens: 'fp16',
+            vision_encoder: 'fp32',
+            decoder_model_merged: 'fp32',
+          },
+          device: 'webgpu',
         },
-        device: 'webgpu',
-      },
-    );
-  }
+      );
+      console.debug('Finish loading Granite model');
+    }
+    if (!processor) {
+      console.debug('Loading Granite processor');
+      processor = await AutoProcessor.from_pretrained(
+        'onnx-community/granite-docling-258M-ONNX',
+      );
+      console.debug('Finish loading Granite processor');
+    }
+  })();
+
+  await loadingPromise;
+  loadingPromise = null;
 }
 
 export async function recognizeGranite(
   payload: PerformOcrPayload,
-  port: chrome.runtime.Port,
+  postMessage: (message: TabsConnectMessage) => void,
 ): Promise<void> {
   try {
-    port.postMessage({ stage: 'loading-model', text: '' } as PortMessage);
-    await loadGranite();
+    postMessage({ stage: 'loading-model', text: '' });
+
+    try {
+      await loadGranite();
+    } catch (err) {
+      postMessage({
+        stage: 'error',
+        text: `Failed to load Granite model: ${err}`,
+      });
+      throw err;
+    }
     if (!processor || !model) {
       throw new Error('Failed to load Granite model or processor');
     }
@@ -72,14 +100,14 @@ export async function recognizeGranite(
     console.log('Model inputs:', inputs);
 
     if (!processor.tokenizer) {
-      port.postMessage({
+      postMessage({
         stage: 'error',
         text: 'processor tokenizer not found',
-      } as PortMessage);
+      });
       throw new Error('processor tokenizer not found');
     }
 
-    port.postMessage({ stage: 'recognizing', text: '' } as PortMessage);
+    postMessage({ stage: 'recognizing', text: '' });
 
     let content = '';
     await model.generate({
@@ -89,26 +117,25 @@ export async function recognizeGranite(
         skip_prompt: true,
         skip_special_tokens: false,
         callback_function(streamedText) {
-          console.debug('Streamed text:', streamedText);
           content += streamedText;
-          port.postMessage({
+          postMessage({
             stage: 'recognizing',
             text: content,
-          } as PortMessage);
+          });
         },
       }),
     });
     console.debug('Generated text: ', content);
 
-    port.postMessage({
+    postMessage({
       stage: 'done',
-      text: content,
-    } as PortMessage);
+      text: doclingToHtml(content),
+    });
   } catch (err) {
     console.error('Recognition error:', err);
-    port.postMessage({
+    postMessage({
       stage: 'error',
       text: 'Granite recognition failed',
-    } as PortMessage);
+    });
   }
 }

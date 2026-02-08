@@ -46,16 +46,6 @@
   transition: var(--transition);
 }
 
-.cursor-bubble {
-  position: absolute;
-  padding: 2px;
-  border-radius: 12px;
-  color: var(--text);
-  background: var(--surface);
-  z-index: var(--z-index);
-  pointer-events: none;
-}
-
 .icon {
   width: 24px;
   height: 24px;

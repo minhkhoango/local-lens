@@ -1,6 +1,10 @@
-import { ExtensionAction, type SelectionRect } from './types';
+import {
+  RuntimeMessageAction,
+  TabsMessageAction,
+  type SelectionRect,
+} from './types';
 import type {
-  ExtensionMessage,
+  RuntimeMessage,
   ImagePayload,
   StatusResponse,
   OcrResponse,
@@ -9,7 +13,8 @@ import type {
   Point,
   EngineOption,
   TesseractLang,
-  PortMessage,
+  TabsConnectMessage,
+  TabsMessage,
 } from './types';
 import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island/index';
@@ -31,38 +36,38 @@ let cursorPosition: Point = { x: 0, y: 0 };
 
 chrome.runtime.onMessage.addListener(
   (
-    message: ExtensionMessage,
+    message: TabsMessage,
     _sender: chrome.runtime.MessageSender,
     sendResponse: (response: StatusResponse | OcrResponse) => void,
   ) => {
     switch (message.action) {
-      case ExtensionAction.INITIALIZE_BACKUP:
+      case TabsMessageAction.INITIALIZE_BACKUP:
         console.debug(message.action);
         setupBackupDisplay(message.payload);
         sendResponse({ status: 'ok' });
         break;
 
-      case ExtensionAction.PING_CONTENT:
+      case TabsMessageAction.PING_CONTENT:
         console.debug(message.action);
-        if (activeIsland) activeIsland.destroy();
+        if (activeIsland) activeIsland.destroy(true);
         sendResponse({ status: 'ok' });
         break;
 
-      case ExtensionAction.ACTIVATE_OVERLAY:
+      case TabsMessageAction.ACTIVATE_OVERLAY:
         console.debug(message.action);
         handleActivateOverlay(message.payload);
         sendResponse({ status: 'ok' });
         break;
 
-      case ExtensionAction.CAPTURE_SUCCESS:
+      case TabsMessageAction.CAPTURE_SUCCESS:
         console.debug(message.action);
         (async () => {
           await handleCaptureSuccess(message.payload);
           sendResponse({ status: 'ok' });
         })();
-        break;
+        return true;
 
-      case ExtensionAction.BG_PERFORM_OCR:
+      case TabsMessageAction.BG_PERFORM_OCR:
         console.debug(message.action);
         (async () => {
           await handlePerformOcr(message.payload.engine, true);
@@ -114,10 +119,10 @@ async function handlePerformOcr(
 ): Promise<void> {
   if (ensureOffscreen) {
     const ensureOffscreen = await chrome.runtime.sendMessage<
-      ExtensionMessage,
+      RuntimeMessage,
       StatusResponse
     >({
-      action: ExtensionAction.ENSURE_OFFSCREEN,
+      action: RuntimeMessageAction.ENSURE_OFFSCREEN,
     });
 
     if (ensureOffscreen.status === 'error' || !croppedImage)
@@ -129,7 +134,7 @@ async function handlePerformOcr(
   // switch to chrome.runtime.connect for streaming of OCR progress
   const port = await chrome.runtime.connect({ name: OCR_PORT });
 
-  port.onMessage.addListener((msg: PortMessage) => {
+  port.onMessage.addListener((msg: TabsConnectMessage) => {
     console.debug('Received port message:', msg);
     if (!activeIsland) return;
     activeIsland.updateOcrProgress(msg);
@@ -143,37 +148,6 @@ async function handlePerformOcr(
       croppedImage: croppedImage,
     },
   });
-
-  // const ocrResult = await chrome.runtime.sendMessage<
-  //   ExtensionMessage,
-  //   OcrResponse
-  // >({
-  //   action: ExtensionAction.PERFORM_OCR,
-  //   payload: {
-  //     engine: engine,
-  //     language: language,
-  //     croppedImage: croppedImage,
-  //   },
-  // });
-
-  // const load: IslandOcrPayload = {
-  //   success: ocrResult.status === 'ok',
-  //   text: ocrResult.text,
-  //   croppedImageUrl: croppedImage,
-  //   cursorPosition: cursorPosition,
-  // };
-
-  // if (activeIsland) {
-  //   activeIsland.updateOcrResult(load);
-  // } else {
-  //   activeIsland = new FloatingIsland(
-  //     load.cursorPosition,
-  //     load.croppedImageUrl,
-  //     isPdf,
-  //   );
-  //   activeIsland.mount();
-  //   activeIsland.updateOcrResult(load);
-  // }
 }
 
 /**

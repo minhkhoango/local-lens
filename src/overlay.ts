@@ -1,5 +1,5 @@
-import { ExtensionAction } from './types';
-import type { ExtensionMessage, SelectionRect, Point } from './types';
+import { RuntimeMessageAction } from './types';
+import type { RuntimeMessage, SelectionRect, Point } from './types';
 
 type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
@@ -24,7 +24,6 @@ export class GhostOverlay {
   private ctx: CanvasRenderingContext2D | null = null;
 
   private notificationBanner: HTMLDivElement;
-  private cursorBubble: HTMLDivElement;
 
   private isDragging = false;
   private startPos: Point = { x: 0, y: 0 };
@@ -40,7 +39,6 @@ export class GhostOverlay {
     this.initStructure(overlayStyles);
 
     this.notificationBanner = document.createElement('div');
-    this.cursorBubble = document.createElement('div');
     this.initNotificationUI();
   }
 
@@ -82,15 +80,6 @@ export class GhostOverlay {
     this.notificationBanner.appendChild(lenIcon);
     this.notificationBanner.appendChild(bannerText);
     this.shadow.appendChild(this.notificationBanner);
-
-    this.cursorBubble.className = 'cursor-bubble';
-
-    const bubbleIcon = document.createElement('div');
-    bubbleIcon.innerHTML = ICON;
-    bubbleIcon.className = 'icon';
-
-    this.cursorBubble.appendChild(bubbleIcon);
-    this.shadow.appendChild(this.cursorBubble);
   }
 
   /** Mount overlay on screen if not already */
@@ -105,10 +94,6 @@ export class GhostOverlay {
   public activate(): void {
     console.debug('[Overlay] Enables + mouse, listen to mousedown');
     this.host.style.pointerEvents = 'auto';
-    this.canvas.addEventListener('mouseenter', this.handleBubbleMove, {
-      once: true,
-    });
-    this.canvas.addEventListener('mousemove', this.handleBubbleMove);
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
     window.addEventListener('keydown', this.handleKeyDown);
 
@@ -118,9 +103,7 @@ export class GhostOverlay {
   public destroy(): void {
     console.debug('[Overlay] remove listener, "escape" keydown, & box');
     if (this.notificationBanner) this.notificationBanner.remove();
-    this.cursorBubble.remove();
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
-    this.canvas.removeEventListener('mousemove', this.handleBubbleMove);
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);
     window.removeEventListener('keydown', this.handleKeyDown);
@@ -163,8 +146,8 @@ export class GhostOverlay {
 
     if (rect.width > 5 && rect.height > 5) {
       console.debug('Image captured:', rect);
-      chrome.runtime.sendMessage<ExtensionMessage>({
-        action: ExtensionAction.CAPTURE_SUCCESS,
+      chrome.runtime.sendMessage<RuntimeMessage>({
+        action: RuntimeMessageAction.CAPTURE_SUCCESS,
         payload: rect,
       });
     }
@@ -212,11 +195,6 @@ export class GhostOverlay {
       this.ctx.stroke();
     }
   }
-
-  private handleBubbleMove = (e: MouseEvent): void => {
-    this.cursorBubble.style.left = `${e.clientX + 6}px`;
-    this.cursorBubble.style.top = `${e.clientY + 6}px`;
-  };
 
   private getActiveCorner(): Corner {
     const draggingRight = this.currentPos.x >= this.startPos.x;

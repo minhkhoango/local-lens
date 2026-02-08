@@ -1,13 +1,13 @@
 import { INITIAL_STATE, CONFIG } from './constants';
+import { RuntimeMessageAction } from '../types';
 import type {
   Point,
-  ExtensionMessage,
+  RuntimeMessage,
   EngineOption,
   TesseractLang,
-  PortMessage,
+  TabsConnectMessage,
 } from '../types';
 import type { Action, State } from './types';
-import { ExtensionAction } from '../types';
 import { View } from './view';
 import { Storage } from './storage';
 import { DragController, EventsController } from './behavior';
@@ -62,23 +62,11 @@ export class FloatingIsland {
   }
 
   // --- Public functions ---
+
   /**
-   * Update UI with (new) OCR result
-   * @param payload OCR result sent fron offscreen
+   * Continuously update island with OCR progress from offscreen
    */
-  // public updateOcrResult(payload: IslandOcrPayload): void {
-  //   this.state.status = payload.success ? 'done' : 'error';
-  //   this.state.text = payload.text;
-  //   if (payload.croppedImageUrl) this.state.imageUrl = payload.croppedImageUrl;
-
-  //   if (this.state.status === 'done') {
-  //     if (this.state.settings.autoExpand) this.state.isTextExpanded = true;
-  //     if (this.state.settings.autoCopy) this.copyToClipboard();
-  //   }
-  //   this.updateView();
-  // }
-
-  public updateOcrProgress(payload: PortMessage): void {
+  public updateOcrProgress(payload: TabsConnectMessage): void {
     this.state.status = payload.stage;
     this.state.text = payload.text;
     if (this.state.status === 'done') {
@@ -100,15 +88,17 @@ export class FloatingIsland {
   /**
    * Remove island and its listener
    */
-  public async destroy(): Promise<void> {
+  public async destroy(keepOffscreen = false): Promise<void> {
     console.debug('[Island.index] destroy');
     this.eventsCtrl?.destroy();
     this.dragCtrl?.destroy();
     this.host.remove();
 
-    await chrome.runtime.sendMessage<ExtensionMessage>({
-      action: ExtensionAction.DESTROY_OFFSCREEN,
-    });
+    if (!keepOffscreen) {
+      await chrome.runtime.sendMessage<RuntimeMessage>({
+        action: RuntimeMessageAction.DESTROY_OFFSCREEN,
+      });
+    }
   }
 
   // --- Internal logic ---
@@ -252,8 +242,8 @@ export class FloatingIsland {
     this.updateView();
 
     try {
-      await chrome.runtime.sendMessage<ExtensionMessage>({
-        action: ExtensionAction.BG_PERFORM_OCR,
+      await chrome.runtime.sendMessage<RuntimeMessage>({
+        action: RuntimeMessageAction.BG_PERFORM_OCR,
         payload: {
           engine: 'tesseract',
           language: 'tha', // not used
@@ -280,8 +270,8 @@ export class FloatingIsland {
     this.updateView();
 
     try {
-      await chrome.runtime.sendMessage<ExtensionMessage>({
-        action: ExtensionAction.BG_PERFORM_OCR,
+      await chrome.runtime.sendMessage<RuntimeMessage>({
+        action: RuntimeMessageAction.BG_PERFORM_OCR,
         payload: {
           engine: engine,
           language: 'tha', // not used

@@ -3,13 +3,14 @@ import type {
   Settings,
   ToggleSettings,
   TesseractLang,
+  IslandStatus,
 } from '../types';
 
 /**
  * Hold runtime value for all of island's variables
  */
 export interface State {
-  status: 'loading-model' | 'recognizing' | 'done' | 'error';
+  status: IslandStatus;
   text: string;
   imageUrl: string;
   isTextExpanded: boolean;

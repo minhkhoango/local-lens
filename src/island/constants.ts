@@ -21,7 +21,7 @@ export const INITIAL_STATE: State = {
   hasCopied: false,
   shortcutText: 'Set shortcut',
   settings: {
-    engine: 'tesseract',
+    engine: 'granite',
     language: 'eng',
     autoCopy: false,
     autoExpand: false,

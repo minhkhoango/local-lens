@@ -1,7 +1,7 @@
 import { OCR_CONFIG, ISLAND_STORAGE } from './constants';
-import { ExtensionAction } from './types';
+import { RuntimeMessageAction, TabsMessageAction } from './types';
 import type {
-  ExtensionMessage,
+  RuntimeMessage,
   SelectionRect,
   ShortcutResponse,
   StatusResponse,
@@ -10,6 +10,7 @@ import type {
   OcrResponse,
   PerformOcrPayload,
   TesseractLang,
+  TabsMessage,
 } from './types';
 
 interface UrlClass {
@@ -70,14 +71,14 @@ chrome.action.onClicked.addListener(async (tab) => {
  */
 chrome.runtime.onMessage.addListener(
   (
-    message: ExtensionMessage,
+    message: RuntimeMessage,
     sender: chrome.runtime.MessageSender,
     sendResponse: (
       response: StatusResponse | ShortcutResponse | OcrResponse,
     ) => void,
   ) => {
     switch (message.action) {
-      case ExtensionAction.ENSURE_OFFSCREEN: {
+      case RuntimeMessageAction.ENSURE_OFFSCREEN: {
         console.debug(message.action);
         (async () => {
           await ensureOffscreenLoaded();
@@ -85,7 +86,7 @@ chrome.runtime.onMessage.addListener(
         })();
         return true;
       }
-      case ExtensionAction.CAPTURE_SUCCESS: {
+      case RuntimeMessageAction.CAPTURE_SUCCESS: {
         const targetTabId = getTabId(sender);
         console.debug(message.action);
         (async () => {
@@ -94,7 +95,7 @@ chrome.runtime.onMessage.addListener(
         })();
         return true;
       }
-      case ExtensionAction.BG_PERFORM_OCR: {
+      case RuntimeMessageAction.BG_PERFORM_OCR: {
         console.debug(message.action);
         (async () => {
           const targetTabId = getTabId(sender);
@@ -106,7 +107,7 @@ chrome.runtime.onMessage.addListener(
         })();
         return true;
       }
-      case ExtensionAction.GET_SHORTCUT: {
+      case RuntimeMessageAction.GET_SHORTCUT: {
         console.debug(message.action);
         // Handle async work in IIFE while returning true synchronously
         (async () => {
@@ -125,13 +126,13 @@ chrome.runtime.onMessage.addListener(
         })();
         return true; // Keep channel open for async response
       }
-      case ExtensionAction.OPEN_SHORTCUTS_PAGE: {
+      case RuntimeMessageAction.OPEN_SHORTCUTS_PAGE: {
         console.debug(message.action);
         chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
         sendResponse({ status: 'ok' });
         return false; // Synchronous response
       }
-      case ExtensionAction.DESTROY_OFFSCREEN: {
+      case RuntimeMessageAction.DESTROY_OFFSCREEN: {
         console.debug(message.action);
         (async () => {
           await chrome.offscreen.closeDocument();
@@ -218,13 +219,10 @@ async function activateOverlay(
     await ensureContentLoaded(tabId);
 
     console.debug('send ACTIVATE_OVERLAY to content');
-    const overlayResponse = await chrome.tabs.sendMessage<ExtensionMessage>(
-      tabId,
-      {
-        action: ExtensionAction.ACTIVATE_OVERLAY,
-        payload: { imageUrl: capturedImage, isPdf: isPdf },
-      },
-    );
+    const overlayResponse = await chrome.tabs.sendMessage<TabsMessage>(tabId, {
+      action: TabsMessageAction.ACTIVATE_OVERLAY,
+      payload: { imageUrl: capturedImage, isPdf: isPdf },
+    });
     if (overlayResponse.status !== 'ok') {
       console.error('Overlay failed:', overlayResponse.message);
       return;
@@ -262,8 +260,8 @@ async function createBackupTab(capturedImage: string): Promise<number> {
     chrome.tabs.onUpdated.addListener(listener);
   });
 
-  await chrome.tabs.sendMessage<ExtensionMessage>(tab.id, {
-    action: ExtensionAction.INITIALIZE_BACKUP,
+  await chrome.tabs.sendMessage<TabsMessage>(tab.id, {
+    action: TabsMessageAction.INITIALIZE_BACKUP,
     payload: {
       imageUrl: capturedImage,
     },
@@ -286,26 +284,30 @@ async function ensureOffscreenLoaded(): Promise<void> {
       reasons: [chrome.offscreen.Reason.BLOBS],
       justification: 'Processing screenshot image data for OCR',
     });
+    await new Promise((letOffscreenLoad) => setTimeout(letOffscreenLoad, 100));
   }
 
   // Initialize engine with saved settings
   let language: TesseractLang = 'eng';
-  let engine: EngineOption = 'tesseract';
+  let engine: EngineOption = 'granite';
   try {
     const stored = await chrome.storage.local.get([ISLAND_STORAGE]);
     const saved = stored[ISLAND_STORAGE] as Partial<Settings>;
     language = saved.language || 'eng';
     engine = saved.engine || 'tesseract';
   } catch {}
-  console.log('Offscreen init with lang:', language, 'engine:', engine);
 
-  await chrome.runtime.sendMessage<ExtensionMessage>({
-    action: ExtensionAction.SETUP_ENGINE,
-    payload: {
-      engine: engine,
-      language: language,
-    },
-  });
+  try {
+    await chrome.runtime.sendMessage<RuntimeMessage>({
+      action: RuntimeMessageAction.SETUP_ENGINE,
+      payload: {
+        engine: engine,
+        language: language,
+      },
+    });
+  } catch (err) {
+    console.warn('Failed to send SETUP_ENGINE to offscreen:', err);
+  }
 }
 
 /**
@@ -313,8 +315,8 @@ async function ensureOffscreenLoaded(): Promise<void> {
  */
 async function ensureContentLoaded(tabId: number): Promise<void> {
   try {
-    await chrome.tabs.sendMessage(tabId, {
-      action: ExtensionAction.PING_CONTENT,
+    await chrome.tabs.sendMessage<TabsMessage>(tabId, {
+      action: TabsMessageAction.PING_CONTENT,
     });
   } catch {
     await chrome.scripting.executeScript({
@@ -334,8 +336,8 @@ async function transferCapture(
   payload: SelectionRect,
 ): Promise<void> {
   console.debug('Transfering capture success bg -> content');
-  await chrome.tabs.sendMessage<ExtensionMessage>(tabId, {
-    action: ExtensionAction.CAPTURE_SUCCESS,
+  await chrome.tabs.sendMessage<TabsMessage>(tabId, {
+    action: TabsMessageAction.CAPTURE_SUCCESS,
     payload: payload as SelectionRect,
   });
 }
@@ -350,8 +352,8 @@ async function transferPerformOcr(
   payload: PerformOcrPayload,
 ): Promise<OcrResponse> {
   console.debug('Transfering language payload bg -> content');
-  const ocrResult = await chrome.tabs.sendMessage<ExtensionMessage>(tabId, {
-    action: ExtensionAction.BG_PERFORM_OCR,
+  const ocrResult = await chrome.tabs.sendMessage<RuntimeMessage>(tabId, {
+    action: RuntimeMessageAction.BG_PERFORM_OCR,
     payload: payload,
   });
   return ocrResult;
