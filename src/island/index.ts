@@ -5,7 +5,9 @@ import type {
   RuntimeMessage,
   EngineOption,
   TesseractLang,
-  TabsConnectMessage,
+  ProgressPayload,
+  ResultPayload,
+  // TabsConnectMessage,
 } from '../types';
 import type { Action, State } from './types';
 import { View } from './view';
@@ -66,13 +68,17 @@ export class FloatingIsland {
   /**
    * Continuously update island with OCR progress from offscreen
    */
-  public updateOcrProgress(payload: TabsConnectMessage): void {
+  public updateOcrProgress(payload: ProgressPayload | ResultPayload): void {
     this.state.status = payload.stage;
-    this.state.text = payload.text;
-    if (this.state.status === 'done') {
-      if (this.state.settings.autoExpand) this.state.isTextExpanded = true;
-      if (this.state.settings.autoCopy) this.copyToClipboard();
+    if (payload.stage !== 'done') {
+      this.state.textarea = payload.text;
+      this.updateView();
+      return;
     }
+    this.state.clipboardOutput = payload.output;
+    this.state.textarea = payload.output.textPlain;
+    if (this.state.settings.autoExpand) this.state.isTextExpanded = true;
+    if (this.state.settings.autoCopy) this.copyToClipboard();
     this.updateView();
   }
 
@@ -118,7 +124,7 @@ export class FloatingIsland {
         this.toggleTextExpand();
         break;
       case 'updateText':
-        this.state.text = action.payload;
+        this.state.textarea = action.payload;
         this.state.hasCopied = false;
         this.updateView();
         break;
@@ -149,7 +155,7 @@ export class FloatingIsland {
     const oldWidth =
       parseFloat(this.view.container.style.width) || CONFIG.widthCollapsed;
     const width = this.state.isTextExpanded
-      ? calculateDynamicWidth(this.state.text)
+      ? calculateDynamicWidth(this.state.textarea)
       : CONFIG.widthCollapsed;
 
     // Expand to left / collapse to right
@@ -185,9 +191,21 @@ export class FloatingIsland {
   }
 
   private async copyToClipboard(): Promise<void> {
-    if (!this.state.text) return;
+    if (
+      !this.state.clipboardOutput.textHtml ||
+      !this.state.clipboardOutput.textPlain
+    )
+      return;
     try {
-      await navigator.clipboard.writeText(this.state.text);
+      const item = new ClipboardItem({
+        'text/plain': new Blob([this.state.clipboardOutput.textPlain], {
+          type: 'text/plain',
+        }),
+        'text/html': new Blob([this.state.clipboardOutput.textHtml], {
+          type: 'text/html',
+        }),
+      });
+      await navigator.clipboard.write([item]);
       this.state.hasCopied = true;
       this.updateView();
     } catch (err) {
@@ -235,9 +253,9 @@ export class FloatingIsland {
 
     if (this.state.settings.engine === 'granite') return;
 
-    const previousText = this.state.text;
+    const previousText = this.state.textarea;
     this.state.status = 'loading-model';
-    this.state.text = '';
+    this.state.textarea = '';
     this.state.hasCopied = false;
     this.updateView();
 
@@ -253,7 +271,7 @@ export class FloatingIsland {
     } catch (err) {
       console.error('Language update failed:', err);
       this.state.status = 'error';
-      this.state.text = previousText;
+      this.state.textarea = previousText;
       this.updateView();
     }
   }
@@ -263,9 +281,9 @@ export class FloatingIsland {
     this.state.settings.engine = engine;
     this.storage.saveSettings(this.state.settings);
 
-    const previousText = this.state.text;
+    const previousText = this.state.textarea;
     this.state.status = 'loading-model';
-    this.state.text = '';
+    this.state.textarea = '';
     this.state.hasCopied = false;
     this.updateView();
 
@@ -281,7 +299,7 @@ export class FloatingIsland {
     } catch (err) {
       console.error('Language update failed:', err);
       this.state.status = 'error';
-      this.state.text = previousText;
+      this.state.textarea = previousText;
       this.updateView();
     }
   }

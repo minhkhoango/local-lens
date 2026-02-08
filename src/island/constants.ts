@@ -14,7 +14,11 @@ export const ICONS = {
  */
 export const INITIAL_STATE: State = {
   status: 'loading-model',
-  text: '',
+  textarea: '',
+  clipboardOutput: {
+    textPlain: '',
+    textHtml: '',
+  },
   imageUrl: '',
   isTextExpanded: false,
   isSettingsExpanded: false,

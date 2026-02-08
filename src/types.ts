@@ -94,6 +94,24 @@ export type TabsMessage =
       payload: PerformOcrPayload;
     };
 
+/** Payload for backup tab */
+export interface ImagePayload {
+  imageUrl: string;
+}
+
+/** isPdf for more extreme listener on pdf */
+export interface ActivateOverlayPayload {
+  imageUrl: string;
+  isPdf: boolean;
+}
+
+/** Payload when crop is ready, before OCR starts */
+export interface PerformOcrPayload {
+  engine: 'auto' | EngineOption;
+  language: TesseractLang;
+  croppedImage: string;
+}
+
 /** Cross .ts files actions messaged using chrome */
 export const RuntimeMessageAction = {
   CAPTURE_SUCCESS: 'CAPTURE_SUCCESS',
@@ -129,6 +147,51 @@ export type RuntimeMessage =
   | { action: typeof RuntimeMessageAction.OPEN_SHORTCUTS_PAGE }
   | { action: typeof RuntimeMessageAction.GET_SHORTCUT };
 
+export interface SetupEnginePayload {
+  engine: EngineOption;
+  language: TesseractLang;
+}
+
+export const TabsConnectAction = {
+  PERFORM_OCR: 'PERFORM_OCR',
+  PROGRESS: 'PROGRESS',
+  FINISH: 'FINISH',
+} as const;
+
+export type TabsConnectAction =
+  (typeof TabsConnectAction)[keyof typeof TabsConnectAction];
+
+/** Message sent through port connection for streaming OCR progress */
+export type TabsConnect =
+  | { action: typeof TabsConnectAction.PERFORM_OCR; payload: PerformOcrPayload }
+  | {
+      action: typeof TabsConnectAction.PROGRESS;
+      payload: ProgressPayload;
+    }
+  | {
+      action: typeof TabsConnectAction.FINISH;
+      payload: ResultPayload;
+    };
+
+export type IslandStatus = 'loading-model' | 'recognizing' | 'done' | 'error';
+
+export interface ProgressPayload {
+  stage: 'loading-model' | 'recognizing' | 'error';
+  text: string;
+}
+
+export type ClipboardOutput = {
+  textPlain: string;
+  textHtml: string;
+};
+/** Response containing extracted plain text and html*/
+export interface ResultPayload {
+  stage: 'done';
+  output: ClipboardOutput;
+}
+
+// Responses
+
 /** Simple response of 'ok' or 'error' */
 export interface StatusResponse {
   status: 'ok' | 'error';
@@ -140,39 +203,8 @@ export interface ShortcutResponse {
   shortcut: string;
 }
 
-/** Response containing extracted text and confidence */
-export interface OcrResponse {
-  status: 'ok' | 'error';
-  text: string;
-}
-
-export interface SetupEnginePayload {
-  engine: EngineOption;
-  language: TesseractLang;
-}
-
-/** Payload when crop is ready, before OCR starts */
-export interface PerformOcrPayload {
-  engine: 'auto' | EngineOption;
-  language: TesseractLang;
-  croppedImage: string;
-}
-
-/** Payload for backup tab */
-export interface ImagePayload {
-  imageUrl: string;
-}
-
-/** isPdf for more extreme listener on pdf */
-export interface ActivateOverlayPayload {
-  imageUrl: string;
-  isPdf: boolean;
-}
-
-export type IslandStatus = 'loading-model' | 'recognizing' | 'done' | 'error';
-
-/** Port message for streaming OCR progress */
-export type TabsConnectMessage = {
-  stage: IslandStatus;
-  text: string;
-};
+// /** Port message for streaming OCR progress */
+// export type TabsConnectMessage = {
+//   stage: IslandStatus;
+//   text: string;
+// };

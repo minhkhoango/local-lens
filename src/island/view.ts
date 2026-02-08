@@ -104,7 +104,7 @@ export class View {
     this.container.classList.toggle(CLASSES.expanded, state.isTextExpanded);
     this.container.style.width = `${width}px`;
 
-    this.els.textarea.value = state.text;
+    this.els.textarea.value = state.textarea;
     this.els.textarea.style.display = state.isTextExpanded ? 'block' : 'none';
     if (state.isTextExpanded) this.els.textarea.focus();
 
@@ -118,7 +118,9 @@ export class View {
     const max = state.isTextExpanded ? 100 : 25;
     this.els.preview.title = state.isTextExpanded ? 'Collapse' : 'Expand';
     this.els.preview.textContent =
-      state.text.length > max ? state.text.slice(0, max) + '...' : state.text;
+      state.textarea.length > max
+        ? state.textarea.slice(0, max) + '...'
+        : state.textarea;
 
     // Auto-expand && Auto-copy
     if (!this.els.toggles) return;

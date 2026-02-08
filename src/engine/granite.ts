@@ -8,7 +8,7 @@ import {
   TextStreamer,
   type Message,
 } from '@huggingface/transformers';
-import type { PerformOcrPayload, TabsConnectMessage } from '../types';
+import type { PerformOcrPayload, TabsConnect } from '../types';
 import { doclingToHtml } from './parser';
 
 if (env.backends.onnx.wasm) {
@@ -63,17 +63,23 @@ export async function loadGranite() {
 
 export async function recognizeGranite(
   payload: PerformOcrPayload,
-  postMessage: (message: TabsConnectMessage) => void,
+  postMessage: (message: TabsConnect) => void,
 ): Promise<void> {
   try {
-    postMessage({ stage: 'loading-model', text: '' });
+    postMessage({
+      action: 'PROGRESS',
+      payload: { stage: 'loading-model', text: '' },
+    });
 
     try {
       await loadGranite();
     } catch (err) {
       postMessage({
-        stage: 'error',
-        text: `Failed to load Granite model: ${err}`,
+        action: 'PROGRESS',
+        payload: {
+          stage: 'error',
+          text: `Failed to load Granite model: ${err}`,
+        },
       });
       throw err;
     }
@@ -101,13 +107,22 @@ export async function recognizeGranite(
 
     if (!processor.tokenizer) {
       postMessage({
-        stage: 'error',
-        text: 'processor tokenizer not found',
+        action: 'PROGRESS',
+        payload: {
+          stage: 'error',
+          text: 'processor tokenizer not found',
+        },
       });
       throw new Error('processor tokenizer not found');
     }
 
-    postMessage({ stage: 'recognizing', text: '' });
+    postMessage({
+      action: 'PROGRESS',
+      payload: {
+        stage: 'recognizing',
+        text: '',
+      },
+    });
 
     let content = '';
     await model.generate({
@@ -119,23 +134,37 @@ export async function recognizeGranite(
         callback_function(streamedText) {
           content += streamedText;
           postMessage({
-            stage: 'recognizing',
-            text: content,
+            action: 'PROGRESS',
+            payload: {
+              stage: 'recognizing',
+              text: content,
+            },
           });
         },
       }),
     });
     console.debug('Generated text: ', content);
+    content = content.replace(/<\|end_of_text\|>$/, '');
+    const [textHtml, _formattedHtml] = doclingToHtml(content);
 
     postMessage({
-      stage: 'done',
-      text: doclingToHtml(content),
+      action: 'FINISH',
+      payload: {
+        stage: 'done',
+        output: {
+          textPlain: content,
+          textHtml: textHtml,
+        },
+      },
     });
   } catch (err) {
     console.error('Recognition error:', err);
     postMessage({
-      stage: 'error',
-      text: 'Granite recognition failed',
+      action: 'PROGRESS',
+      payload: {
+        stage: 'error',
+        text: 'Granite recognition failed',
+      },
     });
   }
 }

@@ -4,6 +4,7 @@ import type {
   ToggleSettings,
   TesseractLang,
   IslandStatus,
+  ClipboardOutput,
 } from '../types';
 
 /**
@@ -11,7 +12,8 @@ import type {
  */
 export interface State {
   status: IslandStatus;
-  text: string;
+  textarea: string;
+  clipboardOutput: ClipboardOutput;
   imageUrl: string;
   isTextExpanded: boolean;
   isSettingsExpanded: boolean;

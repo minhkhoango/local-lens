@@ -7,13 +7,12 @@ import type {
   RuntimeMessage,
   ImagePayload,
   StatusResponse,
-  OcrResponse,
   ActivateOverlayPayload,
   Settings,
   Point,
   EngineOption,
   TesseractLang,
-  TabsConnectMessage,
+  TabsConnect,
   TabsMessage,
 } from './types';
 import { GhostOverlay } from './overlay';
@@ -38,7 +37,7 @@ chrome.runtime.onMessage.addListener(
   (
     message: TabsMessage,
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: StatusResponse | OcrResponse) => void,
+    sendResponse: (response: StatusResponse) => void,
   ) => {
     switch (message.action) {
       case TabsMessageAction.INITIALIZE_BACKUP:
@@ -134,20 +133,28 @@ async function handlePerformOcr(
   // switch to chrome.runtime.connect for streaming of OCR progress
   const port = await chrome.runtime.connect({ name: OCR_PORT });
 
-  port.onMessage.addListener((msg: TabsConnectMessage) => {
+  port.onMessage.addListener((msg: TabsConnect) => {
     console.debug('Received port message:', msg);
     if (!activeIsland) return;
-    activeIsland.updateOcrProgress(msg);
+    switch (msg.action) {
+      case 'PROGRESS':
+        activeIsland.updateOcrProgress(msg.payload);
+        return true;
+      case 'FINISH':
+        activeIsland.updateOcrProgress(msg.payload);
+        return false;
+    }
   });
 
-  port.postMessage({
+  const initiateMessage: TabsConnect = {
     action: 'PERFORM_OCR',
     payload: {
       engine: engine,
       language: language,
       croppedImage: croppedImage,
     },
-  });
+  };
+  port.postMessage(initiateMessage);
 }
 
 /**

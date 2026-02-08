@@ -7,7 +7,6 @@ import type {
   StatusResponse,
   Settings,
   EngineOption,
-  OcrResponse,
   PerformOcrPayload,
   TesseractLang,
   TabsMessage,
@@ -73,9 +72,7 @@ chrome.runtime.onMessage.addListener(
   (
     message: RuntimeMessage,
     sender: chrome.runtime.MessageSender,
-    sendResponse: (
-      response: StatusResponse | ShortcutResponse | OcrResponse,
-    ) => void,
+    sendResponse: (response: StatusResponse | ShortcutResponse) => void,
   ) => {
     switch (message.action) {
       case RuntimeMessageAction.ENSURE_OFFSCREEN: {
@@ -99,11 +96,8 @@ chrome.runtime.onMessage.addListener(
         console.debug(message.action);
         (async () => {
           const targetTabId = getTabId(sender);
-          const ocrResult = await transferPerformOcr(
-            targetTabId,
-            message.payload,
-          );
-          sendResponse(ocrResult);
+          await transferPerformOcr(targetTabId, message.payload);
+          sendResponse({ status: 'ok' });
         })();
         return true;
       }
@@ -350,13 +344,12 @@ async function transferCapture(
 async function transferPerformOcr(
   tabId: number,
   payload: PerformOcrPayload,
-): Promise<OcrResponse> {
+): Promise<void> {
   console.debug('Transfering language payload bg -> content');
-  const ocrResult = await chrome.tabs.sendMessage<RuntimeMessage>(tabId, {
+  await chrome.tabs.sendMessage<RuntimeMessage>(tabId, {
     action: RuntimeMessageAction.BG_PERFORM_OCR,
     payload: payload,
   });
-  return ocrResult;
 }
 
 async function getShortcutCommand(): Promise<string> {

@@ -183,6 +183,8 @@ export class DoclingConverter {
       case 'otsl':
         return this.convertTable(content);
       case 'picture':
+        // Remove picture
+        return '';
       case 'chart':
         return this.convertPictureOrChart(tagName, content);
       case 'inline':
@@ -456,152 +458,153 @@ export class DoclingConverter {
 /**
  * Converts Docling markup to a complete HTML document
  * @param docling - The Docling markup string
- * @returns The complete HTML document string
+ * @returns A tuple containing the inner HTML and the complete HTML document as strings
  */
-export function doclingToHtml(docling: string): string {
+export function doclingToHtml(docling: string): [string, string] {
   const converter: DoclingConverter = new DoclingConverter();
-  const body: string = converter.convert(docling);
+  const textHtml: string = converter.convert(docling);
+  const formattedHtml = `<!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        ${htmlStyle}
 
-  return `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <style>
-      ${htmlStyle}
+          html {
+              background-color: #f5f5f5;
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+          }
+          header, footer {
+              text-align: center;
+              margin-bottom: 1rem;
+              font-size: 1em;
+          }
+          body {
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 2rem;
+              background-color: white;
+              box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          }
+          h1, h2, h3, h4, h5, h6 {
+              color: #333;
+              margin-top: 1.5em;
+              margin-bottom: 0.5em;
+          }
+          h1 {
+              font-size: 2em;
+              border-bottom: 1px solid #eee;
+              padding-bottom: 0.3em;
+          }
+          table {
+              border-collapse: collapse;
+              margin: 1em 0;
+              width: 100%;
+          }
+          th, td {
+              border: 1px solid #ddd;
+              padding: 8px;
+              text-align: left;
+          }
+          th {
+              background-color: #f2f2f2;
+              font-weight: bold;
+          }
+          figure {
+              margin: 1.5em 0;
+              text-align: center;
+          }
+          figcaption {
+              color: #666;
+              font-style: italic;
+              margin-top: 0.5em;
+          }
+          img {
+              max-width: 100%;
+              height: auto;
+          }
+          pre {
+              background-color: #f6f8fa;
+              border-radius: 3px;
+              padding: 1em;
+              overflow: auto;
+          }
+          code {
+              font-family: monospace;
+              background-color: #f6f8fa;
+              padding: 0.2em 0.4em;
+              border-radius: 3px;
+          }
+          pre code {
+              background-color: transparent;
+              padding: 0;
+          }
+          .formula {
+              text-align: center;
+              padding: 0.5em;
+              margin: 1em 0;
+          }
+          .formula:not(:has(.katex)) {
+              color: transparent;
+          }
+          .page-break {
+              page-break-after: always;
+              border-top: 1px dashed #ccc;
+              margin: 2em 0;
+          }
+          .key-value-region {
+              background-color: #f9f9f9;
+              padding: 1em;
+              border-radius: 4px;
+              margin: 1em 0;
+          }
+          .key-value-region dt {
+              font-weight: bold;
+          }
+          .key-value-region dd {
+              margin-left: 1em;
+              margin-bottom: 0.5em;
+          }
+          .form-container {
+              border: 1px solid #ddd;
+              padding: 1em;
+              border-radius: 4px;
+              margin: 1em 0;
+          }
+          .form-item {
+              margin-bottom: 0.5em;
+          }
+      </style>
+      </head>
+  <body>
+  ${textHtml}
+  <script>
+  ${katexScript}
+  </script>
+  <script>
+  ${autoRenderScript}
+  </script>
+  <script>
+  const mathElements = document.querySelectorAll('.formula');
+  for (let element of mathElements) {
+    katex.render(element.textContent, element, {
+      throwOnError: false,
+    });
+  }
 
-        html {
-            background-color: #f5f5f5;
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-        }
-        header, footer {
-            text-align: center;
-            margin-bottom: 1rem;
-            font-size: 1em;
-        }
-        body {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem;
-            background-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h1, h2, h3, h4, h5, h6 {
-            color: #333;
-            margin-top: 1.5em;
-            margin-bottom: 0.5em;
-        }
-        h1 {
-            font-size: 2em;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 0.3em;
-        }
-        table {
-            border-collapse: collapse;
-            margin: 1em 0;
-            width: 100%;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        figure {
-            margin: 1.5em 0;
-            text-align: center;
-        }
-        figcaption {
-            color: #666;
-            font-style: italic;
-            margin-top: 0.5em;
-        }
-        img {
-            max-width: 100%;
-            height: auto;
-        }
-        pre {
-            background-color: #f6f8fa;
-            border-radius: 3px;
-            padding: 1em;
-            overflow: auto;
-        }
-        code {
-            font-family: monospace;
-            background-color: #f6f8fa;
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
-        }
-        pre code {
-            background-color: transparent;
-            padding: 0;
-        }
-        .formula {
-            text-align: center;
-            padding: 0.5em;
-            margin: 1em 0;
-        }
-        .formula:not(:has(.katex)) {
-            color: transparent;
-        }
-        .page-break {
-            page-break-after: always;
-            border-top: 1px dashed #ccc;
-            margin: 2em 0;
-        }
-        .key-value-region {
-            background-color: #f9f9f9;
-            padding: 1em;
-            border-radius: 4px;
-            margin: 1em 0;
-        }
-        .key-value-region dt {
-            font-weight: bold;
-        }
-        .key-value-region dd {
-            margin-left: 1em;
-            margin-bottom: 0.5em;
-        }
-        .form-container {
-            border: 1px solid #ddd;
-            padding: 1em;
-            border-radius: 4px;
-            margin: 1em 0;
-        }
-        .form-item {
-            margin-bottom: 0.5em;
-        }
-    </style>
-    </head>
-<body>
-${body}
-<script>
-${katexScript}
-</script>
-<script>
-${autoRenderScript}
-</script>
-<script>
-const mathElements = document.querySelectorAll('.formula');
-for (let element of mathElements) {
-  katex.render(element.textContent, element, {
+  renderMathInElement(document.body, {
+    delimiters: [
+      {left: "$$", right: "$$", display: true},
+      {left: "\\\\[", right: "\\\\]", display: true},
+      {left: "$", right: "$", display: false},
+      {left: "\\\\(", right: "\\\\)", display: false}
+    ],
     throwOnError: false,
   });
-}
+  </script>
+  </body>
+  </html>`;
 
-renderMathInElement(document.body, {
-  delimiters: [
-    {left: "$$", right: "$$", display: true},
-    {left: "\\\\[", right: "\\\\]", display: true},
-    {left: "$", right: "$", display: false},
-    {left: "\\\\(", right: "\\\\)", display: false}
-  ],
-  throwOnError: false,
-});
-</script>
-</body>
-</html>`;
+  return [textHtml, formattedHtml];
 }

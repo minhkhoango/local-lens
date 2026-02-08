@@ -1,4 +1,4 @@
-import type { PerformOcrPayload, TabsConnectMessage } from '../types';
+import type { PerformOcrPayload, TabsConnect } from '../types';
 import Tesseract from 'tesseract.js';
 
 let worker: Tesseract.Worker | null = null;
@@ -6,7 +6,7 @@ let currentLanguage: string = 'eng';
 
 export async function recognizeTesseract(
   payload: PerformOcrPayload,
-  postMessage: (message: TabsConnectMessage) => void,
+  postMessage: (message: TabsConnect) => void,
 ): Promise<void> {
   const { croppedImage, language } = payload;
   if (!croppedImage || !language) {
@@ -14,15 +14,21 @@ export async function recognizeTesseract(
   }
 
   try {
-    postMessage({ stage: 'loading-model', text: '' });
+    postMessage({
+      action: 'PROGRESS',
+      payload: { stage: 'loading-model', text: '' },
+    });
     await loadTesseract(language);
     if (!worker) {
       throw new Error('Failed to load Tesseract worker');
     }
   } catch (err) {
     postMessage({
-      stage: 'error',
-      text: 'Failed to initialize Tesseract worker',
+      action: 'PROGRESS',
+      payload: {
+        stage: 'error',
+        text: 'Failed to initialize Tesseract worker',
+      },
     });
     throw err;
   }
@@ -30,7 +36,10 @@ export async function recognizeTesseract(
   currentLanguage = language;
 
   console.debug(`perform recognizing`);
-  postMessage({ stage: 'recognizing', text: '' });
+  postMessage({
+    action: 'PROGRESS',
+    payload: { stage: 'recognizing', text: '' },
+  });
   try {
     const result = await worker.recognize(croppedImage);
     console.debug('result:', result);
@@ -40,14 +49,23 @@ export async function recognizeTesseract(
 
     console.debug(`OCR SUCCESS [confidence: ${confidence}%]:\n`);
     postMessage({
-      stage: 'done',
-      text: text,
+      action: 'FINISH',
+      payload: {
+        stage: 'done',
+        output: {
+          textPlain: text,
+          textHtml: '',
+        },
+      },
     });
   } catch (err) {
     console.error('Recognition error:', err);
     postMessage({
-      stage: 'error',
-      text: `Tesseract recognition failed: ${err}`,
+      action: 'PROGRESS',
+      payload: {
+        stage: 'error',
+        text: `Tesseract recognition failed: ${err}`,
+      },
     });
   }
 }

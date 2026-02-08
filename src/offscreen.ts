@@ -1,11 +1,11 @@
-import { RuntimeMessageAction } from './types';
+import { RuntimeMessageAction, TabsConnectAction } from './types';
 import type {
   EngineOption,
   RuntimeMessage,
-  OcrResponse,
   PerformOcrPayload,
   SetupEnginePayload,
   StatusResponse,
+  TabsConnect,
 } from './types';
 import { recognizeGranite, loadGranite } from './engine/granite';
 import { recognizeTesseract, loadTesseract } from './engine/tesseract';
@@ -19,7 +19,7 @@ chrome.runtime.onMessage.addListener(
   (
     message: RuntimeMessage,
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: StatusResponse | OcrResponse) => void,
+    sendResponse: (response: StatusResponse) => void,
   ) => {
     switch (message.action) {
       case RuntimeMessageAction.SETUP_ENGINE:
@@ -37,8 +37,8 @@ chrome.runtime.onConnect.addListener((port) => {
   console.debug('Content script connected to port:', port.name);
   if (port.name !== OCR_PORT) return;
 
-  port.onMessage.addListener(async (msg) => {
-    if (msg.action !== 'PERFORM_OCR') return;
+  port.onMessage.addListener(async (msg: TabsConnect) => {
+    if (msg.action !== TabsConnectAction.PERFORM_OCR) return;
     await performOcr(msg.payload, port);
   });
 });
