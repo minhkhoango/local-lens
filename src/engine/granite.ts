@@ -145,7 +145,7 @@ export async function recognizeGranite(
     });
     console.debug('Generated text: ', content);
     content = content.replace(/<\|end_of_text\|>$/, '');
-    const [textHtml, _formattedHtml] = doclingToHtml(content);
+    const textHtml = doclingToHtml(content);
 
     postMessage({
       action: 'FINISH',

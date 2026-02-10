@@ -6,9 +6,9 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 const entry = process.env.VITE_ENTRY || 'background';
 
 export default defineConfig({
-  // esbuild: {
-  //   drop: ['console'],
-  // },
+  esbuild: {
+    charset: 'ascii',
+  },
   plugins: [
     // Copy Tesseract core assets into dist/tesseract_engine for runtime loading
     viteStaticCopy({

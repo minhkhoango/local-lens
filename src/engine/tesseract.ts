@@ -54,7 +54,7 @@ export async function recognizeTesseract(
         stage: 'done',
         output: {
           textPlain: text,
-          textHtml: '',
+          textHtml: text,
         },
       },
     });

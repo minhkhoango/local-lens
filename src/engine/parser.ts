@@ -1,7 +1,4 @@
 // https://huggingface.co/spaces/ibm-granite/granite-docling-258M-WebGPU/resolve/main/parser.js
-import htmlStyle from 'katex/dist/katex.min.css?inline';
-import katexScript from 'katex/dist/katex.min.js?raw';
-import autoRenderScript from 'katex/dist/contrib/auto-render.min.js?raw';
 
 /**
  * Configuration for table tags
@@ -219,7 +216,8 @@ export class DoclingConverter {
     switch (doclingTag) {
       case 'doctag':
       case 'document':
-        return '<div class="docling-document">';
+        return '';
+      // return '<div class="docling-document">';
       case 'formula':
         return '<div class="formula">';
       case 'document_index':
@@ -460,151 +458,7 @@ export class DoclingConverter {
  * @param docling - The Docling markup string
  * @returns A tuple containing the inner HTML and the complete HTML document as strings
  */
-export function doclingToHtml(docling: string): [string, string] {
+export function doclingToHtml(docling: string): string {
   const converter: DoclingConverter = new DoclingConverter();
-  const textHtml: string = converter.convert(docling);
-  const formattedHtml = `<!DOCTYPE html>
-  <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        ${htmlStyle}
-
-          html {
-              background-color: #f5f5f5;
-              font-family: Arial, sans-serif;
-              line-height: 1.6;
-          }
-          header, footer {
-              text-align: center;
-              margin-bottom: 1rem;
-              font-size: 1em;
-          }
-          body {
-              max-width: 800px;
-              margin: 0 auto;
-              padding: 2rem;
-              background-color: white;
-              box-shadow: 0 0 10px rgba(0,0,0,0.1);
-          }
-          h1, h2, h3, h4, h5, h6 {
-              color: #333;
-              margin-top: 1.5em;
-              margin-bottom: 0.5em;
-          }
-          h1 {
-              font-size: 2em;
-              border-bottom: 1px solid #eee;
-              padding-bottom: 0.3em;
-          }
-          table {
-              border-collapse: collapse;
-              margin: 1em 0;
-              width: 100%;
-          }
-          th, td {
-              border: 1px solid #ddd;
-              padding: 8px;
-              text-align: left;
-          }
-          th {
-              background-color: #f2f2f2;
-              font-weight: bold;
-          }
-          figure {
-              margin: 1.5em 0;
-              text-align: center;
-          }
-          figcaption {
-              color: #666;
-              font-style: italic;
-              margin-top: 0.5em;
-          }
-          img {
-              max-width: 100%;
-              height: auto;
-          }
-          pre {
-              background-color: #f6f8fa;
-              border-radius: 3px;
-              padding: 1em;
-              overflow: auto;
-          }
-          code {
-              font-family: monospace;
-              background-color: #f6f8fa;
-              padding: 0.2em 0.4em;
-              border-radius: 3px;
-          }
-          pre code {
-              background-color: transparent;
-              padding: 0;
-          }
-          .formula {
-              text-align: center;
-              padding: 0.5em;
-              margin: 1em 0;
-          }
-          .formula:not(:has(.katex)) {
-              color: transparent;
-          }
-          .page-break {
-              page-break-after: always;
-              border-top: 1px dashed #ccc;
-              margin: 2em 0;
-          }
-          .key-value-region {
-              background-color: #f9f9f9;
-              padding: 1em;
-              border-radius: 4px;
-              margin: 1em 0;
-          }
-          .key-value-region dt {
-              font-weight: bold;
-          }
-          .key-value-region dd {
-              margin-left: 1em;
-              margin-bottom: 0.5em;
-          }
-          .form-container {
-              border: 1px solid #ddd;
-              padding: 1em;
-              border-radius: 4px;
-              margin: 1em 0;
-          }
-          .form-item {
-              margin-bottom: 0.5em;
-          }
-      </style>
-      </head>
-  <body>
-  ${textHtml}
-  <script>
-  ${katexScript}
-  </script>
-  <script>
-  ${autoRenderScript}
-  </script>
-  <script>
-  const mathElements = document.querySelectorAll('.formula');
-  for (let element of mathElements) {
-    katex.render(element.textContent, element, {
-      throwOnError: false,
-    });
-  }
-
-  renderMathInElement(document.body, {
-    delimiters: [
-      {left: "$$", right: "$$", display: true},
-      {left: "\\\\[", right: "\\\\]", display: true},
-      {left: "$", right: "$", display: false},
-      {left: "\\\\(", right: "\\\\)", display: false}
-    ],
-    throwOnError: false,
-  });
-  </script>
-  </body>
-  </html>`;
-
-  return [textHtml, formattedHtml];
+  return converter.convert(docling);
 }

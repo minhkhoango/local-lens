@@ -1,4 +1,6 @@
 import islandStyles from '../styles/island.css?inline';
+import katex from 'katex';
+import renderMathInElement from 'katex/dist/contrib/auto-render.mjs';
 import { ICONS, CLASSES } from './constants';
 import { renderMainTemplate } from './template';
 import type {
@@ -12,6 +14,17 @@ import type { Action, State } from './types';
 import { query, queryAll } from './utils';
 
 type ActionHandler = (action: Action) => void;
+type RenderMathInElement = (
+  element: HTMLElement,
+  options: {
+    delimiters: Array<{
+      left: string;
+      right: string;
+      display: boolean;
+    }>;
+    throwOnError: boolean;
+  },
+) => void;
 
 /**
  * Class for handling the majority of visual elements of UI.
@@ -25,7 +38,7 @@ export class View {
   private els: {
     status?: HTMLSpanElement;
     preview?: HTMLDivElement;
-    textarea?: HTMLTextAreaElement;
+    textarea?: HTMLDivElement; // contenteditable div
     copyBtn?: HTMLButtonElement;
     image?: HTMLImageElement;
     toggles?: NodeListOf<HTMLDivElement>;
@@ -104,9 +117,17 @@ export class View {
     this.container.classList.toggle(CLASSES.expanded, state.isTextExpanded);
     this.container.style.width = `${width}px`;
 
-    this.els.textarea.value = state.textarea;
-    this.els.textarea.style.display = state.isTextExpanded ? 'block' : 'none';
-    if (state.isTextExpanded) this.els.textarea.focus();
+    if (state.isTextExpanded) {
+      this.els.textarea.style.display = 'block';
+      if (state.status === 'done') {
+        this.els.textarea.innerHTML = state.textarea;
+        this.renderMath();
+      } else {
+        this.els.textarea.textContent = state.textarea;
+      }
+    } else {
+      this.els.textarea.style.display = 'none';
+    }
 
     // Expand / contract settings
     this.container.classList.toggle(
@@ -198,14 +219,6 @@ export class View {
       }
     });
 
-    // User edit textarea, remove "Copied!"
-    this.els.textarea?.addEventListener('input', (e) =>
-      this.onAction({
-        type: 'updateText',
-        payload: (e.target as HTMLTextAreaElement).value,
-      }),
-    );
-
     this.els.preview?.addEventListener('click', () =>
       this.onAction({ type: 'expandText' }),
     );
@@ -213,5 +226,33 @@ export class View {
     this.container.addEventListener('mousedown', (e) =>
       this.onAction({ type: 'startDrag', payload: e }),
     );
+  }
+
+  private renderMath(): void {
+    if (!this.els.textarea) return;
+    const target = this.els.textarea;
+
+    target.querySelectorAll<HTMLElement>('.formula').forEach((element) => {
+      const source = element.textContent;
+      try {
+        katex.render(source, element, { throwOnError: false });
+      } catch (err) {
+        console.debug('[Island.view] KaTeX render failed:', err);
+      }
+    });
+
+    try {
+      (renderMathInElement as RenderMathInElement)(target, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '\\[', right: '\\]', display: true },
+          { left: '$', right: '$', display: false },
+          { left: '\\(', right: '\\)', display: false },
+        ],
+        throwOnError: false,
+      });
+    } catch (err) {
+      console.debug('[Island.view] KaTeX auto-render failed:', err);
+    }
   }
 }

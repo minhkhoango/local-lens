@@ -54,7 +54,7 @@ chrome.action.onClicked.addListener(async (tab) => {
       try {
         await activateOverlay(tab.id, capturedImage, isPdf);
       } catch (err) {
-        console.debug('Injection failed, creating backup tab...', err);
+        console.error('Injection failed, creating backup tab...', err);
         const backupTabId = await createBackupTab(capturedImage);
         await activateOverlay(backupTabId, capturedImage);
       }

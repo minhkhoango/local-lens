@@ -153,7 +153,7 @@ export function renderMainTemplate(state: State): string {
         <button class="${CLASSES.btn} ${CLASSES.openSettings}" title="Settings" data-action="expandSettings">${ICONS.settings}</button>
       </div>
     </div>
-    <textarea class="${CLASSES.textarea}"></textarea>
+    <div contenteditable="false" aria-readonly="true" class="${CLASSES.textarea}"></div>
     <div class="${CLASSES.settings}">
       ${renderSettingsRows(state)}
     </div>

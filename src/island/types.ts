@@ -33,5 +33,4 @@ export type Action =
   | { type: 'updateLang'; payload: TesseractLang }
   | { type: 'switchEngine'; payload: EngineOption }
   | { type: 'expandText' }
-  | { type: 'updateText'; payload: string }
   | { type: 'startDrag'; payload: MouseEvent };

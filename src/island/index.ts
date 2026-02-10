@@ -76,7 +76,7 @@ export class FloatingIsland {
       return;
     }
     this.state.clipboardOutput = payload.output;
-    this.state.textarea = payload.output.textPlain;
+    this.state.textarea = payload.output.textHtml;
     if (this.state.settings.autoExpand) this.state.isTextExpanded = true;
     if (this.state.settings.autoCopy) this.copyToClipboard();
     this.updateView();
@@ -122,11 +122,6 @@ export class FloatingIsland {
         break;
       case 'expandText':
         this.toggleTextExpand();
-        break;
-      case 'updateText':
-        this.state.textarea = action.payload;
-        this.state.hasCopied = false;
-        this.updateView();
         break;
       case 'startDrag':
         this.dragCtrl?.start(action.payload, this.position);
