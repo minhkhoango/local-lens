@@ -75,10 +75,10 @@ export async function recognizeGranite(
       await loadGranite();
     } catch (err) {
       postMessage({
-        action: 'PROGRESS',
+        action: 'ERROR',
         payload: {
           stage: 'error',
-          text: `Failed to load Granite model: ${err}`,
+          error: `Failed to load Granite model: ${err}`,
         },
       });
       throw err;
@@ -107,10 +107,10 @@ export async function recognizeGranite(
 
     if (!processor.tokenizer) {
       postMessage({
-        action: 'PROGRESS',
+        action: 'ERROR',
         payload: {
           stage: 'error',
-          text: 'processor tokenizer not found',
+          error: 'processor tokenizer not found',
         },
       });
       throw new Error('processor tokenizer not found');
@@ -146,6 +146,7 @@ export async function recognizeGranite(
     console.debug('Generated text: ', content);
     content = content.replace(/<\|end_of_text\|>$/, '');
     const textHtml = doclingToHtml(content);
+    console.log('Converted HTML: ', textHtml);
 
     postMessage({
       action: 'FINISH',
@@ -160,10 +161,10 @@ export async function recognizeGranite(
   } catch (err) {
     console.error('Recognition error:', err);
     postMessage({
-      action: 'PROGRESS',
+      action: 'ERROR',
       payload: {
         stage: 'error',
-        text: 'Granite recognition failed',
+        error: 'Granite recognition failed',
       },
     });
   }

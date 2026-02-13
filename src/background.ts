@@ -1,4 +1,4 @@
-import { OCR_CONFIG, ISLAND_STORAGE } from './constants';
+import { ISLAND_STORAGE } from './constants';
 import { RuntimeMessageAction, TabsMessageAction } from './types';
 import type {
   RuntimeMessage,
@@ -43,7 +43,7 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 
     const capturedImage = await chrome.tabs.captureVisibleTab({
-      format: OCR_CONFIG.FORMAT,
+      format: 'png',
     });
 
     if (isRestricted) {
@@ -52,7 +52,8 @@ chrome.action.onClicked.addListener(async (tab) => {
       await activateOverlay(backupTabId, capturedImage);
     } else {
       try {
-        await activateOverlay(tab.id, capturedImage, isPdf);
+        // Account for user scroll
+        await activateOverlay(tab.id, null, isPdf);
       } catch (err) {
         console.error('Injection failed, creating backup tab...', err);
         const backupTabId = await createBackupTab(capturedImage);
@@ -83,9 +84,18 @@ chrome.runtime.onMessage.addListener(
         })();
         return true;
       }
-      case RuntimeMessageAction.CAPTURE_SUCCESS: {
-        const targetTabId = getTabId(sender);
+      case RuntimeMessageAction.CAPTURE_VISIBLE_TAB: {
         console.debug(message.action);
+        const targetTabId = getTabId(sender);
+        (async () => {
+          await captureTabImage(targetTabId);
+          sendResponse({ status: 'ok' });
+        })();
+        return true;
+      }
+      case RuntimeMessageAction.CAPTURE_SUCCESS: {
+        console.debug(message.action);
+        const targetTabId = getTabId(sender);
         (async () => {
           await transferCapture(targetTabId, message.payload);
           sendResponse({ status: 'ok' });
@@ -132,12 +142,26 @@ chrome.runtime.onMessage.addListener(
           await chrome.offscreen.closeDocument();
           sendResponse({ status: 'ok' });
         })();
-        return false;
+        return true;
       }
     }
     return false;
   },
 );
+
+/** Capture visible tab image */
+async function captureTabImage(tabId: number): Promise<void> {
+  const capturedImage = await chrome.tabs.captureVisibleTab({
+    format: 'png',
+  });
+
+  await chrome.tabs.sendMessage<TabsMessage>(tabId, {
+    action: TabsMessageAction.CAPTURE_VISIBLE_TAB,
+    payload: {
+      imageUrl: capturedImage,
+    },
+  });
+}
 
 /**
  * Get id of the tab that send the message
@@ -206,7 +230,7 @@ async function notifyFilePermission() {
  */
 async function activateOverlay(
   tabId: number,
-  capturedImage: string,
+  capturedImage: string | null,
   isPdf = false,
 ): Promise<void> {
   try {

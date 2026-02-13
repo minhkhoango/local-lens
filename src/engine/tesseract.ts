@@ -24,10 +24,10 @@ export async function recognizeTesseract(
     }
   } catch (err) {
     postMessage({
-      action: 'PROGRESS',
+      action: 'ERROR',
       payload: {
         stage: 'error',
-        text: 'Failed to initialize Tesseract worker',
+        error: 'Failed to initialize Tesseract worker',
       },
     });
     throw err;
@@ -61,10 +61,10 @@ export async function recognizeTesseract(
   } catch (err) {
     console.error('Recognition error:', err);
     postMessage({
-      action: 'PROGRESS',
+      action: 'ERROR',
       payload: {
         stage: 'error',
-        text: `Tesseract recognition failed: ${err}`,
+        error: `Tesseract recognition failed: ${err}`,
       },
     });
   }

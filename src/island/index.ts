@@ -7,7 +7,8 @@ import type {
   TesseractLang,
   ProgressPayload,
   ResultPayload,
-  // TabsConnectMessage,
+  ErrorPayload,
+  Settings,
 } from '../types';
 import type { Action, State } from './types';
 import { View } from './view';
@@ -58,30 +59,13 @@ export class FloatingIsland {
       this.state.settings = settings;
       this.state.shortcutText = await this.storage.getShortcut();
       this.view.init(this.state);
-      this.updateView();
+
+      this.updatePosition(this.position);
       this.eventsCtrl?.attach();
     });
   }
 
   // --- Public functions ---
-
-  /**
-   * Continuously update island with OCR progress from offscreen
-   */
-  public updateOcrProgress(payload: ProgressPayload | ResultPayload): void {
-    this.state.status = payload.stage;
-    if (payload.stage !== 'done') {
-      this.state.textarea = payload.text;
-      this.updateView();
-      return;
-    }
-    this.state.clipboardOutput = payload.output;
-    this.state.textarea = payload.output.textHtml;
-    if (this.state.settings.autoExpand) this.state.isTextExpanded = true;
-    if (this.state.settings.autoCopy) this.copyToClipboard();
-    this.updateView();
-  }
-
   /**
    * Mount the island if not already
    */
@@ -89,6 +73,33 @@ export class FloatingIsland {
     if (!document.getElementById(ID)) {
       document.documentElement.appendChild(this.host);
     }
+  }
+
+  /**
+   * Continuously update island with OCR progress from offscreen
+   */
+  public updateProgress(payload: ProgressPayload): void {
+    this.state.status = payload.stage;
+    this.state.textarea = payload.text;
+    this.view.updateOcrState(this.state);
+  }
+
+  /**
+   * Show OCR error message to user
+   */
+  public updateError(payload: ErrorPayload): void {
+    this.state.status = 'error';
+    this.state.textarea = payload.error;
+    this.view.updateOcrState(this.state);
+  }
+
+  /** Show rendered HTML result to user, copy to clipboard if enabled */
+  public updateFinish(result: ResultPayload): void {
+    this.state.status = 'done';
+    this.state.clipboardOutput = result.output;
+    this.state.textarea = result.output.textHtml;
+    if (this.state.settings.autoCopy) this.copyToClipboard();
+    this.view.updateOcrState(this.state);
   }
 
   /**
@@ -121,7 +132,7 @@ export class FloatingIsland {
         this.toggleSettingsExpand();
         break;
       case 'expandText':
-        this.toggleTextExpand();
+        this.toggleTextareaExpand();
         break;
       case 'startDrag':
         this.dragCtrl?.start(action.payload, this.position);
@@ -141,12 +152,19 @@ export class FloatingIsland {
     }
   }
 
-  /**
-   * The general updateUI, calculate dynamic width
-   * then call view.update to update floating island -> update position
-   */
-  private updateView(): void {
-    console.debug('[Island.index] updateView, position:', this.position);
+  private updatePosition(pos: Point): void {
+    const constrained = clampToViewport(
+      pos,
+      this.view.container.clientWidth || CONFIG.widthCollapsed,
+      this.view.container.clientHeight || CONFIG.heightCollapsed,
+    );
+    this.position = constrained;
+    this.view.updatePosition(constrained);
+  }
+
+  private toggleTextareaExpand(): void {
+    this.state.isTextExpanded = !this.state.isTextExpanded;
+
     const oldWidth =
       parseFloat(this.view.container.style.width) || CONFIG.widthCollapsed;
     const width = this.state.isTextExpanded
@@ -158,30 +176,13 @@ export class FloatingIsland {
     if (widthDelta !== 0) {
       this.position.x -= widthDelta;
     }
-
-    this.view.update(this.state, width);
-    this.updatePosition(this.position);
-  }
-
-  private updatePosition(pos: Point): void {
-    const constrained = clampToViewport(
-      pos,
-      this.view.container.clientWidth || CONFIG.widthCollapsed,
-      this.view.container.clientHeight || CONFIG.heightCollapsed,
-    );
-    this.position = constrained;
-    this.view.updatePosition(constrained);
-  }
-
-  private toggleTextExpand(): void {
-    this.state.isTextExpanded = !this.state.isTextExpanded;
-    this.updateView();
+    this.view.updateTextareaExpand(this.state.isTextExpanded, width);
     this.updatePosition(this.position);
   }
 
   private toggleSettingsExpand(): void {
     this.state.isSettingsExpanded = !this.state.isSettingsExpanded;
-    this.updateView();
+    this.view.updateSettingsExpand(this.state.isSettingsExpanded);
     this.updatePosition(this.position);
   }
 
@@ -192,17 +193,26 @@ export class FloatingIsland {
     )
       return;
     try {
+      const double$Formula = this.state.clipboardOutput.textHtml
+        .replace(
+          /<div class="formula">([\s\S]*?)<\/div>/g,
+          '<div class="formula">$$$$$1$$$$</div>',
+        )
+        .replace(
+          /<span class="formula">([\s\S]*?)<\/span>/g,
+          '<span class="formula">$$$$$1$$$$</span>',
+        );
       const item = new ClipboardItem({
         'text/plain': new Blob([this.state.clipboardOutput.textPlain], {
           type: 'text/plain',
         }),
-        'text/html': new Blob([this.state.clipboardOutput.textHtml], {
+        'text/html': new Blob([double$Formula], {
           type: 'text/html',
         }),
       });
       await navigator.clipboard.write([item]);
       this.state.hasCopied = true;
-      this.updateView();
+      this.view.updateCopyBtn(this.state.status, this.state.hasCopied);
     } catch (err) {
       if (err instanceof Error && err.message.includes('focus')) {
         console.debug('Auto-copy blocked, wait for user to click');
@@ -212,7 +222,7 @@ export class FloatingIsland {
     }
   }
 
-  private toggleSetting(key: keyof State['settings']): void {
+  private toggleSetting(key: keyof Settings): void {
     if (key === 'language' || key === 'engine') return;
 
     this.state.settings[key] = !this.state.settings[key];
@@ -223,18 +233,26 @@ export class FloatingIsland {
         (!this.state.isTextExpanded && this.state.settings[key]) ||
         (this.state.isTextExpanded && !this.state.settings[key])
       ) {
-        this.toggleTextExpand();
-        return;
+        this.toggleTextareaExpand();
       }
-      this.updateView();
+      this.view.updateSettingsToggles(
+        this.state.status,
+        this.state.settings,
+        this.state.hasCopied,
+      );
       return;
     }
 
+    // autoCopy toggle
     if (!this.state.hasCopied && this.state.settings[key])
       this.copyToClipboard();
     if (this.state.hasCopied && !this.state.settings[key])
       this.state.hasCopied = false;
-    this.updateView();
+    this.view.updateSettingsToggles(
+      this.state.status,
+      this.state.settings,
+      this.state.hasCopied,
+    );
   }
 
   /**
@@ -245,6 +263,7 @@ export class FloatingIsland {
   private async changeLanguage(lang: TesseractLang): Promise<void> {
     this.state.settings.language = lang;
     this.storage.saveSettings(this.state.settings);
+    this.view.updateSettingsSelects(this.state.settings);
 
     if (this.state.settings.engine === 'granite') return;
 
@@ -252,7 +271,7 @@ export class FloatingIsland {
     this.state.status = 'loading-model';
     this.state.textarea = '';
     this.state.hasCopied = false;
-    this.updateView();
+    this.view.updateOcrState(this.state);
 
     try {
       await chrome.runtime.sendMessage<RuntimeMessage>({
@@ -267,7 +286,7 @@ export class FloatingIsland {
       console.error('Language update failed:', err);
       this.state.status = 'error';
       this.state.textarea = previousText;
-      this.updateView();
+      this.view.updateOcrState(this.state);
     }
   }
 
@@ -275,12 +294,13 @@ export class FloatingIsland {
     console.log('[Island.index] changeEngine to', engine);
     this.state.settings.engine = engine;
     this.storage.saveSettings(this.state.settings);
+    this.view.updateSettingsSelects(this.state.settings);
 
     const previousText = this.state.textarea;
     this.state.status = 'loading-model';
     this.state.textarea = '';
     this.state.hasCopied = false;
-    this.updateView();
+    this.view.updateOcrState(this.state);
 
     try {
       await chrome.runtime.sendMessage<RuntimeMessage>({
@@ -295,7 +315,7 @@ export class FloatingIsland {
       console.error('Language update failed:', err);
       this.state.status = 'error';
       this.state.textarea = previousText;
-      this.updateView();
+      this.view.updateOcrState(this.state);
     }
   }
 }

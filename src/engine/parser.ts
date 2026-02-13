@@ -186,13 +186,14 @@ export class DoclingConverter {
         return this.convertPictureOrChart(tagName, content);
       case 'inline':
         return this.convertInlineContent(content);
+      // Granite 258M only output section_header_level_1, so map to h3
       case 'section_header_level_0':
       case 'section_header_level_1':
       case 'section_header_level_2':
       case 'section_header_level_3':
       case 'section_header_level_4':
       case 'section_header_level_5':
-        const level: number = parseInt(tagName.at(-1)!, 10) + 1;
+        const level: number = Math.min(parseInt(tagName.at(-1)!, 10) + 2, 6);
         return `<h${level}>${this.processTags(content)}</h${level}>`;
       default:
         const htmlTag: string | undefined = this.simpleTagMap[tagName];

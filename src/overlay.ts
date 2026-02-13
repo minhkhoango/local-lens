@@ -63,7 +63,7 @@ export class GhostOverlay {
   }
 
   /**
-   * Create notification banner and cursor bubble UI elements
+   * Create notification banner
    */
   private initNotificationUI(): void {
     console.debug('[Overlay]: Create notification banner and cursor bubble');
@@ -96,8 +96,6 @@ export class GhostOverlay {
     this.host.style.pointerEvents = 'auto';
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
     window.addEventListener('keydown', this.handleKeyDown);
-
-    this.draw();
   }
 
   public destroy(): void {
@@ -115,7 +113,13 @@ export class GhostOverlay {
    * - listen to 'mousemove' to update white rectangle
    * - listen to 'mouseup' to capture SelectionRect & send to background
    */
-  private handleMouseDown = (e: MouseEvent): void => {
+  private handleMouseDown = async (e: MouseEvent) => {
+    this.notificationBanner.remove();
+    await chrome.runtime.sendMessage<RuntimeMessage>({
+      action: RuntimeMessageAction.CAPTURE_VISIBLE_TAB,
+    });
+    if (this.ctx) this.ctx.fillStyle = CSS.bg;
+
     this.isDragging = true;
     this.startPos = { x: e.clientX, y: e.clientY };
     this.currentPos = { x: e.clientX, y: e.clientY };
@@ -123,8 +127,6 @@ export class GhostOverlay {
     // document > this.canvas for mouse release outside tab
     document.addEventListener('mousemove', this.handleMouseMove);
     document.addEventListener('mouseup', this.handleMouseUp);
-
-    this.notificationBanner.remove();
     this.draw();
   };
 

@@ -67,6 +67,7 @@ export const TabsMessageAction = {
   PING_CONTENT: 'PING_CONTENT',
   INITIALIZE_BACKUP: 'INITIALIZE_BACKUP',
   ACTIVATE_OVERLAY: 'ACTIVATE_OVERLAY',
+  CAPTURE_VISIBLE_TAB: 'CAPTURE_VISIBLE_TAB',
   CAPTURE_SUCCESS: 'CAPTURE_SUCCESS',
   BG_PERFORM_OCR: 'BG_PERFORM_OCR',
 } as const;
@@ -83,6 +84,10 @@ export type TabsMessage =
   | {
       action: typeof TabsMessageAction.ACTIVATE_OVERLAY;
       payload: ActivateOverlayPayload;
+    }
+  | {
+      action: typeof TabsMessageAction.CAPTURE_VISIBLE_TAB;
+      payload: ImagePayload;
     }
   // overlay route to bg to content
   | {
@@ -101,7 +106,7 @@ export interface ImagePayload {
 
 /** isPdf for more extreme listener on pdf */
 export interface ActivateOverlayPayload {
-  imageUrl: string;
+  imageUrl: string | null;
   isPdf: boolean;
 }
 
@@ -114,6 +119,7 @@ export interface PerformOcrPayload {
 
 /** Cross .ts files actions messaged using chrome */
 export const RuntimeMessageAction = {
+  CAPTURE_VISIBLE_TAB: 'CAPTURE_VISIBLE_TAB',
   CAPTURE_SUCCESS: 'CAPTURE_SUCCESS',
   SETUP_ENGINE: 'SETUP_ENGINE',
   BG_PERFORM_OCR: 'BG_PERFORM_OCR',
@@ -129,6 +135,9 @@ export type RuntimeMessageAction =
 
 /** Content of message sent using chrome.tabs or chrome.runtime, with optional payload */
 export type RuntimeMessage =
+  | {
+      action: typeof RuntimeMessageAction.CAPTURE_VISIBLE_TAB;
+    }
   | {
       action: typeof RuntimeMessageAction.CAPTURE_SUCCESS;
       payload: SelectionRect;
@@ -155,6 +164,7 @@ export interface SetupEnginePayload {
 export const TabsConnectAction = {
   PERFORM_OCR: 'PERFORM_OCR',
   PROGRESS: 'PROGRESS',
+  ERROR: 'ERROR',
   FINISH: 'FINISH',
 } as const;
 
@@ -168,6 +178,7 @@ export type TabsConnect =
       action: typeof TabsConnectAction.PROGRESS;
       payload: ProgressPayload;
     }
+  | { action: typeof TabsConnectAction.ERROR; payload: ErrorPayload }
   | {
       action: typeof TabsConnectAction.FINISH;
       payload: ResultPayload;
@@ -176,8 +187,13 @@ export type TabsConnect =
 export type IslandStatus = 'loading-model' | 'recognizing' | 'done' | 'error';
 
 export interface ProgressPayload {
-  stage: 'loading-model' | 'recognizing' | 'error';
+  stage: 'loading-model' | 'recognizing';
   text: string;
+}
+
+export interface ErrorPayload {
+  stage: 'error';
+  error: string;
 }
 
 export type ClipboardOutput = {
@@ -202,9 +218,3 @@ export interface ShortcutResponse {
   status: 'ok' | 'error';
   shortcut: string;
 }
-
-// /** Port message for streaming OCR progress */
-// export type TabsConnectMessage = {
-//   stage: IslandStatus;
-//   text: string;
-// };

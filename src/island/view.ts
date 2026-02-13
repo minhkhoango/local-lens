@@ -1,6 +1,5 @@
 import islandStyles from '../styles/island.css?inline';
 import katex from 'katex';
-import renderMathInElement from 'katex/dist/contrib/auto-render.mjs';
 import { ICONS, CLASSES } from './constants';
 import { renderMainTemplate } from './template';
 import type {
@@ -9,22 +8,12 @@ import type {
   SelectSettings,
   EngineOption,
   TesseractLang,
+  IslandStatus,
 } from '../types';
 import type { Action, State } from './types';
 import { query, queryAll } from './utils';
 
 type ActionHandler = (action: Action) => void;
-type RenderMathInElement = (
-  element: HTMLElement,
-  options: {
-    delimiters: Array<{
-      left: string;
-      right: string;
-      display: boolean;
-    }>;
-    throwOnError: boolean;
-  },
-) => void;
 
 /**
  * Class for handling the majority of visual elements of UI.
@@ -38,7 +27,7 @@ export class View {
   private els: {
     status?: HTMLSpanElement;
     preview?: HTMLDivElement;
-    textarea?: HTMLDivElement; // contenteditable div
+    textarea?: HTMLDivElement;
     copyBtn?: HTMLButtonElement;
     image?: HTMLImageElement;
     toggles?: NodeListOf<HTMLDivElement>;
@@ -65,6 +54,7 @@ export class View {
     this.container.innerHTML = renderMainTemplate(state);
     this.cacheRefs();
     this.bindInternalEvents();
+    this.updateTextareaExpand(state.isTextExpanded, 320);
   }
 
   private cacheRefs(): void {
@@ -78,93 +68,75 @@ export class View {
   }
 
   /**
-   * Update UI to reflect state
-   * @param state current state of island
-   * @param width calculated dynamic width based on OCR output
+   * Update UI 'loading-model' | 'recognizing' | 'error' | 'finish' status
    */
-  public update(state: State, width: number): void {
-    console.debug(`[Island.view] update, state: ${state}, width: ${width}`);
-    if (!this.els.status || !this.els.copyBtn) return;
-
-    const isLoadingModel = state.status === 'loading-model';
-    const isRecognizing = state.status === 'recognizing';
-    const isSuccess = state.status === 'done';
-
-    this.els.status.className = `${CLASSES.status} ${state.status}`;
-    this.els.status.textContent = isLoadingModel
-      ? 'Loading model...'
-      : isRecognizing
-        ? 'Recognizing...'
-        : isSuccess
-          ? state.hasCopied
-            ? 'Copied'
-            : 'Extracted'
-          : 'Error';
-
-    this.els.copyBtn.className = `${CLASSES.btn} ${CLASSES.copybtn}
-                                  ${isLoadingModel || isRecognizing ? CLASSES.loading : ''} 
-                                  ${state.hasCopied ? CLASSES.success : ''}`;
-    this.els.copyBtn.innerHTML =
-      isLoadingModel || isRecognizing
-        ? ICONS.spinner
-        : state.hasCopied
-          ? ICONS.check
-          : ICONS.clipboard;
-    this.els.copyBtn.disabled = isLoadingModel || isRecognizing;
-
-    // Expand / contract textarea + width
-    if (!this.els.preview || !this.els.textarea) return;
-    this.container.classList.toggle(CLASSES.expanded, state.isTextExpanded);
-    this.container.style.width = `${width}px`;
-
-    if (state.isTextExpanded) {
-      this.els.textarea.style.display = 'block';
-      if (state.status === 'done') {
-        this.els.textarea.innerHTML = state.textarea;
-        this.renderMath();
-      } else {
-        this.els.textarea.textContent = state.textarea;
-      }
-    } else {
-      this.els.textarea.style.display = 'none';
-    }
-
-    // Expand / contract settings
-    this.container.classList.toggle(
-      CLASSES.expandSettings,
-      state.isSettingsExpanded,
-    );
-
-    // Preview text
-    const max = state.isTextExpanded ? 100 : 25;
-    this.els.preview.title = state.isTextExpanded ? 'Collapse' : 'Expand';
-    this.els.preview.textContent =
-      state.textarea.length > max
-        ? state.textarea.slice(0, max) + '...'
-        : state.textarea;
-
-    // Auto-expand && Auto-copy
-    if (!this.els.toggles) return;
-    this.els.toggles.forEach((toggle) => {
-      const key = toggle.getAttribute('data-key') as keyof ToggleSettings;
-      if (key) {
-        toggle.classList.toggle(CLASSES.active, state.settings[key]);
-      }
-    });
-
-    // language && engine
-    if (!this.els.selects) return;
-    this.els.selects.forEach((select) => {
-      const key = select.getAttribute('data-key') as keyof SelectSettings;
-      if (key) {
-        select.value = state.settings[key];
-      }
-    });
+  public updateOcrState(state: State): void {
+    this.updateStatus(state.status, state.hasCopied);
+    this.updateCopyBtn(state.status, state.hasCopied);
+    this.updatePreviewText(state.textarea, state.isTextExpanded);
+    this.updateTextareaContent(state.status, state.textarea);
   }
 
   public updatePosition(pos: Point): void {
     this.container.style.left = `${pos.x}px`;
     this.container.style.top = `${pos.y}px`;
+  }
+
+  public updateTextareaExpand(isTextExpanded: boolean, width: number): void {
+    if (!this.els.textarea) return;
+    this.container.classList.toggle(CLASSES.expanded, isTextExpanded);
+    this.container.style.width = `${width}px`;
+    if (!isTextExpanded) {
+      this.els.textarea.style.display = 'none';
+      return;
+    }
+    this.els.textarea.style.display = 'block';
+  }
+
+  public updateSettingsExpand(isSettingsExpanded: boolean): void {
+    this.container.classList.toggle(CLASSES.expandSettings, isSettingsExpanded);
+  }
+
+  public updateCopyBtn(status: IslandStatus, hasCopied: boolean): void {
+    if (!this.els.copyBtn) return;
+    if (status === 'loading-model' || status === 'recognizing') {
+      if (this.els.copyBtn.className.includes(CLASSES.loading)) return;
+      this.els.copyBtn.className = `${CLASSES.btn} ${CLASSES.copybtn} ${CLASSES.loading}`;
+      this.els.copyBtn.innerHTML = ICONS.spinner;
+      this.els.copyBtn.disabled = true;
+      return;
+    }
+    // status is 'done' or 'error'
+    this.els.copyBtn.className = `${CLASSES.btn} ${CLASSES.copybtn} ${hasCopied ? CLASSES.success : ''}`;
+    this.els.copyBtn.innerHTML = hasCopied ? ICONS.check : ICONS.clipboard;
+    this.els.copyBtn.disabled = false;
+    this.updateStatus(status, hasCopied);
+  }
+
+  public updateSettingsToggles(
+    status: IslandStatus,
+    settings: ToggleSettings,
+    hasCopied: boolean,
+  ): void {
+    if (!this.els.toggles) return;
+    this.els.toggles.forEach((toggle) => {
+      const key = toggle.getAttribute('data-key') as keyof ToggleSettings;
+      if (key) {
+        toggle.classList.toggle(CLASSES.active, settings[key]);
+      }
+    });
+    this.updateStatus(status, hasCopied);
+    this.updateCopyBtn(status, hasCopied);
+  }
+
+  public updateSettingsSelects(settings: SelectSettings): void {
+    if (!this.els.selects) return;
+    this.els.selects.forEach((select) => {
+      const key = select.getAttribute('data-key') as keyof SelectSettings;
+      if (key) {
+        select.value = settings[key];
+      }
+    });
   }
 
   /**
@@ -228,31 +200,55 @@ export class View {
     );
   }
 
+  private updateStatus(status: IslandStatus, hasCopied: boolean): void {
+    if (!this.els.status) return;
+    const isLoadingModel = status === 'loading-model';
+    const isRecognizing = status === 'recognizing';
+    const isSuccess = status === 'done';
+
+    this.els.status.className = `${CLASSES.status} ${status}`;
+    this.els.status.textContent = isLoadingModel
+      ? 'Loading model...'
+      : isRecognizing
+        ? 'Recognizing...'
+        : isSuccess
+          ? hasCopied
+            ? 'Copied'
+            : 'Extracted'
+          : 'Error';
+  }
+  private updatePreviewText(text: string, isTextExpanded: boolean): void {
+    if (!this.els.preview) return;
+
+    const max = isTextExpanded ? 100 : 25;
+    if (this.els.preview.textContent.length > max && text.length > max) return;
+
+    this.els.preview.title = isTextExpanded ? 'Collapse' : 'Expand';
+    this.els.preview.textContent =
+      text.length > max ? text.slice(0, max) + '...' : text;
+  }
+  private updateTextareaContent(status: IslandStatus, text: string): void {
+    if (!this.els.textarea) return;
+    if (status !== 'done') {
+      this.els.textarea.textContent = text;
+      return;
+    }
+    this.els.textarea.innerHTML = text;
+    this.renderMath();
+  }
   private renderMath(): void {
     if (!this.els.textarea) return;
-    const target = this.els.textarea;
+    const mathElements = queryAll(this.els.textarea, '.formula');
+    if (mathElements.length === 0) return;
 
-    target.querySelectorAll<HTMLElement>('.formula').forEach((element) => {
-      const source = element.textContent;
+    mathElements.forEach((element) => {
       try {
-        katex.render(source, element, { throwOnError: false });
+        element.innerHTML = katex.renderToString(element.textContent, {
+          output: 'mathml',
+        });
       } catch (err) {
         console.debug('[Island.view] KaTeX render failed:', err);
       }
     });
-
-    try {
-      (renderMathInElement as RenderMathInElement)(target, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '\\[', right: '\\]', display: true },
-          { left: '$', right: '$', display: false },
-          { left: '\\(', right: '\\)', display: false },
-        ],
-        throwOnError: false,
-      });
-    } catch (err) {
-      console.debug('[Island.view] KaTeX auto-render failed:', err);
-    }
   }
 }

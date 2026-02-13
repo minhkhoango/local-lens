@@ -19,7 +19,7 @@ import { GhostOverlay } from './overlay';
 import { FloatingIsland } from './island/index';
 import backupStyles from './styles/backup.css?inline';
 import overlayStyles from './styles/overlay.css?inline';
-import { OCR_CONFIG, ISLAND_STORAGE, OCR_PORT } from './constants';
+import { ISLAND_STORAGE, OCR_PORT } from './constants';
 
 const CLASSES = {
   imageContainer: 'image-container',
@@ -58,6 +58,12 @@ chrome.runtime.onMessage.addListener(
         sendResponse({ status: 'ok' });
         break;
 
+      case TabsMessageAction.CAPTURE_VISIBLE_TAB:
+        console.debug(message.action);
+        capturedImage = message.payload.imageUrl;
+        sendResponse({ status: 'ok' });
+        break;
+
       case TabsMessageAction.CAPTURE_SUCCESS:
         console.debug(message.action);
         (async () => {
@@ -81,7 +87,7 @@ chrome.runtime.onMessage.addListener(
 function handleActivateOverlay(payload: ActivateOverlayPayload) {
   const { imageUrl, isPdf: ispdf } = payload;
   isPdf = ispdf;
-  capturedImage = imageUrl;
+  if (imageUrl) capturedImage = imageUrl;
 
   if (activeOverlay) activeOverlay.destroy();
   activeOverlay = new GhostOverlay(overlayStyles);
@@ -134,14 +140,16 @@ async function handlePerformOcr(
   const port = await chrome.runtime.connect({ name: OCR_PORT });
 
   port.onMessage.addListener((msg: TabsConnect) => {
-    console.debug('Received port message:', msg);
     if (!activeIsland) return;
     switch (msg.action) {
       case 'PROGRESS':
-        activeIsland.updateOcrProgress(msg.payload);
+        activeIsland.updateProgress(msg.payload);
         return true;
+      case 'ERROR':
+        activeIsland.updateError(msg.payload);
+        return false;
       case 'FINISH':
-        activeIsland.updateOcrProgress(msg.payload);
+        activeIsland.updateFinish(msg.payload);
         return false;
     }
   });
@@ -201,7 +209,7 @@ async function cropImage(
     scaledHeight,
   );
 
-  return canvas.toDataURL(`image/${OCR_CONFIG.FORMAT}`);
+  return canvas.toDataURL(`image/png`);
 }
 
 /** Find translation language */
