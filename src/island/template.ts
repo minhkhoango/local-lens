@@ -1,5 +1,4 @@
-import { CLASSES } from './constants';
-import { ICONS } from './constants';
+import { ICONS, CLASS } from './constants';
 import type {
   SelectSettings,
   ToggleSettings,
@@ -103,22 +102,22 @@ function renderSettingsRows(state: State): string {
         .join('');
 
       return `
-            <div class="${CLASSES.settingRow}">
+            <div class="settings-row">
             <span>${config.labelKey}</span>
-            <div class="${CLASSES.selectWrapper}">
-                <select class="${CLASSES.settingsSelect}" data-key="${config.key}">
+            <div class="select-wrapper">
+                <select class="${CLASS.SETTINGS.select}" data-key="${config.key}">
                 ${optionsHtml}
                 </select>
-                <div class="${CLASSES.selectIcon}">${ICONS.dropdown}</div>
+                <div class="select-icon">${ICONS.dropdown}</div>
             </div>
             </div>`;
     }
 
     if (config.type === 'toggle') {
       const isActive = state.settings[config.key];
-      const toggleClass = `${CLASSES.settingsToggle} ${isActive ? CLASSES.active : ''}`;
+      const toggleClass = `${CLASS.SETTINGS.toggle} ${isActive ? CLASS.STATE.toggleActive : ''}`;
       return `
-            <div class="${CLASSES.settingRow}">
+            <div class="settings-row">
             <span>${config.labelKey}</span>
             <div class="${toggleClass}" data-key="${config.key}"></div>
             </div>`;
@@ -127,9 +126,9 @@ function renderSettingsRows(state: State): string {
   }).join('');
 
   const shortcutRow = `
-      <div class="${CLASSES.settingRow}">
+      <div class="settings-row">
         <span>Set shortcut</span>
-        <button class="${CLASSES.settingsActionBtn}" data-action="openShortcutSettings">
+        <button class="${CLASS.BTN.shortcut}" data-action="openShortcutSettings">
           ${state.shortcutText}
         </button>
       </div>`;
@@ -142,19 +141,20 @@ function renderSettingsRows(state: State): string {
  */
 export function renderMainTemplate(state: State): string {
   return `
-    <div class="${CLASSES.row}">
-      <img class="${CLASSES.image}" src="${state.imageUrl}" alt="Captured region"/>
-      <div class="${CLASSES.content}">
-        <span class="${CLASSES.status}">processing...</span>
-        <div class="${CLASSES.preview}"></div>
+    <div class="row">
+      <img class="image" src="${state.imageUrl}" alt="Captured region"/>
+      <div class="content">
+        <span class="${CLASS.MAIN.status}">Loading model...</span>
+        <div class="${CLASS.MAIN.preview}"></div>
       </div>
-      <div class="${CLASSES.actions}">
-        <button class="${CLASSES.btn} ${CLASSES.copybtn} ${CLASSES.loading}" title="Copy" data-action="copy">${ICONS.spinner}</button>
-        <button class="${CLASSES.btn} ${CLASSES.openSettings}" title="Settings" data-action="expandSettings">${ICONS.settings}</button>
+      <div class="actions">
+        <button class="${CLASS.BTN.btn} ${CLASS.BTN.copy} ${CLASS.STATE.copyLoading}" title="Copy" data-action="copy">${ICONS.spinner}</button>
+        <button class="${CLASS.BTN.btn} ${CLASS.BTN.capture}" title="New capture" data-action="newCapture">${ICONS.capture}</button>
+        <button class="${CLASS.BTN.btn} ${CLASS.BTN.settings}" title="Settings" data-action="expandSettings">${ICONS.settings}</button>
       </div>
     </div>
-    <div contenteditable="false" aria-readonly="true" class="${CLASSES.textarea}"></div>
-    <div class="${CLASSES.settings}">
+    <div contenteditable="false" aria-readonly="true" class="${CLASS.MAIN.textarea}"></div>
+    <div class="settings">
       ${renderSettingsRows(state)}
     </div>
   `;

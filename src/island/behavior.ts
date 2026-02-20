@@ -1,5 +1,5 @@
 import type { Point } from '../types';
-import { CLASSES } from './constants';
+import { CLASS } from './constants';
 
 type DragCallback = (pos: Point) => void;
 type EventCallbacks = {
@@ -21,13 +21,12 @@ export class DragController {
   /** Visually updating the position of the floatingIsland */
   public start(e: MouseEvent, currentPos: Point): void {
     const nonDraggableSelectors = [
-      CLASSES.btn,
-      CLASSES.settingsToggle,
-      CLASSES.textarea,
-      CLASSES.preview,
-      CLASSES.settingsSelect,
-      CLASSES.selectWrapper,
-      CLASSES.settingsActionBtn,
+      CLASS.BTN.btn,
+      CLASS.STATE.toggleActive,
+      CLASS.MAIN.textarea,
+      CLASS.MAIN.preview,
+      CLASS.SETTINGS.select,
+      CLASS.BTN.shortcut,
     ]
       .map((c) => `.${c}`)
       .join(', ');

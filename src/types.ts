@@ -121,13 +121,12 @@ export interface PerformOcrPayload {
 export const RuntimeMessageAction = {
   CAPTURE_VISIBLE_TAB: 'CAPTURE_VISIBLE_TAB',
   CAPTURE_SUCCESS: 'CAPTURE_SUCCESS',
-  SETUP_ENGINE: 'SETUP_ENGINE',
   BG_PERFORM_OCR: 'BG_PERFORM_OCR',
   ENSURE_OFFSCREEN: 'ENSURE_OFFSCREEN',
-  OFFSCREEN_READY: 'OFFSCREEN_READY',
   DESTROY_OFFSCREEN: 'DESTROY_OFFSCREEN',
   OPEN_SHORTCUTS_PAGE: 'OPEN_SHORTCUTS_PAGE',
   GET_SHORTCUT: 'GET_SHORTCUT',
+  NEW_CAPTURE: 'NEW_CAPTURE',
 } as const;
 
 export type RuntimeMessageAction =
@@ -143,18 +142,14 @@ export type RuntimeMessage =
       payload: SelectionRect;
     }
   | {
-      action: typeof RuntimeMessageAction.SETUP_ENGINE;
-      payload: SetupEnginePayload;
-    }
-  | {
       action: typeof RuntimeMessageAction.BG_PERFORM_OCR;
       payload: PerformOcrPayload;
     }
   | { action: typeof RuntimeMessageAction.ENSURE_OFFSCREEN }
-  | { action: typeof RuntimeMessageAction.OFFSCREEN_READY }
   | { action: typeof RuntimeMessageAction.DESTROY_OFFSCREEN }
   | { action: typeof RuntimeMessageAction.OPEN_SHORTCUTS_PAGE }
-  | { action: typeof RuntimeMessageAction.GET_SHORTCUT };
+  | { action: typeof RuntimeMessageAction.GET_SHORTCUT }
+  | { action: typeof RuntimeMessageAction.NEW_CAPTURE };
 
 export interface SetupEnginePayload {
   engine: EngineOption;
@@ -162,7 +157,10 @@ export interface SetupEnginePayload {
 }
 
 export const TabsConnectAction = {
+  SETUP_BEGIN: 'SETUP_BEGIN',
+  SETUP_DONE: 'SETUP_DONE',
   PERFORM_OCR: 'PERFORM_OCR',
+  DOWNLOAD: 'DOWNLOAD',
   PROGRESS: 'PROGRESS',
   ERROR: 'ERROR',
   FINISH: 'FINISH',
@@ -173,7 +171,13 @@ export type TabsConnectAction =
 
 /** Message sent through port connection for streaming OCR progress */
 export type TabsConnect =
+  | {
+      action: typeof TabsConnectAction.SETUP_BEGIN;
+      payload: SetupEnginePayload;
+    }
+  | { action: typeof TabsConnectAction.SETUP_DONE }
   | { action: typeof TabsConnectAction.PERFORM_OCR; payload: PerformOcrPayload }
+  | { action: typeof TabsConnectAction.DOWNLOAD; payload: DownloadProgress }
   | {
       action: typeof TabsConnectAction.PROGRESS;
       payload: ProgressPayload;
@@ -184,10 +188,20 @@ export type TabsConnect =
       payload: ResultPayload;
     };
 
-export type IslandStatus = 'loading-model' | 'recognizing' | 'done' | 'error';
+export type IslandStatus =
+  | 'downloading'
+  | 'loading-model'
+  | 'recognizing'
+  | 'done'
+  | 'error';
+
+export interface DownloadProgress {
+  stage: 'downloading';
+  progress: number;
+}
 
 export interface ProgressPayload {
-  stage: 'loading-model' | 'recognizing';
+  stage: 'recognizing' | 'loading-model';
   text: string;
 }
 

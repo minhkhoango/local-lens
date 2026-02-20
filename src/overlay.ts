@@ -4,7 +4,7 @@ import type { RuntimeMessage, SelectionRect, Point } from './types';
 type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 const CSS = {
-  bg: 'rgba(0, 0, 0, 0.4)',
+  bgAlpha: 0.4,
   stroke: '#ffffff',
   radius: 28,
   lineWidth: 3,
@@ -22,14 +22,15 @@ export class GhostOverlay {
   private shadow: ShadowRoot;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null = null;
-
+  private backupMode: boolean;
   private notificationBanner: HTMLDivElement;
 
   private isDragging = false;
   private startPos: Point = { x: 0, y: 0 };
   private currentPos: Point = { x: 0, y: 0 };
+  private bgAlpha = 0;
 
-  constructor(overlayStyles: string) {
+  constructor(overlayStyles: string, backupMode: boolean) {
     console.debug('[Overlay]: Initiate overlay for screenshot rect');
     this.host = document.createElement('div');
     this.host.id = ID;
@@ -40,6 +41,7 @@ export class GhostOverlay {
 
     this.notificationBanner = document.createElement('div');
     this.initNotificationUI();
+    this.backupMode = backupMode;
   }
 
   /**
@@ -75,7 +77,7 @@ export class GhostOverlay {
     lenIcon.className = 'icon';
 
     const bannerText = document.createElement('span');
-    bannerText.textContent = 'Click and drag to extract text';
+    bannerText.textContent = 'Loading model...';
 
     this.notificationBanner.appendChild(lenIcon);
     this.notificationBanner.appendChild(bannerText);
@@ -88,6 +90,20 @@ export class GhostOverlay {
     if (!document.getElementById(ID)) {
       document.body.appendChild(this.host);
     }
+
+    this.host.style.pointerEvents = 'none';
+
+    if (!this.ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+    this.ctx.fillStyle = `rgba(0,0,0,0.4)`;
+    this.ctx.fillRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+  }
+
+  public loadingProgress(progress: number): void {
+    const bannerText = this.notificationBanner.querySelector('span');
+    if (!bannerText) return;
+    bannerText.textContent = `Loading model ${progress}%`;
   }
 
   /** Enables '+' mouse, listen to mousedown and 'Escape' */
@@ -96,6 +112,26 @@ export class GhostOverlay {
     this.host.style.pointerEvents = 'auto';
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
     window.addEventListener('keydown', this.handleKeyDown);
+
+    const bannerText = this.notificationBanner.querySelector('span');
+    if (!bannerText) return;
+    bannerText.textContent = `Click and drag to extract text`;
+
+    if (!this.ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+
+    const flash = document.createElement('div');
+    flash.className = 'flash-effect';
+    this.shadow.appendChild(flash);
+
+    flash.addEventListener(
+      'animationend',
+      () => {
+        flash.remove();
+      },
+      { once: true },
+    );
   }
 
   public destroy(): void {
@@ -115,19 +151,33 @@ export class GhostOverlay {
    */
   private handleMouseDown = async (e: MouseEvent) => {
     this.notificationBanner.remove();
-    await chrome.runtime.sendMessage<RuntimeMessage>({
-      action: RuntimeMessageAction.CAPTURE_VISIBLE_TAB,
-    });
-    if (this.ctx) this.ctx.fillStyle = CSS.bg;
+    if (this.backupMode) {
+      await chrome.runtime.sendMessage<RuntimeMessage>({
+        action: RuntimeMessageAction.CAPTURE_VISIBLE_TAB,
+      });
+    }
 
     this.isDragging = true;
     this.startPos = { x: e.clientX, y: e.clientY };
     this.currentPos = { x: e.clientX, y: e.clientY };
     e.preventDefault();
-    // document > this.canvas for mouse release outside tab
+
+    document.addEventListener('mousemove', this.startFade, { once: true });
     document.addEventListener('mousemove', this.handleMouseMove);
     document.addEventListener('mouseup', this.handleMouseUp);
-    this.draw();
+  };
+
+  /**
+   * Dark background fade in for 300ms, then stay at 0.4
+   */
+  private startFade = (): void => {
+    const fadeStart = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min((now - fadeStart) / 300, 1);
+      this.bgAlpha = t * CSS.bgAlpha;
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   };
 
   private handleMouseMove = (e: MouseEvent): void => {
@@ -169,33 +219,33 @@ export class GhostOverlay {
     if (!this.ctx) return;
     const dpr = window.devicePixelRatio || 1;
     this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
-    this.ctx.fillStyle = CSS.bg;
+    this.ctx.fillStyle = `rgba(0,0,0,${this.bgAlpha})`;
     this.ctx.fillRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
 
-    if (this.isDragging || this.startPos.x !== 0) {
-      const { x, y, width, height } = this.getSelectionRect();
-      const r = Math.min(CSS.radius, width / 3, height / 3);
-      const corner = this.getActiveCorner();
+    if (!this.isDragging && this.startPos.x === 0) return;
 
-      this.ctx.beginPath();
+    const { x, y, width, height } = this.getSelectionRect();
+    const r = Math.min(CSS.radius, width / 3, height / 3);
+    const corner = this.getActiveCorner();
 
-      const radii = [r, r, r, r];
-      if (corner === 'top-left') radii[0] = 0;
-      if (corner === 'top-right') radii[1] = 0;
-      if (corner === 'bottom-right') radii[2] = 0;
-      if (corner === 'bottom-left') radii[3] = 0;
+    this.ctx.beginPath();
 
-      this.ctx.roundRect(x, y, width, height, radii);
+    const radii = [r, r, r, r];
+    if (corner === 'top-left') radii[0] = 0;
+    if (corner === 'top-right') radii[1] = 0;
+    if (corner === 'bottom-right') radii[2] = 0;
+    if (corner === 'bottom-left') radii[3] = 0;
 
-      this.ctx.globalCompositeOperation = 'destination-out';
-      this.ctx.fillStyle = 'black';
-      this.ctx.fill();
+    this.ctx.roundRect(x, y, width, height, radii);
 
-      this.ctx.globalCompositeOperation = 'source-over';
-      this.ctx.strokeStyle = CSS.stroke;
-      this.ctx.lineWidth = CSS.lineWidth;
-      this.ctx.stroke();
-    }
+    this.ctx.globalCompositeOperation = 'destination-out';
+    this.ctx.fillStyle = 'black';
+    this.ctx.fill();
+
+    this.ctx.globalCompositeOperation = 'source-over';
+    this.ctx.strokeStyle = CSS.stroke;
+    this.ctx.lineWidth = CSS.lineWidth;
+    this.ctx.stroke();
   }
 
   private getActiveCorner(): Corner {

@@ -27,6 +27,7 @@ export interface State {
  */
 export type Action =
   | { type: 'copy' }
+  | { type: 'newCapture' }
   | { type: 'expandSettings' }
   | { type: 'openShortcutSettings' }
   | { type: 'toggleSettings'; payload: keyof ToggleSettings }

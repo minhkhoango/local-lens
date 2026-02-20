@@ -9,6 +9,7 @@ import type {
   ResultPayload,
   ErrorPayload,
   Settings,
+  DownloadProgress,
 } from '../types';
 import type { Action, State } from './types';
 import { View } from './view';
@@ -75,6 +76,11 @@ export class FloatingIsland {
     }
   }
 
+  public updateDownload(payload: DownloadProgress): void {
+    this.state.status = payload.stage;
+    this.view.updateDownloadModel(this.state.status, payload.progress);
+  }
+
   /**
    * Continuously update island with OCR progress from offscreen
    */
@@ -128,6 +134,9 @@ export class FloatingIsland {
       case 'copy':
         this.copyToClipboard();
         break;
+      case 'newCapture':
+        this.restartCapture();
+        break;
       case 'expandSettings':
         this.toggleSettingsExpand();
         break;
@@ -150,6 +159,12 @@ export class FloatingIsland {
         this.storage.openShortcutsPage();
         break;
     }
+  }
+  private restartCapture(): void {
+    this.destroy(true);
+    chrome.runtime.sendMessage<RuntimeMessage>({
+      action: RuntimeMessageAction.NEW_CAPTURE,
+    });
   }
 
   private updatePosition(pos: Point): void {
@@ -176,7 +191,11 @@ export class FloatingIsland {
     if (widthDelta !== 0) {
       this.position.x -= widthDelta;
     }
-    this.view.updateTextareaExpand(this.state.isTextExpanded, width);
+    this.view.updateTextareaExpand(
+      this.state.textarea,
+      this.state.isTextExpanded,
+      width,
+    );
     this.updatePosition(this.position);
   }
 

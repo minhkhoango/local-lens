@@ -1,14 +1,10 @@
-import { ISLAND_STORAGE } from './constants';
 import { RuntimeMessageAction, TabsMessageAction } from './types';
 import type {
   RuntimeMessage,
   SelectionRect,
   ShortcutResponse,
   StatusResponse,
-  Settings,
-  EngineOption,
   PerformOcrPayload,
-  TesseractLang,
   TabsMessage,
 } from './types';
 
@@ -31,12 +27,17 @@ const FILES_PATH = {
  * - Create an overlay (gray scale on page + drag crop box)
  * */
 chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.id || !tab.url) return;
+  initialize(tab.id || null, tab.url || null);
+});
+
+async function initialize(
+  id: number | null,
+  url: string | null,
+): Promise<void> {
+  if (!id || !url) return;
 
   try {
-    const { isRestricted, isPdf, isFileRestricted } = await classifyUrl(
-      tab.url,
-    );
+    const { isRestricted, isPdf, isFileRestricted } = await classifyUrl(url);
     if (isFileRestricted) {
       notifyFilePermission();
       return;
@@ -53,7 +54,7 @@ chrome.action.onClicked.addListener(async (tab) => {
     } else {
       try {
         // Account for user scroll
-        await activateOverlay(tab.id, null, isPdf);
+        await activateOverlay(id, null, isPdf);
       } catch (err) {
         console.error('Injection failed, creating backup tab...', err);
         const backupTabId = await createBackupTab(capturedImage);
@@ -63,7 +64,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   } catch (err) {
     console.error('On click activation error:', err);
   }
-});
+}
 
 /**
  * Ultimate routing system of local-lens since service worker
@@ -134,7 +135,7 @@ chrome.runtime.onMessage.addListener(
         console.debug(message.action);
         chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
         sendResponse({ status: 'ok' });
-        return false; // Synchronous response
+        break;
       }
       case RuntimeMessageAction.DESTROY_OFFSCREEN: {
         console.debug(message.action);
@@ -143,6 +144,12 @@ chrome.runtime.onMessage.addListener(
           sendResponse({ status: 'ok' });
         })();
         return true;
+      }
+      case RuntimeMessageAction.NEW_CAPTURE: {
+        console.debug(message.action);
+        initialize(sender.tab?.id || null, sender.tab?.url || null);
+        sendResponse({ status: 'ok' });
+        break;
       }
     }
     return false;
@@ -234,9 +241,12 @@ async function activateOverlay(
   isPdf = false,
 ): Promise<void> {
   try {
-    await ensureContentLoaded(tabId);
+    console.debug('warming up offscreen engine...');
+    await ensureOffscreenLoaded();
 
     console.debug('send ACTIVATE_OVERLAY to content');
+    await ensureContentLoaded(tabId);
+
     const overlayResponse = await chrome.tabs.sendMessage<TabsMessage>(tabId, {
       action: TabsMessageAction.ACTIVATE_OVERLAY,
       payload: { imageUrl: capturedImage, isPdf: isPdf },
@@ -245,9 +255,6 @@ async function activateOverlay(
       console.error('Overlay failed:', overlayResponse.message);
       return;
     }
-
-    console.debug('warming up offscreen engine...');
-    await ensureOffscreenLoaded();
   } catch (err) {
     throw err;
   }
@@ -302,29 +309,7 @@ async function ensureOffscreenLoaded(): Promise<void> {
       reasons: [chrome.offscreen.Reason.BLOBS],
       justification: 'Processing screenshot image data for OCR',
     });
-    await new Promise((letOffscreenLoad) => setTimeout(letOffscreenLoad, 100));
-  }
-
-  // Initialize engine with saved settings
-  let language: TesseractLang = 'eng';
-  let engine: EngineOption = 'granite';
-  try {
-    const stored = await chrome.storage.local.get([ISLAND_STORAGE]);
-    const saved = stored[ISLAND_STORAGE] as Partial<Settings>;
-    language = saved.language || 'eng';
-    engine = saved.engine || 'tesseract';
-  } catch {}
-
-  try {
-    await chrome.runtime.sendMessage<RuntimeMessage>({
-      action: RuntimeMessageAction.SETUP_ENGINE,
-      payload: {
-        engine: engine,
-        language: language,
-      },
-    });
-  } catch (err) {
-    console.warn('Failed to send SETUP_ENGINE to offscreen:', err);
+    // await new Promise((letOffscreenLoad) => setTimeout(letOffscreenLoad, 100));
   }
 }
 

@@ -14,10 +14,6 @@ export async function recognizeTesseract(
   }
 
   try {
-    postMessage({
-      action: 'PROGRESS',
-      payload: { stage: 'loading-model', text: '' },
-    });
     await loadTesseract(language);
     if (!worker) {
       throw new Error('Failed to load Tesseract worker');

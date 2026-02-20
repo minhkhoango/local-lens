@@ -1,6 +1,6 @@
 import islandStyles from '../styles/island.css?inline';
 import katex from 'katex';
-import { ICONS, CLASSES } from './constants';
+import { ICONS, CLASS } from './constants';
 import { renderMainTemplate } from './template';
 import type {
   ToggleSettings,
@@ -29,7 +29,6 @@ export class View {
     preview?: HTMLDivElement;
     textarea?: HTMLDivElement;
     copyBtn?: HTMLButtonElement;
-    image?: HTMLImageElement;
     toggles?: NodeListOf<HTMLDivElement>;
     selects?: NodeListOf<HTMLSelectElement>;
   } = {};
@@ -43,7 +42,7 @@ export class View {
     this.shadow.appendChild(style);
 
     this.container = document.createElement('div');
-    this.container.className = CLASSES.island;
+    this.container.className = 'island';
     this.shadow.appendChild(this.container);
   }
 
@@ -54,19 +53,21 @@ export class View {
     this.container.innerHTML = renderMainTemplate(state);
     this.cacheRefs();
     this.bindInternalEvents();
-    this.updateTextareaExpand(state.isTextExpanded, 320);
+    this.updateTextareaExpand(state.textarea, state.isTextExpanded, 330);
   }
 
   private cacheRefs(): void {
-    this.els.status = query(this.container, `.${CLASSES.status}`);
-    this.els.preview = query(this.container, `.${CLASSES.preview}`);
-    this.els.textarea = query(this.container, `.${CLASSES.textarea}`);
-    this.els.copyBtn = query(this.container, `.${CLASSES.copybtn}`);
-    this.els.image = query(this.container, `.${CLASSES.image}`);
-    this.els.selects = queryAll(this.container, `.${CLASSES.settingsSelect}`);
-    this.els.toggles = queryAll(this.container, `.${CLASSES.settingsToggle}`);
+    this.els.status = query(this.container, `.${CLASS.MAIN.status}`);
+    this.els.preview = query(this.container, `.${CLASS.MAIN.preview}`);
+    this.els.textarea = query(this.container, `.${CLASS.MAIN.textarea}`);
+    this.els.copyBtn = query(this.container, `.${CLASS.BTN.copy}`);
+    this.els.selects = queryAll(this.container, `.${CLASS.SETTINGS.select}`);
+    this.els.toggles = queryAll(this.container, `.${CLASS.SETTINGS.toggle}`);
   }
 
+  public updateDownloadModel(status: IslandStatus, progress: number): void {
+    this.updateStatus(status, false, progress);
+  }
   /**
    * Update UI 'loading-model' | 'recognizing' | 'error' | 'finish' status
    */
@@ -82,32 +83,40 @@ export class View {
     this.container.style.top = `${pos.y}px`;
   }
 
-  public updateTextareaExpand(isTextExpanded: boolean, width: number): void {
+  public updateTextareaExpand(
+    text: string,
+    isTextExpanded: boolean,
+    width: number,
+  ): void {
     if (!this.els.textarea) return;
-    this.container.classList.toggle(CLASSES.expanded, isTextExpanded);
+    this.container.classList.toggle(CLASS.STATE.textExpanded, isTextExpanded);
     this.container.style.width = `${width}px`;
     if (!isTextExpanded) {
       this.els.textarea.style.display = 'none';
       return;
     }
     this.els.textarea.style.display = 'block';
+    this.updatePreviewText(text, isTextExpanded);
   }
 
   public updateSettingsExpand(isSettingsExpanded: boolean): void {
-    this.container.classList.toggle(CLASSES.expandSettings, isSettingsExpanded);
+    this.container.classList.toggle(
+      CLASS.STATE.settingsExpanded,
+      isSettingsExpanded,
+    );
   }
 
   public updateCopyBtn(status: IslandStatus, hasCopied: boolean): void {
     if (!this.els.copyBtn) return;
     if (status === 'loading-model' || status === 'recognizing') {
-      if (this.els.copyBtn.className.includes(CLASSES.loading)) return;
-      this.els.copyBtn.className = `${CLASSES.btn} ${CLASSES.copybtn} ${CLASSES.loading}`;
+      if (this.els.copyBtn.className.includes(CLASS.STATE.copyLoading)) return;
+      this.els.copyBtn.className = `${CLASS.BTN.btn} ${CLASS.BTN.copy} ${CLASS.STATE.copyLoading}`;
       this.els.copyBtn.innerHTML = ICONS.spinner;
       this.els.copyBtn.disabled = true;
       return;
     }
     // status is 'done' or 'error'
-    this.els.copyBtn.className = `${CLASSES.btn} ${CLASSES.copybtn} ${hasCopied ? CLASSES.success : ''}`;
+    this.els.copyBtn.className = `${CLASS.BTN.btn} ${CLASS.BTN.copy} ${hasCopied ? CLASS.STATE.copySuccess : ''}`;
     this.els.copyBtn.innerHTML = hasCopied ? ICONS.check : ICONS.clipboard;
     this.els.copyBtn.disabled = false;
     this.updateStatus(status, hasCopied);
@@ -122,7 +131,7 @@ export class View {
     this.els.toggles.forEach((toggle) => {
       const key = toggle.getAttribute('data-key') as keyof ToggleSettings;
       if (key) {
-        toggle.classList.toggle(CLASSES.active, settings[key]);
+        toggle.classList.toggle(CLASS.STATE.toggleActive, settings[key]);
       }
     });
     this.updateStatus(status, hasCopied);
@@ -153,6 +162,7 @@ export class View {
       if (btn?.dataset.action) {
         const actionType = btn.dataset.action as
           | 'copy'
+          | 'newCapture'
           | 'expandSettings'
           | 'openShortcutSettings';
         this.onAction({ type: actionType });
@@ -160,7 +170,7 @@ export class View {
       }
 
       // Auto-copy/expand toggles Settings
-      const toggle = target.closest(`.${CLASSES.settingsToggle}`);
+      const toggle = target.closest(`.${CLASS.SETTINGS.toggle}`);
       const key = toggle?.getAttribute('data-key') as
         | keyof ToggleSettings
         | undefined;
@@ -172,7 +182,7 @@ export class View {
     // Select Lang / engine Settings
     this.container.addEventListener('change', (e) => {
       const target = e.target as HTMLSelectElement;
-      if (target.classList.contains(CLASSES.settingsSelect)) {
+      if (target.classList.contains(CLASS.SETTINGS.select)) {
         const key = target.dataset.key as keyof SelectSettings | undefined;
         if (!key) return;
 
@@ -200,22 +210,39 @@ export class View {
     );
   }
 
-  private updateStatus(status: IslandStatus, hasCopied: boolean): void {
+  private updateStatus(
+    status: IslandStatus,
+    hasCopied: boolean,
+    progress?: number,
+  ): void {
     if (!this.els.status) return;
-    const isLoadingModel = status === 'loading-model';
-    const isRecognizing = status === 'recognizing';
-    const isSuccess = status === 'done';
+    this.els.status.className = `${CLASS.MAIN.status} ${status}`;
 
-    this.els.status.className = `${CLASSES.status} ${status}`;
-    this.els.status.textContent = isLoadingModel
-      ? 'Loading model...'
-      : isRecognizing
-        ? 'Recognizing...'
-        : isSuccess
-          ? hasCopied
-            ? 'Copied'
-            : 'Extracted'
-          : 'Error';
+    if (status === 'downloading') {
+      if (progress === undefined) {
+        this.els.status.textContent = 'Downloading...';
+        return;
+      }
+      this.els.status.textContent = `Downloading ${progress}%`;
+      return;
+    }
+    if (status === 'loading-model') {
+      this.els.status.textContent = 'Loading model...';
+      return;
+    }
+    if (status === 'recognizing') {
+      this.els.status.textContent = 'Recognizing...';
+      return;
+    }
+    if (status === 'error') {
+      this.els.status.textContent = 'Error';
+      return;
+    }
+    if (hasCopied) {
+      this.els.status.textContent = 'Copied';
+      return;
+    }
+    this.els.status.textContent = 'Extracted';
   }
   private updatePreviewText(text: string, isTextExpanded: boolean): void {
     if (!this.els.preview) return;

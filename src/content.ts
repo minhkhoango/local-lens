@@ -54,9 +54,11 @@ chrome.runtime.onMessage.addListener(
 
       case TabsMessageAction.ACTIVATE_OVERLAY:
         console.debug(message.action);
-        handleActivateOverlay(message.payload);
-        sendResponse({ status: 'ok' });
-        break;
+        (async () => {
+          await handleActivateOverlay(message.payload);
+          sendResponse({ status: 'ok' });
+        })();
+        return true;
 
       case TabsMessageAction.CAPTURE_VISIBLE_TAB:
         console.debug(message.action);
@@ -84,15 +86,47 @@ chrome.runtime.onMessage.addListener(
   },
 );
 
-function handleActivateOverlay(payload: ActivateOverlayPayload) {
+/**
+ * Mounting of overlay. On normal tab, imageUrl is empty. On restricted tab, imageUrl is present
+ */
+async function handleActivateOverlay(payload: ActivateOverlayPayload) {
   const { imageUrl, isPdf: ispdf } = payload;
   isPdf = ispdf;
   if (imageUrl) capturedImage = imageUrl;
-
   if (activeOverlay) activeOverlay.destroy();
-  activeOverlay = new GhostOverlay(overlayStyles);
+
+  activeOverlay = new GhostOverlay(overlayStyles, !imageUrl);
   activeOverlay.mount();
-  activeOverlay.activate();
+
+  let language: TesseractLang = 'eng';
+  let engine: EngineOption = 'tesseract';
+  try {
+    const stored = await chrome.storage.local.get([ISLAND_STORAGE]);
+    const saved = stored[ISLAND_STORAGE] as Partial<Settings>;
+    language = saved.language || 'eng';
+    engine = saved.engine || 'tesseract';
+  } catch {}
+
+  const port = await chrome.runtime.connect({ name: OCR_PORT });
+  port.onMessage.addListener((msg: TabsConnect) => {
+    if (!activeOverlay) return;
+    switch (msg.action) {
+      case 'DOWNLOAD':
+        activeOverlay.loadingProgress(msg.payload.progress);
+        return true;
+      case 'SETUP_DONE':
+        activeOverlay.activate();
+        return false;
+    }
+  });
+  const initiateMessage: TabsConnect = {
+    action: 'SETUP_BEGIN',
+    payload: {
+      engine: engine,
+      language: language,
+    },
+  };
+  port.postMessage(initiateMessage);
 }
 
 /** Send rect payload from bg to offscreen for OCR, then update UI */
@@ -142,6 +176,9 @@ async function handlePerformOcr(
   port.onMessage.addListener((msg: TabsConnect) => {
     if (!activeIsland) return;
     switch (msg.action) {
+      case 'DOWNLOAD':
+        activeIsland.updateDownload(msg.payload);
+        return true;
       case 'PROGRESS':
         activeIsland.updateProgress(msg.payload);
         return true;
