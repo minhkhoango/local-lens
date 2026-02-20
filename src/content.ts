@@ -26,6 +26,7 @@ const CLASSES = {
   banner: 'banner',
 };
 
+let webGpuSupported = false;
 let activeOverlay: GhostOverlay | null = null;
 let activeIsland: FloatingIsland | null = null;
 let capturedImage: string = '';
@@ -48,6 +49,7 @@ chrome.runtime.onMessage.addListener(
 
       case TabsMessageAction.PING_CONTENT:
         console.debug(message.action);
+        webGpuSupported = message.payload.webGpuSupported;
         if (activeIsland) activeIsland.destroy(true);
         sendResponse({ status: 'ok' });
         break;
@@ -142,7 +144,12 @@ async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
     };
 
     console.debug('Update floating island with new image');
-    activeIsland = new FloatingIsland(cursorPosition, croppedImage, isPdf);
+    activeIsland = new FloatingIsland(
+      cursorPosition,
+      croppedImage,
+      isPdf,
+      webGpuSupported,
+    );
     activeIsland.mount();
 
     await handlePerformOcr('auto');

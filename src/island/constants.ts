@@ -74,4 +74,4 @@ export const CLASS = {
     preview: 'preview',
     textarea: 'textarea',
   },
-};
+} as const;

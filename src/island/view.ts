@@ -49,8 +49,8 @@ export class View {
   /**
    * Render HTML of island && bind listeners
    */
-  public init(state: State): void {
-    this.container.innerHTML = renderMainTemplate(state);
+  public init(state: State, webgpuSupported: boolean): void {
+    this.container.innerHTML = renderMainTemplate(state, webgpuSupported);
     this.cacheRefs();
     this.bindInternalEvents();
     this.updateTextareaExpand(state.textarea, state.isTextExpanded, 330);

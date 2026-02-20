@@ -117,7 +117,7 @@ export async function recognizeGranite(
       action: 'ERROR',
       payload: {
         stage: 'error',
-        error: `Failed to load Granite model: ${err}`,
+        error: `${err}`,
       },
     });
     throw err;

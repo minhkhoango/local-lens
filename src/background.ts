@@ -318,8 +318,12 @@ async function ensureOffscreenLoaded(): Promise<void> {
  */
 async function ensureContentLoaded(tabId: number): Promise<void> {
   try {
+    const supported = await webGpuSupported();
     await chrome.tabs.sendMessage<TabsMessage>(tabId, {
       action: TabsMessageAction.PING_CONTENT,
+      payload: {
+        webGpuSupported: supported,
+      },
     });
   } catch {
     await chrome.scripting.executeScript({
@@ -367,4 +371,16 @@ async function getShortcutCommand(): Promise<string> {
 
   if (!cmd || !cmd.shortcut) return '';
   return cmd.shortcut;
+}
+
+async function webGpuSupported(): Promise<boolean> {
+  if (!navigator.gpu) return false;
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    console.log('GPU Adapter:', adapter);
+    return adapter !== null;
+  } catch (err) {
+    console.error('Error checking WebGPU support:', err);
+    return false;
+  }
 }

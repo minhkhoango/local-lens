@@ -76,7 +76,10 @@ export type TabsMessageAction =
   (typeof TabsMessageAction)[keyof typeof TabsMessageAction];
 
 export type TabsMessage =
-  | { action: typeof TabsMessageAction.PING_CONTENT }
+  | {
+      action: typeof TabsMessageAction.PING_CONTENT;
+      payload: PingContentPayload;
+    }
   | {
       action: typeof TabsMessageAction.INITIALIZE_BACKUP;
       payload: ImagePayload;
@@ -98,6 +101,11 @@ export type TabsMessage =
       action: typeof TabsMessageAction.BG_PERFORM_OCR;
       payload: PerformOcrPayload;
     };
+
+/** Payload when initilizing content script */
+export interface PingContentPayload {
+  webGpuSupported: boolean;
+}
 
 /** Payload for backup tab */
 export interface ImagePayload {

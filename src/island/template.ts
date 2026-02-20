@@ -90,13 +90,20 @@ const SETTINGS_CONFIG: SettingsConfig[] = [
 /**
  * Helper function to render the settings options
  */
-function renderSettingsRows(state: State): string {
+function renderSettingsRows(state: State, webgpuSupported: boolean): string {
   const rows = SETTINGS_CONFIG.map((config) => {
     if (config.type === 'select') {
       const currentVal = state.settings[config.key];
       const optionsHtml = Object.entries(config.options)
         .map(([value, display]) => {
           const isSelected = value === currentVal ? 'selected' : '';
+          if (
+            config.key === 'engine' &&
+            value === 'granite' &&
+            !webgpuSupported
+          ) {
+            return `<option value="${value}" ${isSelected} disabled title="WebGPU not supported">${display} (unavailable)</option>`;
+          }
           return `<option value="${value}" ${isSelected}>${display}</option>`;
         })
         .join('');
@@ -139,7 +146,10 @@ function renderSettingsRows(state: State): string {
 /**
  * Helper function to initialize the floatingIsland's main HTML
  */
-export function renderMainTemplate(state: State): string {
+export function renderMainTemplate(
+  state: State,
+  webgpuSupported: boolean,
+): string {
   return `
     <div class="row">
       <img class="image" src="${state.imageUrl}" alt="Captured region"/>
@@ -155,7 +165,7 @@ export function renderMainTemplate(state: State): string {
     </div>
     <div contenteditable="false" aria-readonly="true" class="${CLASS.MAIN.textarea}"></div>
     <div class="settings">
-      ${renderSettingsRows(state)}
+      ${renderSettingsRows(state, webgpuSupported)}
     </div>
   `;
 }

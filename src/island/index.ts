@@ -34,7 +34,12 @@ export class FloatingIsland {
   /**
    * Load island settings, UI, positioning, and behavior controllers
    */
-  constructor(cursorPosition: Point, imageUrl: string, isPdf: boolean) {
+  constructor(
+    cursorPosition: Point,
+    imageUrl: string,
+    isPdf: boolean,
+    webgpuSupported: boolean,
+  ) {
     console.debug('[Island.index] begin constructor');
     this.host = document.createElement('div');
     this.host.id = ID;
@@ -59,7 +64,7 @@ export class FloatingIsland {
     this.storage.loadSettings().then(async (settings) => {
       this.state.settings = settings;
       this.state.shortcutText = await this.storage.getShortcut();
-      this.view.init(this.state);
+      await this.view.init(this.state, webgpuSupported);
 
       this.updatePosition(this.position);
       this.eventsCtrl?.attach();
