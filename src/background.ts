@@ -1,11 +1,11 @@
-import { OCR_CONFIG } from './constants';
-import { ExtensionAction } from './types';
+import { RuntimeMessageAction, TabsMessageAction } from './types';
 import type {
-  ExtensionMessage,
-  LanguagePayload,
+  RuntimeMessage,
   SelectionRect,
   ShortcutResponse,
   StatusResponse,
+  PerformOcrPayload,
+  TabsMessage,
 } from './types';
 
 interface UrlClass {
@@ -27,19 +27,24 @@ const FILES_PATH = {
  * - Create an overlay (gray scale on page + drag crop box)
  * */
 chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.id || !tab.url) return;
+  initialize(tab.id || null, tab.url || null);
+});
+
+async function initialize(
+  id: number | null,
+  url: string | null,
+): Promise<void> {
+  if (!id || !url) return;
 
   try {
-    const { isRestricted, isPdf, isFileRestricted } = await classifyUrl(
-      tab.url,
-    );
+    const { isRestricted, isPdf, isFileRestricted } = await classifyUrl(url);
     if (isFileRestricted) {
       notifyFilePermission();
       return;
     }
 
     const capturedImage = await chrome.tabs.captureVisibleTab({
-      format: OCR_CONFIG.FORMAT,
+      format: 'png',
     });
 
     if (isRestricted) {
@@ -48,9 +53,10 @@ chrome.action.onClicked.addListener(async (tab) => {
       await activateOverlay(backupTabId, capturedImage);
     } else {
       try {
-        await activateOverlay(tab.id, capturedImage, isPdf);
-      } catch {
-        console.debug('Injection failed on standard site, creating backup tab');
+        // Account for user scroll
+        await activateOverlay(id, null, isPdf);
+      } catch (err) {
+        console.error('Injection failed, creating backup tab...', err);
         const backupTabId = await createBackupTab(capturedImage);
         await activateOverlay(backupTabId, capturedImage);
       }
@@ -58,7 +64,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   } catch (err) {
     console.error('On click activation error:', err);
   }
-});
+}
 
 /**
  * Ultimate routing system of local-lens since service worker
@@ -66,12 +72,12 @@ chrome.action.onClicked.addListener(async (tab) => {
  */
 chrome.runtime.onMessage.addListener(
   (
-    message: ExtensionMessage,
+    message: RuntimeMessage,
     sender: chrome.runtime.MessageSender,
     sendResponse: (response: StatusResponse | ShortcutResponse) => void,
   ) => {
     switch (message.action) {
-      case ExtensionAction.ENSURE_OFFSCREEN: {
+      case RuntimeMessageAction.ENSURE_OFFSCREEN: {
         console.debug(message.action);
         (async () => {
           await ensureOffscreenLoaded();
@@ -79,7 +85,16 @@ chrome.runtime.onMessage.addListener(
         })();
         return true;
       }
-      case ExtensionAction.NOTIFY_CAPTURE_SUCCESS: {
+      case RuntimeMessageAction.CAPTURE_VISIBLE_TAB: {
+        console.debug(message.action);
+        const targetTabId = getTabId(sender);
+        (async () => {
+          await captureTabImage(targetTabId);
+          sendResponse({ status: 'ok' });
+        })();
+        return true;
+      }
+      case RuntimeMessageAction.CAPTURE_SUCCESS: {
         console.debug(message.action);
         const targetTabId = getTabId(sender);
         (async () => {
@@ -88,19 +103,16 @@ chrome.runtime.onMessage.addListener(
         })();
         return true;
       }
-      case ExtensionAction.REQUEST_LANGUAGE_UPDATE: {
+      case RuntimeMessageAction.BG_PERFORM_OCR: {
         console.debug(message.action);
-        const targetTabId = getTabId(sender);
         (async () => {
-          const ocrResult = await transferLanguage(
-            targetTabId,
-            message.payload,
-          );
-          sendResponse(ocrResult);
+          const targetTabId = getTabId(sender);
+          await transferPerformOcr(targetTabId, message.payload);
+          sendResponse({ status: 'ok' });
         })();
         return true;
       }
-      case ExtensionAction.GET_SHORTCUT: {
+      case RuntimeMessageAction.GET_SHORTCUT: {
         console.debug(message.action);
         // Handle async work in IIFE while returning true synchronously
         (async () => {
@@ -113,22 +125,50 @@ chrome.runtime.onMessage.addListener(
           } catch (err) {
             sendResponse({
               status: 'error',
-              shortcut: null,
+              shortcut: 'Set shortcut',
             });
           }
         })();
         return true; // Keep channel open for async response
       }
-      case ExtensionAction.OPEN_SHORTCUTS_PAGE: {
+      case RuntimeMessageAction.OPEN_SHORTCUTS_PAGE: {
         console.debug(message.action);
         chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
         sendResponse({ status: 'ok' });
-        return false; // Synchronous response
+        break;
+      }
+      case RuntimeMessageAction.DESTROY_OFFSCREEN: {
+        console.debug(message.action);
+        (async () => {
+          await chrome.offscreen.closeDocument();
+          sendResponse({ status: 'ok' });
+        })();
+        return true;
+      }
+      case RuntimeMessageAction.NEW_CAPTURE: {
+        console.debug(message.action);
+        initialize(sender.tab?.id || null, sender.tab?.url || null);
+        sendResponse({ status: 'ok' });
+        break;
       }
     }
     return false;
   },
 );
+
+/** Capture visible tab image */
+async function captureTabImage(tabId: number): Promise<void> {
+  const capturedImage = await chrome.tabs.captureVisibleTab({
+    format: 'png',
+  });
+
+  await chrome.tabs.sendMessage<TabsMessage>(tabId, {
+    action: TabsMessageAction.CAPTURE_VISIBLE_TAB,
+    payload: {
+      imageUrl: capturedImage,
+    },
+  });
+}
 
 /**
  * Get id of the tab that send the message
@@ -185,8 +225,9 @@ async function notifyFilePermission() {
   chrome.notifications.create({
     type: 'basic',
     iconUrl: '/icons/48.png',
-    title: chrome.runtime.getManifest().name,
-    message: chrome.i18n.getMessage('backup_file_perm'),
+    title: 'Local Lens',
+    message:
+      'Allow access to file URLs is disabled, enable in \"Manage extensions\"',
   });
 }
 
@@ -196,28 +237,24 @@ async function notifyFilePermission() {
  */
 async function activateOverlay(
   tabId: number,
-  capturedImage: string,
+  capturedImage: string | null,
   isPdf = false,
 ): Promise<void> {
   try {
-    await ensureContentLoaded(tabId);
+    console.debug('warming up offscreen engine...');
+    await ensureOffscreenLoaded();
 
     console.debug('send ACTIVATE_OVERLAY to content');
-    const overlayResponse = await chrome.tabs.sendMessage<ExtensionMessage>(
-      tabId,
-      {
-        action: ExtensionAction.ACTIVATE_OVERLAY,
-        payload: { imageUrl: capturedImage, isPdf: isPdf },
-      },
-    );
+    await ensureContentLoaded(tabId);
+
+    const overlayResponse = await chrome.tabs.sendMessage<TabsMessage>(tabId, {
+      action: TabsMessageAction.ACTIVATE_OVERLAY,
+      payload: { imageUrl: capturedImage, isPdf: isPdf },
+    });
     if (overlayResponse.status !== 'ok') {
       console.error('Overlay failed:', overlayResponse.message);
       return;
     }
-
-    console.debug('warming up offscreen engine...');
-    // warm up the offscreen engine
-    await ensureOffscreenLoaded();
   } catch (err) {
     throw err;
   }
@@ -238,7 +275,6 @@ async function createBackupTab(capturedImage: string): Promise<number> {
     throw new Error('Tab created but ID is undefined.');
   }
 
-  // Wait for tab to fully load before returning
   await new Promise<void>((resolve) => {
     const listener = (tabId: number, changeInfo: { status?: string }) => {
       if (tabId === tab.id && changeInfo.status === 'complete') {
@@ -249,9 +285,8 @@ async function createBackupTab(capturedImage: string): Promise<number> {
     chrome.tabs.onUpdated.addListener(listener);
   });
 
-  // Send the captured image to the backup tab
-  await chrome.tabs.sendMessage<ExtensionMessage>(tab.id, {
-    action: ExtensionAction.INITIALIZE_BACKUP,
+  await chrome.tabs.sendMessage<TabsMessage>(tab.id, {
+    action: TabsMessageAction.INITIALIZE_BACKUP,
     payload: {
       imageUrl: capturedImage,
     },
@@ -260,7 +295,7 @@ async function createBackupTab(capturedImage: string): Promise<number> {
 }
 
 /**
- * Create / ensure offscreen OCR script is ready
+ * Ensure offscreen engine is ready
  */
 async function ensureOffscreenLoaded(): Promise<void> {
   const existing = await chrome.runtime.getContexts({
@@ -268,27 +303,40 @@ async function ensureOffscreenLoaded(): Promise<void> {
     documentUrls: [chrome.runtime.getURL(FILES_PATH.OFFSCREEN_HTML)],
   });
 
-  if (existing.length > 0) return;
-
-  await chrome.offscreen.createDocument({
-    url: FILES_PATH.OFFSCREEN_HTML,
-    reasons: [chrome.offscreen.Reason.BLOBS],
-    justification: 'Processing screenshot image data for OCR',
-  });
+  if (existing.length == 0) {
+    await chrome.offscreen.createDocument({
+      url: FILES_PATH.OFFSCREEN_HTML,
+      reasons: [chrome.offscreen.Reason.BLOBS],
+      justification: 'Processing screenshot image data for OCR',
+    });
+    // await new Promise((letOffscreenLoad) => setTimeout(letOffscreenLoad, 100));
+  }
 }
 
 /**
  * Create / ensure floatingIsland UI is ready to be initiated
  */
 async function ensureContentLoaded(tabId: number): Promise<void> {
+  const supported = await webGpuSupported();
   try {
-    await chrome.tabs.sendMessage(tabId, {
-      action: ExtensionAction.PING_CONTENT,
+    await chrome.tabs.sendMessage<TabsMessage>(tabId, {
+      action: TabsMessageAction.PING_CONTENT,
+      payload: {
+        webGpuSupported: supported,
+      },
     });
   } catch {
     await chrome.scripting.executeScript({
       target: { tabId },
       files: [FILES_PATH.CONTENT_SCRIPT],
+    });
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
+
+    await chrome.tabs.sendMessage<TabsMessage>(tabId, {
+      action: TabsMessageAction.PING_CONTENT,
+      payload: {
+        webGpuSupported: supported,
+      },
     });
   }
 }
@@ -303,8 +351,8 @@ async function transferCapture(
   payload: SelectionRect,
 ): Promise<void> {
   console.debug('Transfering capture success bg -> content');
-  await chrome.tabs.sendMessage<ExtensionMessage>(tabId, {
-    action: ExtensionAction.CAPTURE_SUCCESS,
+  await chrome.tabs.sendMessage<TabsMessage>(tabId, {
+    action: TabsMessageAction.CAPTURE_SUCCESS,
     payload: payload as SelectionRect,
   });
 }
@@ -314,13 +362,15 @@ async function transferCapture(
  * @param tabId Id of the tab of the island that sent PERFORM_OCR request
  * @param payload new language
  */
-async function transferLanguage(tabId: number, payload: LanguagePayload) {
+async function transferPerformOcr(
+  tabId: number,
+  payload: PerformOcrPayload,
+): Promise<void> {
   console.debug('Transfering language payload bg -> content');
-  const ocrResult = await chrome.tabs.sendMessage<ExtensionMessage>(tabId, {
-    action: ExtensionAction.UPDATE_LANGUAGE,
+  await chrome.tabs.sendMessage<RuntimeMessage>(tabId, {
+    action: RuntimeMessageAction.BG_PERFORM_OCR,
     payload: payload,
   });
-  return ocrResult;
 }
 
 async function getShortcutCommand(): Promise<string> {
@@ -329,4 +379,16 @@ async function getShortcutCommand(): Promise<string> {
 
   if (!cmd || !cmd.shortcut) return '';
   return cmd.shortcut;
+}
+
+async function webGpuSupported(): Promise<boolean> {
+  if (!navigator.gpu) return false;
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    console.log('GPU Adapter:', adapter);
+    return adapter !== null;
+  } catch (err) {
+    console.error('Error checking WebGPU support:', err);
+    return false;
+  }
 }

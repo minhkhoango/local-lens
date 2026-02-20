@@ -1,6 +1,6 @@
 # Local Lens
 
-A privacy-first browser extension for instantly OCR-ing selected areas of a web page. All processing happens locally in your browser using Tesseract.js, supporting 30 most common languages. Currently only available on Chrome webstore.
+A privacy-first browser extension for instantly OCR-ing selected areas of a web page. All processing happens locally in your browser using Tesseract.js or IBM Granite 258M. Currently only available on Chrome webstore.
 
 ## YouTube Preview
 

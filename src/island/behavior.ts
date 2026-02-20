@@ -1,5 +1,5 @@
 import type { Point } from '../types';
-import { CLASSES } from './constants';
+import { CLASS } from './constants';
 
 type DragCallback = (pos: Point) => void;
 type EventCallbacks = {
@@ -8,9 +8,7 @@ type EventCallbacks = {
   getCurrentPosition: () => Point;
 };
 
-/**
- * Handle the full dragging life cycle of island
- */
+/** Handle the full dragging life cycle of island */
 export class DragController {
   private isDragging = false;
   private dragOffset: Point = { x: 0, y: 0 };
@@ -20,20 +18,15 @@ export class DragController {
     this.onMove = onMove;
   }
 
-  /**
-   * Visually updating the position of the floatingIsland
-   * @param e Listens to 'mousemove' and 'mouseup' for stop
-   * @param currentPos Island's top left corner
-   */
+  /** Visually updating the position of the floatingIsland */
   public start(e: MouseEvent, currentPos: Point): void {
     const nonDraggableSelectors = [
-      CLASSES.btn,
-      CLASSES.toggle,
-      CLASSES.textarea,
-      CLASSES.preview,
-      CLASSES.settingsSelect,
-      CLASSES.selectWrapper,
-      CLASSES.settingsActionBtn,
+      CLASS.BTN.btn,
+      CLASS.STATE.toggleActive,
+      CLASS.MAIN.textarea,
+      CLASS.MAIN.preview,
+      CLASS.SETTINGS.select,
+      CLASS.BTN.shortcut,
     ]
       .map((c) => `.${c}`)
       .join(', ');
@@ -68,9 +61,6 @@ export class DragController {
     document.removeEventListener('mouseup', this.handleEnd);
   };
 
-  /**
-   * Stop dragging, remove mouse listener
-   */
   public destroy(): void {
     this.handleEnd();
   }
@@ -106,10 +96,7 @@ export class EventsController {
     };
   }
 
-  /**
-   * Add 'mousedown', 'keydown', and 'resize' listener
-   * and their destroy / update positioning logic
-   */
+  /** Add listeners for mousedown, 'Escape' keydown, window resize */
   public attach(): void {
     document.addEventListener('mousedown', this.handleClickOutside);
     window.addEventListener('keydown', this.handleKeyDown);
@@ -131,7 +118,6 @@ export class EventsController {
    *
    * Status: Does not delete island when clicked in new tab / side-to-side next to search bar (good!)
    * However, if we were to click on another app's tab / another app icon, island still disspear
-   * This means that the inViewport is likely over-excerting its control
    */
   private handleWindowBlur = (): void => {
     const { x, y } = this.getCurrentPosition();
@@ -168,10 +154,7 @@ export class EventsController {
       return;
     }
 
-    // Get current position from source of truth
     const currentPos = this.getCurrentPosition();
-
-    // Scale position proportionally
     const scaledPos: Point = {
       x: currentPos.x * scaleX,
       y: currentPos.y * scaleY,
@@ -181,9 +164,6 @@ export class EventsController {
     this.viewportSize = { width: innerWidth, height: innerHeight };
   };
 
-  /**
-   * Remove 'mousedown', 'keydown', and 'resize' listener
-   */
   public destroy(): void {
     document.removeEventListener('mousedown', this.handleClickOutside);
     window.removeEventListener('keydown', this.handleKeyDown);

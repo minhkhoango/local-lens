@@ -1,114 +1,80 @@
-import type { TesseractLang } from './language_map';
-import { ExtensionAction } from './types';
-import type { ExtensionMessage, OcrResponse } from './types';
-import Tesseract from 'tesseract.js';
+import { TabsConnectAction } from './types';
+import type {
+  EngineOption,
+  PerformOcrPayload,
+  SetupEnginePayload,
+  TabsConnect,
+} from './types';
+import { recognizeGranite, loadGranite } from './engine/granite';
+import { recognizeTesseract, loadTesseract } from './engine/tesseract';
+import { OCR_PORT } from './constants';
 
-let worker: Tesseract.Worker | null = null;
-let currentLanguage: string = 'eng';
+let engine: EngineOption = 'tesseract';
 
-chrome.runtime.onMessage.addListener(
-  (
-    message: ExtensionMessage,
-    _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: OcrResponse) => void,
-  ) => {
-    switch (message.action) {
-      case ExtensionAction.PERFORM_OCR:
-        console.debug(message.action);
-        const { croppedImage: cropped, language } = message.payload;
-        performRecognition(language, cropped, sendResponse);
-        return true; // Keep channel open for async response
+chrome.runtime.onConnect.addListener((port) => {
+  console.debug('Content script connected to port:', port.name);
+  if (port.name !== OCR_PORT) return;
+
+  port.onMessage.addListener((msg: TabsConnect) => {
+    switch (msg.action) {
+      case TabsConnectAction.SETUP_BEGIN:
+        (async () => {
+          await initEngine(msg.payload, port.postMessage.bind(port));
+        })();
+        break;
+      case TabsConnectAction.PERFORM_OCR:
+        (async () => {
+          await performOcr(msg.payload, port.postMessage.bind(port));
+        })();
+        break;
     }
-
     return false;
-  },
-);
+  });
+});
 
-/**
- * Run Tesseract OCR given language and image
- */
-async function performRecognition(
-  language: TesseractLang,
-  image: string | null,
-  sendResponse: (response: OcrResponse) => void,
-) {
-  if (!image) {
-    throw new Error('No saved cropped image found for retry');
-  }
-  // Initialize or reuse Tesseract worker
-  let engine: Tesseract.Worker;
-  try {
-    engine = await getWorker(language);
-  } catch (err) {
-    console.error('Worker initialization error:', err);
-    sendResponse({
-      status: 'error',
-      text: '',
-      confidence: 0,
+async function initEngine(
+  payload: SetupEnginePayload,
+  postMessage: (message: TabsConnect) => void,
+): Promise<void> {
+  const { engine: selectedEngine, language } = payload;
+  console.log('Offscreen init with lang:', language, 'engine:', selectedEngine);
+
+  engine = selectedEngine;
+  if (selectedEngine === 'tesseract' && language) {
+    postMessage({ action: TabsConnectAction.SETUP_DONE });
+    await loadTesseract(language).catch((err) => {
+      console.error('Failed to load Tesseract engine:', err);
     });
     return;
   }
-  // Update language after get new worker
-  currentLanguage = language;
 
-  console.debug(`engine: ${engine}, perform recognizing`);
-  try {
-    const result = await engine.recognize(image);
-    console.debug('result:', result);
-    console.debug('data:', result.data);
-    const confidence = result.data.confidence;
-    const text = result.data.text.trim();
-
-    console.debug(`OCR SUCCESS [confidence: ${confidence}%]:\n`);
-    sendResponse({
-      status: 'ok',
-      text: text,
-      confidence,
-    });
-  } catch (err) {
-    console.error('Recognition error:', err);
-    sendResponse({
-      status: 'error',
-      text: '',
-      confidence: 0,
-    });
-  }
-}
-
-/**
- * Get Tesseract worker. Reuse / reinitialize if found, and create new if not.
- *
- * KNOWN ISSUE: "Parameter not found" warnings during language initialization
- * These are legacy parameters embedded in the .traineddata, and are harmless
- * Infected: chi_sim, chi_tra, greek, italian, japanese, korean, vietnamese
- */
-async function getWorker(language: string): Promise<Tesseract.Worker> {
-  if (worker && currentLanguage === language) {
-    console.debug('reusing old worker');
-    return worker;
-  }
-
-  if (worker && currentLanguage !== language) {
-    console.debug(`re-init worker from ${currentLanguage} to ${language}`);
-    try {
-      await worker.reinitialize(language, 1);
-      return worker;
-    } catch (err) {
-      console.warn(`worker re-init failed: ${err}, return old worker`);
-      return worker;
-    }
-  }
-
-  console.debug('create new worker lang:', language);
-  worker = await Tesseract.createWorker(language, 1, {
-    workerBlobURL: false,
-    workerPath: 'tesseract_engine/worker.min.js',
-    corePath: 'tesseract_engine/',
-    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-    logger: (_m) => {},
+  await loadGranite(postMessage).catch((err) => {
+    console.error('Failed to load Granite engine:', err);
   });
-  return worker;
+  postMessage({ action: TabsConnectAction.SETUP_DONE });
 }
 
-// Start warming up the worker as soon as the offscreen doc loads
-getWorker(currentLanguage).catch((err) => console.error('Warmup failed:', err));
+async function performOcr(
+  payload: PerformOcrPayload,
+  postMessage: (message: TabsConnect) => void,
+): Promise<void> {
+  if (
+    (payload.engine === 'auto' && engine === 'tesseract') ||
+    payload.engine === 'tesseract'
+  ) {
+    if (!payload.language) {
+      console.error('Tesseract engine requires a language', payload);
+      return;
+    }
+    await recognizeTesseract(payload, postMessage);
+  } else if (
+    (payload.engine === 'auto' && engine === 'granite') ||
+    payload.engine === 'granite'
+  ) {
+    await recognizeGranite(payload, postMessage);
+  } else {
+    console.error('Unsupported engine specified:', payload.engine);
+    return;
+  }
+  return;
+}

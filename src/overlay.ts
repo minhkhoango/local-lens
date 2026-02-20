@@ -1,10 +1,10 @@
-import { ExtensionAction } from './types';
-import type { ExtensionMessage, SelectionRect, Point } from './types';
+import { RuntimeMessageAction } from './types';
+import type { RuntimeMessage, SelectionRect, Point } from './types';
 
 type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 const CSS = {
-  bg: 'rgba(0, 0, 0, 0.4)',
+  bgAlpha: 0.4,
   stroke: '#ffffff',
   radius: 28,
   lineWidth: 3,
@@ -14,7 +14,7 @@ const ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 
 /**
  * Darkens user's screen, prompt user to click & drag to create a rectangle,
- * then send the result to background message NOTIFY_CAPTURE_SUCCESS
+ * then send the result to background message BG_CAPTURE_SUCCESS
  * to forward to content
  */
 export class GhostOverlay {
@@ -22,15 +22,15 @@ export class GhostOverlay {
   private shadow: ShadowRoot;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null = null;
-
+  private backupMode: boolean;
   private notificationBanner: HTMLDivElement;
-  private cursorBubble: HTMLDivElement;
 
   private isDragging = false;
   private startPos: Point = { x: 0, y: 0 };
   private currentPos: Point = { x: 0, y: 0 };
+  private bgAlpha = 0;
 
-  constructor(overlayStyles: string) {
+  constructor(overlayStyles: string, backupMode: boolean) {
     console.debug('[Overlay]: Initiate overlay for screenshot rect');
     this.host = document.createElement('div');
     this.host.id = ID;
@@ -40,8 +40,8 @@ export class GhostOverlay {
     this.initStructure(overlayStyles);
 
     this.notificationBanner = document.createElement('div');
-    this.cursorBubble = document.createElement('div');
     this.initNotificationUI();
+    this.backupMode = backupMode;
   }
 
   /**
@@ -65,7 +65,7 @@ export class GhostOverlay {
   }
 
   /**
-   * Create notification banner and cursor bubble UI elements
+   * Create notification banner
    */
   private initNotificationUI(): void {
     console.debug('[Overlay]: Create notification banner and cursor bubble');
@@ -77,57 +77,67 @@ export class GhostOverlay {
     lenIcon.className = 'icon';
 
     const bannerText = document.createElement('span');
-    bannerText.textContent = chrome.i18n.getMessage('ui_instruction_banner');
+    bannerText.textContent = 'Loading model...';
 
     this.notificationBanner.appendChild(lenIcon);
     this.notificationBanner.appendChild(bannerText);
     this.shadow.appendChild(this.notificationBanner);
-
-    this.cursorBubble.className = 'cursor-bubble';
-
-    const bubbleIcon = document.createElement('div');
-    bubbleIcon.innerHTML = ICON;
-    bubbleIcon.className = 'icon';
-
-    this.cursorBubble.appendChild(bubbleIcon);
-    this.shadow.appendChild(this.cursorBubble);
   }
 
-  /**
-   * Mount overlay on screen if not already
-   */
+  /** Mount overlay on screen if not already */
   public mount(): void {
     console.debug('[Overlay]: Mount overlay on screen');
     if (!document.getElementById(ID)) {
       document.body.appendChild(this.host);
     }
+
+    this.host.style.pointerEvents = 'none';
+
+    if (!this.ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+    this.ctx.fillStyle = `rgba(0,0,0,0.4)`;
+    this.ctx.fillRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
   }
 
-  /**
-   * Enables '+' mouse, listen to mousedown and 'Escape'
-   */
+  public loadingProgress(progress: number): void {
+    const bannerText = this.notificationBanner.querySelector('span');
+    if (!bannerText) return;
+    bannerText.textContent = `Loading model ${progress}%`;
+  }
+
+  /** Enables '+' mouse, listen to mousedown and 'Escape' */
   public activate(): void {
     console.debug('[Overlay] Enables + mouse, listen to mousedown');
     this.host.style.pointerEvents = 'auto';
-    this.canvas.addEventListener('mouseenter', this.handleBubbleMove, {
-      once: true,
-    });
-    this.canvas.addEventListener('mousemove', this.handleBubbleMove);
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
     window.addEventListener('keydown', this.handleKeyDown);
 
-    this.draw();
+    const bannerText = this.notificationBanner.querySelector('span');
+    if (!bannerText) return;
+    bannerText.textContent = `Click and drag to extract text`;
+
+    if (!this.ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+
+    const flash = document.createElement('div');
+    flash.className = 'flash-effect';
+    this.shadow.appendChild(flash);
+
+    flash.addEventListener(
+      'animationend',
+      () => {
+        flash.remove();
+      },
+      { once: true },
+    );
   }
 
-  /**
-   * Remove overlay
-   */
   public destroy(): void {
     console.debug('[Overlay] remove listener, "escape" keydown, & box');
     if (this.notificationBanner) this.notificationBanner.remove();
-    this.cursorBubble.remove();
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
-    this.canvas.removeEventListener('mousemove', this.handleBubbleMove);
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);
     window.removeEventListener('keydown', this.handleKeyDown);
@@ -139,31 +149,44 @@ export class GhostOverlay {
    * - listen to 'mousemove' to update white rectangle
    * - listen to 'mouseup' to capture SelectionRect & send to background
    */
-  private handleMouseDown = (e: MouseEvent): void => {
+  private handleMouseDown = async (e: MouseEvent) => {
+    this.notificationBanner.remove();
+    if (this.backupMode) {
+      await chrome.runtime.sendMessage<RuntimeMessage>({
+        action: RuntimeMessageAction.CAPTURE_VISIBLE_TAB,
+      });
+    }
+
     this.isDragging = true;
     this.startPos = { x: e.clientX, y: e.clientY };
     this.currentPos = { x: e.clientX, y: e.clientY };
     e.preventDefault();
-    // document > this.canvas for mouse release outside tab
+
+    document.addEventListener('mousemove', this.startFade, { once: true });
     document.addEventListener('mousemove', this.handleMouseMove);
     document.addEventListener('mouseup', this.handleMouseUp);
-
-    this.notificationBanner.remove();
-    this.draw();
   };
 
   /**
-   * Redraws updated white rectangle & update bubble pos
+   * Dark background fade in for 300ms, then stay at 0.4
    */
+  private startFade = (): void => {
+    const fadeStart = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min((now - fadeStart) / 300, 1);
+      this.bgAlpha = t * CSS.bgAlpha;
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+
   private handleMouseMove = (e: MouseEvent): void => {
     if (!this.isDragging) return;
     this.currentPos = { x: e.clientX, y: e.clientY };
     this.draw();
   };
 
-  /**
-   * Check rect, send image to BG, destroy
-   */
+  /** Check rect, send image to BG, destroy */
   private handleMouseUp = (): void => {
     console.debug(
       '[Overlay] on mouseup, check rect, send image to BG, destroy',
@@ -175,17 +198,14 @@ export class GhostOverlay {
 
     if (rect.width > 5 && rect.height > 5) {
       console.debug('Image captured:', rect);
-      chrome.runtime.sendMessage<ExtensionMessage>({
-        action: ExtensionAction.NOTIFY_CAPTURE_SUCCESS,
+      chrome.runtime.sendMessage<RuntimeMessage>({
+        action: RuntimeMessageAction.CAPTURE_SUCCESS,
         payload: rect,
       });
     }
     this.destroy();
   };
 
-  /**
-   * Destroy on 'Escape'
-   */
   private handleKeyDown = (e: KeyboardEvent): void => {
     console.debug('[Overlay] destroy on "Escape"');
     if (e.key === 'Escape') this.destroy();
@@ -199,48 +219,36 @@ export class GhostOverlay {
     if (!this.ctx) return;
     const dpr = window.devicePixelRatio || 1;
     this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
-    this.ctx.fillStyle = CSS.bg;
+    this.ctx.fillStyle = `rgba(0,0,0,${this.bgAlpha})`;
     this.ctx.fillRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
 
-    if (this.isDragging || this.startPos.x !== 0) {
-      const { x, y, width, height } = this.getSelectionRect();
-      const r = Math.min(CSS.radius, width / 3, height / 3);
-      const corner = this.getActiveCorner();
+    if (!this.isDragging && this.startPos.x === 0) return;
 
-      this.ctx.beginPath();
+    const { x, y, width, height } = this.getSelectionRect();
+    const r = Math.min(CSS.radius, width / 3, height / 3);
+    const corner = this.getActiveCorner();
 
-      const radii = [r, r, r, r];
-      if (corner === 'top-left') radii[0] = 0;
-      if (corner === 'top-right') radii[1] = 0;
-      if (corner === 'bottom-right') radii[2] = 0;
-      if (corner === 'bottom-left') radii[3] = 0;
+    this.ctx.beginPath();
 
-      this.ctx.roundRect(x, y, width, height, radii);
+    const radii = [r, r, r, r];
+    if (corner === 'top-left') radii[0] = 0;
+    if (corner === 'top-right') radii[1] = 0;
+    if (corner === 'bottom-right') radii[2] = 0;
+    if (corner === 'bottom-left') radii[3] = 0;
 
-      // Cut out "hole" for lens effect
-      // 'destination-out' removes pixels from existing canvas
-      this.ctx.globalCompositeOperation = 'destination-out';
-      this.ctx.fillStyle = 'black';
-      this.ctx.fill();
+    this.ctx.roundRect(x, y, width, height, radii);
 
-      // Draw the border
-      this.ctx.globalCompositeOperation = 'source-over';
-      this.ctx.strokeStyle = CSS.stroke;
-      this.ctx.lineWidth = CSS.lineWidth;
-      this.ctx.stroke();
-    }
+    this.ctx.globalCompositeOperation = 'destination-out';
+    this.ctx.fillStyle = 'black';
+    this.ctx.fill();
+
+    this.ctx.globalCompositeOperation = 'source-over';
+    this.ctx.strokeStyle = CSS.stroke;
+    this.ctx.lineWidth = CSS.lineWidth;
+    this.ctx.stroke();
   }
 
-  private handleBubbleMove = (e: MouseEvent): void => {
-    this.cursorBubble.style.left = `${e.clientX + 6}px`;
-    this.cursorBubble.style.top = `${e.clientY + 6}px`;
-  };
-
-  /**
-   * Get current sharp corner based on start position and current position
-   */
   private getActiveCorner(): Corner {
-    // Determine which corner is active based on drag direction
     const draggingRight = this.currentPos.x >= this.startPos.x;
     const draggingDown = this.currentPos.y >= this.startPos.y;
 
@@ -254,7 +262,6 @@ export class GhostOverlay {
    * The payload of overlay, with bounded coordinates
    */
   private getSelectionRect(): SelectionRect {
-    // Clamp viewport boundaries when mouse leaves window
     const clampedCurrentPos: Point = {
       x: Math.max(0, Math.min(this.currentPos.x, window.innerWidth)),
       y: Math.max(0, Math.min(this.currentPos.y, window.innerHeight)),

@@ -1,6 +1,5 @@
 :host {
   --z-index: 2147483647;
-  --bg: rgba(0, 0, 0, 0.4);
   --stroke: #ffffff;
   --surface: #e9eef6;
   --text: #1f1f1f;
@@ -31,6 +30,7 @@
   color: var(--text);
   padding: 12px 16px 12px 10px;
   border-radius: 28px;
+  width: 185px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -46,18 +46,27 @@
   transition: var(--transition);
 }
 
-.cursor-bubble {
-  position: absolute;
-  padding: 2px;
-  border-radius: 12px;
-  color: var(--text);
-  background: var(--surface);
-  z-index: var(--z-index);
-  pointer-events: none;
-}
-
 .icon {
   width: 24px;
   height: 24px;
   display: block;
+}
+
+.flash-effect {
+  position: fixed;
+  inset: 0; /* Shorthand for top:0, left:0, w:100%, h:100% */
+  background-color: rgba(195, 216, 252, 0.06);
+  z-index: var(--z-index);
+  pointer-events: none;
+  opacity: 0;
+  animation: flash-fade 400ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@keyframes flash-fade {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
