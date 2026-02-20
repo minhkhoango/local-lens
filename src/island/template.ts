@@ -100,7 +100,7 @@ function renderSettingsRows(state: State, webgpuSupported: boolean): string {
           if (
             config.key === 'engine' &&
             value === 'granite' &&
-            !webgpuSupported
+            webgpuSupported == false
           ) {
             return `<option value="${value}" ${isSelected} disabled title="WebGPU not supported">${display} (unavailable)</option>`;
           }

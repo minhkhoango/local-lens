@@ -317,8 +317,8 @@ async function ensureOffscreenLoaded(): Promise<void> {
  * Create / ensure floatingIsland UI is ready to be initiated
  */
 async function ensureContentLoaded(tabId: number): Promise<void> {
+  const supported = await webGpuSupported();
   try {
-    const supported = await webGpuSupported();
     await chrome.tabs.sendMessage<TabsMessage>(tabId, {
       action: TabsMessageAction.PING_CONTENT,
       payload: {
@@ -329,6 +329,14 @@ async function ensureContentLoaded(tabId: number): Promise<void> {
     await chrome.scripting.executeScript({
       target: { tabId },
       files: [FILES_PATH.CONTENT_SCRIPT],
+    });
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
+
+    await chrome.tabs.sendMessage<TabsMessage>(tabId, {
+      action: TabsMessageAction.PING_CONTENT,
+      payload: {
+        webGpuSupported: supported,
+      },
     });
   }
 }

@@ -220,10 +220,10 @@ export class View {
 
     if (status === 'downloading') {
       if (progress === undefined) {
-        this.els.status.textContent = 'Downloading...';
+        this.els.status.textContent = 'Loading...';
         return;
       }
-      this.els.status.textContent = `Downloading ${progress}%`;
+      this.els.status.textContent = `Loading ${progress}%`;
       return;
     }
     if (status === 'loading-model') {
