@@ -108,7 +108,11 @@ export class FloatingIsland {
   public updateFinish(result: ResultPayload): void {
     this.state.status = 'done';
     this.state.clipboardOutput = result.output;
-    this.state.textarea = result.output.textHtml;
+    if (!result.output.textHtml) {
+      this.state.textarea = result.output.textPlain;
+    } else {
+      this.state.textarea = result.output.textHtml;
+    }
     if (this.state.settings.autoCopy) this.copyToClipboard();
     this.view.updateOcrState(this.state);
   }
@@ -216,24 +220,27 @@ export class FloatingIsland {
       !this.state.clipboardOutput.textPlain
     )
       return;
+
+    const double$Formula = this.state.clipboardOutput.textHtml
+      .replace(
+        /<div class="formula">([\s\S]*?)<\/div>/g,
+        '<div class="formula">$$$$$1$$$$</div>',
+      )
+      .replace(
+        /<span class="formula">([\s\S]*?)<\/span>/g,
+        '<span class="formula">$$$$$1$$$$</span>',
+      );
+
+    const item = new ClipboardItem({
+      'text/plain': new Blob([this.state.clipboardOutput.textPlain], {
+        type: 'text/plain',
+      }),
+      'text/html': new Blob([double$Formula], {
+        type: 'text/html',
+      }),
+    });
+
     try {
-      const double$Formula = this.state.clipboardOutput.textHtml
-        .replace(
-          /<div class="formula">([\s\S]*?)<\/div>/g,
-          '<div class="formula">$$$$$1$$$$</div>',
-        )
-        .replace(
-          /<span class="formula">([\s\S]*?)<\/span>/g,
-          '<span class="formula">$$$$$1$$$$</span>',
-        );
-      const item = new ClipboardItem({
-        'text/plain': new Blob([this.state.clipboardOutput.textPlain], {
-          type: 'text/plain',
-        }),
-        'text/html': new Blob([double$Formula], {
-          type: 'text/html',
-        }),
-      });
       await navigator.clipboard.write([item]);
       this.state.hasCopied = true;
       this.view.updateCopyBtn(this.state.status, this.state.hasCopied);

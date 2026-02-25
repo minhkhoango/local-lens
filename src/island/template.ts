@@ -49,7 +49,7 @@ const ENGINE_OPTIONS: Record<EngineOption, string> = {
 
 interface ToggleSettingsConfig {
   key: keyof ToggleSettings;
-  labelKey: 'Auto-Copy' | 'Auto-Expand';
+  labelKey: 'Automatically copy text' | 'Automatically expand textarea';
   type: 'toggle';
 }
 
@@ -78,8 +78,12 @@ const SELECT_SETTINGS: SelectSettingsConfig[] = [
 ];
 
 const TOGGLE_SETTINGS: ToggleSettingsConfig[] = [
-  { key: 'autoCopy', labelKey: 'Auto-Copy', type: 'toggle' },
-  { key: 'autoExpand', labelKey: 'Auto-Expand', type: 'toggle' },
+  { key: 'autoCopy', labelKey: 'Automatically copy text', type: 'toggle' },
+  {
+    key: 'autoExpand',
+    labelKey: 'Automatically expand textarea',
+    type: 'toggle',
+  },
 ];
 
 const SETTINGS_CONFIG: SettingsConfig[] = [

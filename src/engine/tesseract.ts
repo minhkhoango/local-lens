@@ -39,9 +39,10 @@ export async function recognizeTesseract(
   try {
     const result = await worker.recognize(croppedImage);
     console.debug('result:', result);
-    console.debug('data:', result.data);
     const confidence = result.data.confidence;
-    const text = result.data.text.trim();
+    const textPlain = result.data.text.trim();
+    console.debug('text:', textPlain);
+    const textHtml = textPlain.replace(/\n/g, '<br>');
 
     console.debug(`OCR SUCCESS [confidence: ${confidence}%]:\n`);
     postMessage({
@@ -49,8 +50,8 @@ export async function recognizeTesseract(
       payload: {
         stage: 'done',
         output: {
-          textPlain: text,
-          textHtml: text,
+          textPlain: textPlain,
+          textHtml: textHtml,
         },
       },
     });
