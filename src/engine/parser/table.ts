@@ -1,7 +1,6 @@
 import TurndownService from 'turndown';
 
 const indexOf = Array.prototype.indexOf;
-const every = Array.prototype.every;
 const rules: Record<string, TurndownService.Rule> = {};
 
 rules.tableCell = {
@@ -75,10 +74,7 @@ function isHeadingRow(tr: HTMLTableRowElement | null): boolean {
     parentNode.nodeName === 'THEAD' ||
     (parentNode.firstChild === tr &&
       (parentNode.nodeName === 'TABLE' ||
-        isFirstTbody(parentNode as HTMLElement)) &&
-      every.call(tr.childNodes, function (n: Node) {
-        return n.nodeName === 'TH';
-      }))
+        isFirstTbody(parentNode as HTMLElement)))
   );
 }
 

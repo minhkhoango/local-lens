@@ -41,7 +41,7 @@ export class Storage {
 
       return response.shortcut;
     } catch {
-      return 'Set shortcut';
+      return INITIAL_STATE.shortcutText;
     }
   }
 

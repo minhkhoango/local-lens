@@ -1,47 +1,82 @@
 import type { PerformOcrPayload, TabsConnect } from '../types';
 import Tesseract from 'tesseract.js';
 
-let worker: Tesseract.Worker | null = null;
-let currentLanguage: string = 'eng';
+export class TesseractEngine {
+  private worker: Tesseract.Worker | null = null;
+  private currentLanguage: string = 'eng';
 
-export async function recognizeTesseract(
-  payload: PerformOcrPayload,
-  postMessage: (message: TabsConnect) => void,
-): Promise<void> {
-  const { croppedImage, language } = payload;
-  if (!croppedImage || !language) {
-    throw new Error('No saved cropped image or language found for retry');
-  }
-
-  try {
-    await loadTesseract(language);
-    if (!worker) {
-      throw new Error('Failed to load Tesseract worker');
+  public async load(language: string): Promise<void> {
+    if (this.worker && this.currentLanguage === language) {
+      console.debug('reusing old worker');
+      return;
     }
-  } catch (err) {
-    postMessage({
-      action: 'ERROR',
-      payload: {
-        stage: 'error',
-        error: 'Failed to initialize Tesseract worker',
-      },
+
+    if (this.worker && this.currentLanguage !== language) {
+      console.debug(
+        `re-init worker from ${this.currentLanguage} to ${language}`,
+      );
+      try {
+        await this.worker.reinitialize(language, 1);
+        return;
+      } catch (err) {
+        console.warn(`worker re-init failed: ${err}, return old worker`);
+        return;
+      }
+    }
+
+    console.debug('create new worker lang:', language);
+    this.worker = await Tesseract.createWorker(language, 1, {
+      workerBlobURL: false,
+      workerPath: 'tesseract_engine/worker.min.js',
+      corePath: 'tesseract_engine/',
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
     });
-    throw err;
   }
 
-  currentLanguage = language;
+  public async recognize(
+    payload: PerformOcrPayload,
+    postMessage: (message: TabsConnect) => void,
+  ): Promise<void> {
+    const { croppedImage, language } = payload;
+    if (!croppedImage || !language) {
+      throw new Error('No saved cropped image or language found for retry');
+    }
 
-  console.debug(`perform recognizing`);
-  postMessage({
-    action: 'PROGRESS',
-    payload: { stage: 'recognizing', text: '' },
-  });
-  try {
-    const result = await worker.recognize(croppedImage);
-    console.debug('result:', result);
+    await this.load(language);
+    if (!this.worker) {
+      postMessage({
+        action: 'ERROR',
+        payload: {
+          stage: 'error',
+          error: chrome.i18n.getMessage('engine_fast_err_init'),
+        },
+      });
+      return;
+    }
+
+    this.currentLanguage = language;
+    postMessage({
+      action: 'PROGRESS',
+      payload: { stage: 'recognizing', text: '' },
+    });
+
+    let result: Tesseract.RecognizeResult;
+    try {
+      result = await this.worker.recognize(croppedImage);
+    } catch (err) {
+      console.error('Recognition error:', err);
+      postMessage({
+        action: 'ERROR',
+        payload: {
+          stage: 'error',
+          error: chrome.i18n.getMessage('engine_fast_err_recognize'),
+        },
+      });
+      return;
+    }
+
     const confidence = result.data.confidence;
     const textPlain = result.data.text.trim();
-    console.debug('text:', textPlain);
     const textHtml = textPlain.replace(/\n/g, '<br>');
 
     console.debug(`OCR SUCCESS [confidence: ${confidence}%]:\n`);
@@ -55,39 +90,13 @@ export async function recognizeTesseract(
         },
       },
     });
-  } catch (err) {
-    console.error('Recognition error:', err);
-    postMessage({
-      action: 'ERROR',
-      payload: {
-        stage: 'error',
-        error: `Tesseract recognition failed: ${err}`,
-      },
-    });
-  }
-}
-
-export async function loadTesseract(language: string): Promise<void> {
-  if (worker && currentLanguage === language) {
-    console.debug('reusing old worker');
-    return;
   }
 
-  if (worker && currentLanguage !== language) {
-    console.debug(`re-init worker from ${currentLanguage} to ${language}`);
+  public async stop(): Promise<void> {
+    if (!this.worker) return;
     try {
-      await worker.reinitialize(language, 1);
-    } catch (err) {
-      console.warn(`worker re-init failed: ${err}, return old worker`);
-    }
+      await this.worker.terminate();
+      this.worker = null;
+    } catch {}
   }
-
-  console.debug('create new worker lang:', language);
-  worker = await Tesseract.createWorker(language, 1, {
-    workerBlobURL: false,
-    workerPath: 'tesseract_engine/worker.min.js',
-    corePath: 'tesseract_engine/',
-    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-    logger: (_m) => {},
-  });
 }

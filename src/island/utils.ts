@@ -1,5 +1,5 @@
 import { CONFIG } from './constants';
-import type { Point } from '../types';
+import type { EngineOption, Point } from '../types';
 
 /**
  * Wrapper for querySelector with error handling
@@ -33,20 +33,83 @@ export function queryAll<T extends NodeListOf<HTMLElement>>(
 
 let measurementCanvas: HTMLCanvasElement | null = null;
 
+function getTesseractMaxWidth(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+): number {
+  const brChunks = text.split('<br>').map((chunk) => chunk.trim());
+  const longestChunk = brChunks.reduce(
+    (longest, current) => (current.length > longest.length ? current : longest),
+    '',
+  );
+  return ctx.measureText(longestChunk).width;
+}
+
+const TABLE_CELL_H_PAD = 20;
+const TABLE_CELL_BORDER = 1;
+const TABLE_BORDER = 1;
+const PRE_H_PAD = 22;
+const PRE_BORDER = 2;
+const PRE_TAB_SIZE = 4;
+
+function getGraniteMaxWidth(
+  ctx: CanvasRenderingContext2D,
+  html: string,
+): number {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+
+  let maxWidth = 0;
+
+  const blockEls = div.querySelectorAll(
+    'p, h3, li, figcaption, blockquote, dt, dd',
+  );
+  blockEls.forEach((el) => {
+    const width = ctx.measureText(el.textContent || '').width;
+    if (width > maxWidth) maxWidth = width;
+  });
+
+  // Table rows
+  const rows = div.querySelectorAll('tr');
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll('th, td');
+    const cellCount = cells.length;
+    let rowWidth = 0;
+    cells.forEach((cell) => {
+      rowWidth +=
+        ctx.measureText(cell.textContent || '').width + TABLE_CELL_H_PAD;
+    });
+    rowWidth +=
+      Math.max(0, cellCount - 1) * TABLE_CELL_BORDER + TABLE_BORDER * 2;
+    if (rowWidth > maxWidth) maxWidth = rowWidth;
+  });
+
+  // Code blocks
+  const tabSpaces = ' '.repeat(PRE_TAB_SIZE);
+  const codeEls = div.querySelectorAll('pre > code');
+  codeEls.forEach((el) => {
+    const text = el.textContent || '';
+    text.split('\n').forEach((line) => {
+      const expanded = line.replace(/\t/g, tabSpaces);
+      const width = ctx.measureText(expanded).width + PRE_H_PAD + PRE_BORDER;
+      if (width > maxWidth) maxWidth = width;
+    });
+  });
+
+  return maxWidth;
+}
+
 /**
  * Take in raw OCR text output and return width of whole floatingIsland
  * Width is calculated using longest 1 line between \n and island x4 12px pad
  * @param text Output trimmed text from offline ocr
  * @returns Floating Island's width
  */
-export function calculateDynamicWidth(text: string): number {
+export function calculateDynamicWidth(
+  engine: EngineOption,
+  text: string,
+): number {
   if (!text) return CONFIG.widthCollapsed;
-
-  const chunks = text.split('\n').map((chunk) => chunk.trim());
-  const longestChunk = chunks.reduce(
-    (longest, current) => (current.length > longest.length ? current : longest),
-    '',
-  );
 
   if (!measurementCanvas) {
     measurementCanvas = document.createElement('canvas');
@@ -58,9 +121,15 @@ export function calculateDynamicWidth(text: string): number {
   ctx.font = `${CONFIG.font.sizeSmall}px ${CONFIG.font.mono}`;
 
   try {
-    const metrics = ctx.measureText(longestChunk);
+    let contentWidth: number;
+    if (engine === 'granite') {
+      contentWidth = getGraniteMaxWidth(ctx, text);
+    } else {
+      contentWidth = getTesseractMaxWidth(ctx, text);
+    }
+
     // 4x pad (dis between, border <12> textarea <12> text) + 1 backup
-    const totalWidth = metrics.width + CONFIG.layoutPad * 5;
+    const totalWidth = contentWidth + CONFIG.layoutPad * 5;
 
     const dynamicWidth = Math.max(
       CONFIG.widthCollapsed,

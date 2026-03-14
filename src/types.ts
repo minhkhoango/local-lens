@@ -131,10 +131,9 @@ export const RuntimeMessageAction = {
   CAPTURE_SUCCESS: 'CAPTURE_SUCCESS',
   BG_PERFORM_OCR: 'BG_PERFORM_OCR',
   ENSURE_OFFSCREEN: 'ENSURE_OFFSCREEN',
-  DESTROY_OFFSCREEN: 'DESTROY_OFFSCREEN',
+  STOP_OFFSCREEN: 'STOP_OFFSCREEN',
   OPEN_SHORTCUTS_PAGE: 'OPEN_SHORTCUTS_PAGE',
   GET_SHORTCUT: 'GET_SHORTCUT',
-  NEW_CAPTURE: 'NEW_CAPTURE',
 } as const;
 
 export type RuntimeMessageAction =
@@ -154,10 +153,9 @@ export type RuntimeMessage =
       payload: PerformOcrPayload;
     }
   | { action: typeof RuntimeMessageAction.ENSURE_OFFSCREEN }
-  | { action: typeof RuntimeMessageAction.DESTROY_OFFSCREEN }
+  | { action: typeof RuntimeMessageAction.STOP_OFFSCREEN }
   | { action: typeof RuntimeMessageAction.OPEN_SHORTCUTS_PAGE }
-  | { action: typeof RuntimeMessageAction.GET_SHORTCUT }
-  | { action: typeof RuntimeMessageAction.NEW_CAPTURE };
+  | { action: typeof RuntimeMessageAction.GET_SHORTCUT };
 
 export interface SetupEnginePayload {
   engine: EngineOption;

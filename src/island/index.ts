@@ -44,7 +44,7 @@ export class FloatingIsland {
     this.host = document.createElement('div');
     this.host.id = ID;
 
-    this.state = { ...INITIAL_STATE, imageUrl };
+    this.state = { ...INITIAL_STATE, imageUrl, isPdf, webgpuSupported };
     this.position = clampToViewport(
       cursorPosition,
       CONFIG.widthCollapsed,
@@ -64,7 +64,7 @@ export class FloatingIsland {
     this.storage.loadSettings().then(async (settings) => {
       this.state.settings = settings;
       this.state.shortcutText = await this.storage.getShortcut();
-      await this.view.init(this.state, webgpuSupported);
+      await this.view.init(this.state);
 
       this.updatePosition(this.position);
       this.eventsCtrl?.attach();
@@ -114,6 +114,7 @@ export class FloatingIsland {
       this.state.textarea = result.output.textHtml;
     }
     if (this.state.settings.autoCopy) this.copyToClipboard();
+    this.updateIslandWidth();
     this.view.updateOcrState(this.state);
   }
 
@@ -127,8 +128,8 @@ export class FloatingIsland {
     this.host.remove();
 
     if (!keepOffscreen) {
-      await chrome.runtime.sendMessage<RuntimeMessage>({
-        action: RuntimeMessageAction.DESTROY_OFFSCREEN,
+      chrome.runtime.sendMessage<RuntimeMessage>({
+        action: RuntimeMessageAction.STOP_OFFSCREEN,
       });
     }
   }
@@ -138,13 +139,10 @@ export class FloatingIsland {
    * Handle user input sent from view.ts
    */
   private handleAction(action: Action): void {
-    console.debug('[Island.action] handAction:', action);
+    console.debug('[Island.action] handAction:', action.type);
     switch (action.type) {
       case 'copy':
         this.copyToClipboard();
-        break;
-      case 'newCapture':
-        this.restartCapture();
         break;
       case 'expandSettings':
         this.toggleSettingsExpand();
@@ -169,12 +167,6 @@ export class FloatingIsland {
         break;
     }
   }
-  private restartCapture(): void {
-    this.destroy(true);
-    chrome.runtime.sendMessage<RuntimeMessage>({
-      action: RuntimeMessageAction.NEW_CAPTURE,
-    });
-  }
 
   private updatePosition(pos: Point): void {
     const constrained = clampToViewport(
@@ -188,11 +180,19 @@ export class FloatingIsland {
 
   private toggleTextareaExpand(): void {
     this.state.isTextExpanded = !this.state.isTextExpanded;
+    this.view.updateTextareaExpand(
+      this.state.textarea,
+      this.state.isTextExpanded,
+    );
+    this.updateIslandWidth();
+  }
 
+  private updateIslandWidth(): void {
+    const engine = this.state.settings.engine;
     const oldWidth =
       parseFloat(this.view.container.style.width) || CONFIG.widthCollapsed;
     const width = this.state.isTextExpanded
-      ? calculateDynamicWidth(this.state.textarea)
+      ? calculateDynamicWidth(engine, this.state.textarea)
       : CONFIG.widthCollapsed;
 
     // Expand to left / collapse to right
@@ -200,11 +200,8 @@ export class FloatingIsland {
     if (widthDelta !== 0) {
       this.position.x -= widthDelta;
     }
-    this.view.updateTextareaExpand(
-      this.state.textarea,
-      this.state.isTextExpanded,
-      width,
-    );
+
+    this.view.updateIslandWidth(width);
     this.updatePosition(this.position);
   }
 
@@ -221,6 +218,7 @@ export class FloatingIsland {
     )
       return;
 
+    // to support auto render equations on google docs
     const double$Formula = this.state.clipboardOutput.textHtml
       .replace(
         /<div class="formula">([\s\S]*?)<\/div>/g,
@@ -230,12 +228,15 @@ export class FloatingIsland {
         /<span class="formula">([\s\S]*?)<\/span>/g,
         '<span class="formula">$$$$$1$$$$</span>',
       );
+    const finalHtml =
+      '<style>table,th,td{border:1px solid black;border-collapse:collapse;padding:4px}</style>' +
+      double$Formula;
 
     const item = new ClipboardItem({
       'text/plain': new Blob([this.state.clipboardOutput.textPlain], {
         type: 'text/plain',
       }),
-      'text/html': new Blob([double$Formula], {
+      'text/html': new Blob([finalHtml], {
         type: 'text/html',
       }),
     });

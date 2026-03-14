@@ -97,9 +97,6 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
   if (imageUrl) capturedImage = imageUrl;
   if (activeOverlay) activeOverlay.destroy();
 
-  activeOverlay = new GhostOverlay(overlayStyles, !imageUrl);
-  activeOverlay.mount();
-
   let language: TesseractLang = 'eng';
   let engine: EngineOption = 'tesseract';
   try {
@@ -108,6 +105,9 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
     language = saved.language || 'eng';
     engine = saved.engine || 'tesseract';
   } catch {}
+
+  activeOverlay = new GhostOverlay(overlayStyles, !imageUrl, engine);
+  activeOverlay.mount();
 
   const port = await chrome.runtime.connect({ name: OCR_PORT });
   port.onMessage.addListener((msg: TabsConnect) => {
@@ -136,6 +136,10 @@ async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
   console.debug('handle capture success');
 
   try {
+    // Analyze image quality for OCR and log recommendation
+    // const analysis = await analyzeImageForOcr(capturedImage, rect);
+    // console.log('analyzeImageForOcr result:', analysis);
+
     console.debug(`cropping capturedImage to rect: ${rect}`);
     croppedImage = await cropImage(capturedImage, rect);
     cursorPosition = {
@@ -256,6 +260,41 @@ async function cropImage(
   return canvas.toDataURL(`image/png`);
 }
 
+// async function analyzeImageForOcr(
+//   dataUrl: string,
+//   rect: SelectionRect,
+// ): Promise<{
+//   pixelWidth: number;
+//   pixelHeight: number;
+//   effectiveDpi: number;
+//   recommendation: string;
+// }> {
+//   const img = new Image();
+//   await new Promise((resolve, reject) => {
+//     img.onload = resolve;
+//     img.onerror = reject;
+//     img.src = dataUrl;
+//   });
+
+//   const dpr = rect.devicePixelRatio || 1;
+//   const pixelWidth = rect.width * dpr;
+//   const pixelHeight = rect.height * dpr;
+
+//   // Extension runs on ChromeOS and Windows, so assume 96
+//   const effectiveDpi = dpr * 96;
+
+//   let recommendation = '';
+//   if (effectiveDpi < 150) {
+//     recommendation = 'Low quality - consider upscaling for better OCR';
+//   } else if (effectiveDpi < 300) {
+//     recommendation = 'Acceptable - may benefit from upscaling';
+//   } else {
+//     recommendation = 'Good quality for OCR';
+//   }
+
+//   return { pixelWidth, pixelHeight, effectiveDpi, recommendation };
+// }
+
 /** Find translation language */
 async function getUserLanguage(): Promise<TesseractLang> {
   try {
@@ -274,7 +313,7 @@ function setupBackupDisplay(payload: ImagePayload): void {
     capturedImage = imageUrl;
 
     const title = document.createElement('title');
-    title.textContent = 'Screenshot of original tab';
+    title.textContent = chrome.i18n.getMessage('backup_tab_name');
     document.head.append(title);
 
     const styleElement = document.createElement('style');
@@ -289,7 +328,6 @@ function setupBackupDisplay(payload: ImagePayload): void {
 
     const img = document.createElement('img');
     img.src = imageUrl;
-    img.alt = 'screenshot';
     img.onerror = () => {
       console.error('Failed to load backup image');
     };
@@ -297,8 +335,7 @@ function setupBackupDisplay(payload: ImagePayload): void {
 
     const banner = document.createElement('div');
     banner.className = CLASSES.banner;
-    banner.textContent =
-      'Original tab was protected. Using read-only screenshot.';
+    banner.textContent = chrome.i18n.getMessage('backup_banner');
     document.body.appendChild(banner);
   } catch (err) {
     console.error('Failed to setup backup display:', err);

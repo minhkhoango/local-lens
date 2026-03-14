@@ -1,15 +1,26 @@
-import { TabsConnectAction } from './types';
+import { TabsConnectAction, RuntimeMessageAction } from './types';
 import type {
   EngineOption,
   PerformOcrPayload,
+  RuntimeMessage,
   SetupEnginePayload,
   TabsConnect,
 } from './types';
-import { recognizeGranite, loadGranite } from './engine/granite';
-import { recognizeTesseract, loadTesseract } from './engine/tesseract';
+import { GraniteEngine } from './engine/granite';
+import { TesseractEngine } from './engine/tesseract';
 import { OCR_PORT } from './constants';
 
 let engine: EngineOption = 'tesseract';
+let graniteEngine: GraniteEngine = new GraniteEngine();
+let tesseractEngine: TesseractEngine = new TesseractEngine();
+
+chrome.runtime.onMessage.addListener((message: RuntimeMessage, _sender) => {
+  if (message.action === RuntimeMessageAction.STOP_OFFSCREEN) {
+    console.debug('[Offscreen] Received STOP_OFFSCREEN message');
+    stopOcr();
+  }
+  return false;
+});
 
 chrome.runtime.onConnect.addListener((port) => {
   console.debug('Content script connected to port:', port.name);
@@ -42,15 +53,11 @@ async function initEngine(
   engine = selectedEngine;
   if (selectedEngine === 'tesseract' && language) {
     postMessage({ action: TabsConnectAction.SETUP_DONE });
-    await loadTesseract(language).catch((err) => {
-      console.error('Failed to load Tesseract engine:', err);
-    });
+    await tesseractEngine.load(language);
     return;
   }
 
-  await loadGranite(postMessage).catch((err) => {
-    console.error('Failed to load Granite engine:', err);
-  });
+  await graniteEngine.load(postMessage);
   postMessage({ action: TabsConnectAction.SETUP_DONE });
 }
 
@@ -58,23 +65,36 @@ async function performOcr(
   payload: PerformOcrPayload,
   postMessage: (message: TabsConnect) => void,
 ): Promise<void> {
-  if (
-    (payload.engine === 'auto' && engine === 'tesseract') ||
-    payload.engine === 'tesseract'
-  ) {
-    if (!payload.language) {
-      console.error('Tesseract engine requires a language', payload);
-      return;
-    }
-    await recognizeTesseract(payload, postMessage);
-  } else if (
-    (payload.engine === 'auto' && engine === 'granite') ||
-    payload.engine === 'granite'
-  ) {
-    await recognizeGranite(payload, postMessage);
-  } else {
+  const isTesseract =
+    payload.engine === 'tesseract' ||
+    (payload.engine === 'auto' && engine === 'tesseract');
+  const isGranite =
+    payload.engine === 'granite' ||
+    (payload.engine === 'auto' && engine === 'granite');
+  const isUnsupported = !isTesseract && !isGranite;
+
+  if (isUnsupported) {
     console.error('Unsupported engine specified:', payload.engine);
     return;
   }
-  return;
+
+  if (isTesseract && !payload.language) {
+    console.error('Tesseract engine requires a language', payload);
+    return;
+  }
+
+  if (isTesseract) {
+    await tesseractEngine.recognize(payload, postMessage);
+    return;
+  }
+
+  await graniteEngine.recognize(payload, postMessage);
+}
+
+async function stopOcr(): Promise<void> {
+  if (engine === 'tesseract') {
+    await tesseractEngine.stop();
+    return;
+  }
+  graniteEngine.stop();
 }

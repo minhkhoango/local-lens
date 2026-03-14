@@ -26,7 +26,7 @@
   --radius-sm: 8px;
   --radius-pill: 100px;
 
-  --w-min: 330px;
+  --w-min: 320px;
   --w-max: 650px;
   --h-min: 64px;
   --h-exp: 250px;
@@ -114,9 +114,7 @@
   z-index: 1;
 }
 
-.island:has(
-    .island-status:not(.success):not(.error):contains('Processing')
-  )::before,
+.island:has(.status:not(.success):not(.error):contains('Recognizing'))::before,
 .island.loading::before {
   opacity: 1;
 }
@@ -155,7 +153,7 @@
   gap: 6px;
   line-height: 1.4;
 }
-.status.success {
+.status.done {
   color: var(--success);
 }
 .status.error {
@@ -175,20 +173,34 @@
   color: var(--primary);
 }
 
-.textarea {
+/* View container: wraps textarea + tools-bar */
+.view-container {
   display: none;
+  flex-direction: column;
+  font-size: 11px;
+
   width: 100%;
   height: var(--h-exp);
   margin-top: var(--p);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.island.expand-textarea .view-container {
+  display: flex;
+}
+
+.textarea {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   padding: 12px;
 
   background: var(--surface);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 0;
 
   overflow-y: auto;
-
-  font-size: 11px;
   font-family: var(--font-mono);
 
   line-height: 1.6;
@@ -212,10 +224,20 @@
 .textarea::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
-.textarea:focus {
-  box-shadow: inset 0 0 0 1px var(--primary);
+
+/* Tools bar: engine select at bottom of view-container */
+.tools-bar {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  height: 44px;
+  flex-shrink: 0;
+  background: var(--surface);
 }
 
+.tools-bar .select-wrapper {
+  margin-left: auto;
+}
 /* 
 edited from https://ibm-granite-granite-docling-258m-webgpu.static.hf.space/index.html
 Also, IBM Granite 258M only outputs section_header_level_1,
@@ -461,7 +483,7 @@ which we map to h3 to h6
   padding: 0 16px;
   min-width: unset;
 
-  background: var(--surface-high);
+  background: var(--surface);
   color: var(--text);
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
@@ -488,7 +510,7 @@ which we map to h3 to h6
     transform: rotate(0deg);
   }
   to {
-    transform: rotate(90deg);
+    transform: rotate(360deg);
   }
 }
 
@@ -497,7 +519,6 @@ which we map to h3 to h6
   position: relative;
   height: 32px;
   max-width: 140px;
-  min-width: 140px;
 }
 
 .settings-select {
@@ -505,12 +526,11 @@ which we map to h3 to h6
   -webkit-appearance: none;
   width: 100%;
   height: 32px;
-  background: var(--surface-high);
   color: var(--text);
+  background: var(--surface);
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   padding: 0 32px 0 16px;
-  font-weight: var(--font-weight-medium);
   cursor: pointer;
   outline: none;
   white-space: nowrap;

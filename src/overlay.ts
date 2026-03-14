@@ -1,5 +1,10 @@
 import { RuntimeMessageAction } from './types';
-import type { RuntimeMessage, SelectionRect, Point } from './types';
+import type {
+  RuntimeMessage,
+  SelectionRect,
+  Point,
+  EngineOption,
+} from './types';
 
 type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
@@ -10,7 +15,7 @@ const CSS = {
   lineWidth: 3,
 } as const;
 const ID = 'xr-screenshot-reader-host';
-const ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="12" cy="12" r="4"/><path d="M5 5V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/></svg>`;
+const ICON = `<svg viewBox="3 -0.375 18 21" fill="none" width="24" height="24"><path stroke="#4285f4" stroke-width="1.7143125" d="M6.857 4.286H17.143a2.571 2.571 0 0 1 2.571 2.571v6.857A2.571 2.571 0 0 1 17.143 16.286H6.857a2.571 2.571 0 0 1 -2.571 -2.571V6.857a2.571 2.571 0 0 1 2.571 -2.571z"/><path fill="#b1caf5" d="M16.971 10.286a4.286 4.286 0 0 1 -4.286 4.286A4.286 4.286 0 0 1 8.4 10.286a4.286 4.286 0 0 1 8.571 0M6.686 0.857h3.771a0.686 0.686 0 0 1 0.686 0.686v0.514a0.686 0.686 0 0 1 -0.686 0.686H6.686A0.686 0.686 0 0 1 6 2.057V1.543a0.686 0.686 0 0 1 0.686 -0.686"/></svg>`;
 
 /**
  * Darkens user's screen, prompt user to click & drag to create a rectangle,
@@ -23,6 +28,7 @@ export class GhostOverlay {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null = null;
   private backupMode: boolean;
+  private engine: EngineOption;
   private notificationBanner: HTMLDivElement;
 
   private isDragging = false;
@@ -30,7 +36,11 @@ export class GhostOverlay {
   private currentPos: Point = { x: 0, y: 0 };
   private bgAlpha = 0;
 
-  constructor(overlayStyles: string, backupMode: boolean) {
+  constructor(
+    overlayStyles: string,
+    backupMode: boolean,
+    engine: EngineOption,
+  ) {
     console.debug('[Overlay]: Initiate overlay for screenshot rect');
     this.host = document.createElement('div');
     this.host.id = ID;
@@ -39,9 +49,10 @@ export class GhostOverlay {
     this.ctx = this.canvas.getContext('2d');
     this.initStructure(overlayStyles);
 
+    this.backupMode = backupMode;
+    this.engine = engine;
     this.notificationBanner = document.createElement('div');
     this.initNotificationUI();
-    this.backupMode = backupMode;
   }
 
   /**
@@ -65,10 +76,10 @@ export class GhostOverlay {
   }
 
   /**
-   * Create notification banner
+   * Create notification banner, only show for thinking engine
    */
   private initNotificationUI(): void {
-    console.debug('[Overlay]: Create notification banner and cursor bubble');
+    console.debug('[Overlay]: Create notification banner');
 
     this.notificationBanner.className = 'banner';
 
@@ -77,7 +88,10 @@ export class GhostOverlay {
     lenIcon.className = 'icon';
 
     const bannerText = document.createElement('span');
-    bannerText.textContent = 'Loading model...';
+
+    if (this.engine === 'tesseract')
+      bannerText.textContent = `Click and drag to extract text`;
+    else bannerText.textContent = 'Loading model...';
 
     this.notificationBanner.appendChild(lenIcon);
     this.notificationBanner.appendChild(bannerText);
@@ -92,12 +106,25 @@ export class GhostOverlay {
     }
 
     this.host.style.pointerEvents = 'none';
+    this.resizeCanvas();
+    window.addEventListener('resize', this.handleResize);
 
+    if (this.engine === 'tesseract') return;
+    this.fillBackground(0.4);
+  }
+
+  private handleResize = (): void => {
+    console.debug('[Overlay] Resize canvas on window resize');
+    this.resizeCanvas();
+    this.draw();
+  };
+
+  private resizeCanvas(): void {
     if (!this.ctx) return;
     const dpr = window.devicePixelRatio || 1;
-    this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
-    this.ctx.fillStyle = `rgba(0,0,0,0.4)`;
-    this.ctx.fillRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+    this.canvas.width = window.innerWidth * dpr;
+    this.canvas.height = window.innerHeight * dpr;
+    this.ctx.scale(dpr, dpr);
   }
 
   public loadingProgress(progress: number): void {
@@ -110,6 +137,7 @@ export class GhostOverlay {
   public activate(): void {
     console.debug('[Overlay] Enables + mouse, listen to mousedown');
     this.host.style.pointerEvents = 'auto';
+    this.canvas.addEventListener('mousedown', this.startFade, { once: true });
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
     window.addEventListener('keydown', this.handleKeyDown);
 
@@ -137,10 +165,12 @@ export class GhostOverlay {
   public destroy(): void {
     console.debug('[Overlay] remove listener, "escape" keydown, & box');
     if (this.notificationBanner) this.notificationBanner.remove();
+    this.canvas.removeEventListener('mousedown', this.startFade);
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);
     window.removeEventListener('keydown', this.handleKeyDown);
+    window.removeEventListener('resize', this.handleResize);
     this.host.remove();
   }
 
@@ -162,7 +192,6 @@ export class GhostOverlay {
     this.currentPos = { x: e.clientX, y: e.clientY };
     e.preventDefault();
 
-    document.addEventListener('mousemove', this.startFade, { once: true });
     document.addEventListener('mousemove', this.handleMouseMove);
     document.addEventListener('mouseup', this.handleMouseUp);
   };
@@ -175,6 +204,7 @@ export class GhostOverlay {
     const tick = (now: number) => {
       const t = Math.min((now - fadeStart) / 300, 1);
       this.bgAlpha = t * CSS.bgAlpha;
+      this.draw();
       if (t < 1) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
@@ -217,10 +247,7 @@ export class GhostOverlay {
    */
   private draw(): void {
     if (!this.ctx) return;
-    const dpr = window.devicePixelRatio || 1;
-    this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
-    this.ctx.fillStyle = `rgba(0,0,0,${this.bgAlpha})`;
-    this.ctx.fillRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+    this.fillBackground();
 
     if (!this.isDragging && this.startPos.x === 0) return;
 
@@ -274,5 +301,14 @@ export class GhostOverlay {
       height: Math.abs(this.startPos.y - clampedCurrentPos.y),
       devicePixelRatio: window.devicePixelRatio || 1,
     };
+  }
+
+  private fillBackground(bgAlpha?: number): void {
+    if (!this.ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+    const alpha = bgAlpha ?? this.bgAlpha;
+    this.ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+    this.ctx.fillRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
   }
 }

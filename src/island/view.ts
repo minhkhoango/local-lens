@@ -27,6 +27,7 @@ export class View {
   private els: {
     status?: HTMLSpanElement;
     preview?: HTMLDivElement;
+    viewContainer?: HTMLDivElement;
     textarea?: HTMLDivElement;
     copyBtn?: HTMLButtonElement;
     toggles?: NodeListOf<HTMLDivElement>;
@@ -49,16 +50,21 @@ export class View {
   /**
    * Render HTML of island && bind listeners
    */
-  public init(state: State, webgpuSupported: boolean): void {
-    this.container.innerHTML = renderMainTemplate(state, webgpuSupported);
+  public init(state: State): void {
+    this.container.innerHTML = renderMainTemplate(state, state.webgpuSupported);
     this.cacheRefs();
     this.bindInternalEvents();
-    this.updateTextareaExpand(state.textarea, state.isTextExpanded, 330);
+    this.updateTextareaExpand(state.textarea, state.isTextExpanded);
+    this.updateIslandWidth(320);
   }
 
   private cacheRefs(): void {
     this.els.status = query(this.container, `.${CLASS.MAIN.status}`);
     this.els.preview = query(this.container, `.${CLASS.MAIN.preview}`);
+    this.els.viewContainer = query(
+      this.container,
+      `.${CLASS.MAIN.viewContainer}`,
+    );
     this.els.textarea = query(this.container, `.${CLASS.MAIN.textarea}`);
     this.els.copyBtn = query(this.container, `.${CLASS.BTN.copy}`);
     this.els.selects = queryAll(this.container, `.${CLASS.SETTINGS.select}`);
@@ -83,20 +89,19 @@ export class View {
     this.container.style.top = `${pos.y}px`;
   }
 
-  public updateTextareaExpand(
-    text: string,
-    isTextExpanded: boolean,
-    width: number,
-  ): void {
-    if (!this.els.textarea) return;
+  public updateTextareaExpand(text: string, isTextExpanded: boolean): void {
+    if (!this.els.viewContainer) return;
     this.container.classList.toggle(CLASS.STATE.textExpanded, isTextExpanded);
-    this.container.style.width = `${width}px`;
     if (!isTextExpanded) {
-      this.els.textarea.style.display = 'none';
+      this.els.viewContainer.style.display = 'none';
       return;
     }
-    this.els.textarea.style.display = 'block';
+    this.els.viewContainer.style.display = 'flex';
     this.updatePreviewText(text, isTextExpanded);
+  }
+
+  public updateIslandWidth(width: number): void {
+    this.container.style.width = `${width}px`;
   }
 
   public updateSettingsExpand(isSettingsExpanded: boolean): void {
@@ -162,7 +167,6 @@ export class View {
       if (btn?.dataset.action) {
         const actionType = btn.dataset.action as
           | 'copy'
-          | 'newCapture'
           | 'expandSettings'
           | 'openShortcutSettings';
         this.onAction({ type: actionType });
@@ -217,40 +221,43 @@ export class View {
   ): void {
     if (!this.els.status) return;
     this.els.status.className = `${CLASS.MAIN.status} ${status}`;
+    const loadingModel = chrome.i18n.getMessage('ui_load_model');
 
     if (status === 'downloading') {
       if (progress === undefined) {
-        this.els.status.textContent = 'Loading...';
+        this.els.status.textContent = loadingModel + '...';
         return;
       }
-      this.els.status.textContent = `Loading ${progress}%`;
+      this.els.status.textContent = `${loadingModel} ${progress}%`;
       return;
     }
     if (status === 'loading-model') {
-      this.els.status.textContent = 'Loading model...';
+      this.els.status.textContent = loadingModel + '...';
       return;
     }
     if (status === 'recognizing') {
-      this.els.status.textContent = 'Recognizing...';
+      this.els.status.textContent =
+        chrome.i18n.getMessage('ui_recognizing') + '...';
       return;
     }
     if (status === 'error') {
-      this.els.status.textContent = 'Error';
+      this.els.status.textContent = chrome.i18n.getMessage('ui_error');
       return;
     }
     if (hasCopied) {
-      this.els.status.textContent = 'Copied';
+      this.els.status.textContent = chrome.i18n.getMessage('ui_copied');
       return;
     }
-    this.els.status.textContent = 'Extracted';
+    this.els.status.textContent = chrome.i18n.getMessage('ui_extracted');
   }
   private updatePreviewText(text: string, isTextExpanded: boolean): void {
     if (!this.els.preview) return;
 
     const max = isTextExpanded ? 100 : 25;
-    if (this.els.preview.textContent.length > max && text.length > max) return;
 
-    this.els.preview.title = isTextExpanded ? 'Collapse' : 'Expand';
+    this.els.preview.title = isTextExpanded
+      ? chrome.i18n.getMessage('hint_collapse')
+      : chrome.i18n.getMessage('hint_expand');
     this.els.preview.textContent =
       text.length > max ? text.slice(0, max) + '...' : text;
   }

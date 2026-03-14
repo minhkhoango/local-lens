@@ -11,6 +11,11 @@ import type {
  * Hold runtime value for all of island's variables
  */
 export interface State {
+  // Rarely changing values
+  shortcutText: string;
+  isPdf: boolean;
+  webgpuSupported: boolean;
+  // Dynamic values
   status: IslandStatus;
   textarea: string;
   clipboardOutput: ClipboardOutput;
@@ -18,7 +23,6 @@ export interface State {
   isTextExpanded: boolean;
   isSettingsExpanded: boolean;
   hasCopied: boolean;
-  shortcutText: string;
   settings: Settings;
 }
 
@@ -27,7 +31,6 @@ export interface State {
  */
 export type Action =
   | { type: 'copy' }
-  | { type: 'newCapture' }
   | { type: 'expandSettings' }
   | { type: 'openShortcutSettings' }
   | { type: 'toggleSettings'; payload: keyof ToggleSettings }

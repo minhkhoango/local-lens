@@ -20,6 +20,31 @@ const FILES_PATH = {
   OFFSCREEN_HTML: 'offscreen.html',
 };
 
+const NOTIFICATION_IDS = {
+  FILE_PERMISSION: 'file_permission',
+};
+
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason !== chrome.runtime.OnInstalledReason.INSTALL) return;
+  chrome.tabs.create({
+    url: 'https://getlocallens.com/success.html',
+  });
+  chrome.runtime.setUninstallURL('https://getlocallens.com/uninstall.html');
+});
+
+chrome.notifications.onButtonClicked.addListener(
+  (notificationId, buttonIndex) => {
+    if (
+      notificationId === NOTIFICATION_IDS.FILE_PERMISSION &&
+      buttonIndex === 0
+    ) {
+      chrome.tabs.create({
+        url: `chrome://extensions/?id=${chrome.runtime.id}`,
+      });
+    }
+  },
+);
+
 /**
  * Trigger upon icon click / shortcut:
  * - Capture screenshot of the whole tab
@@ -125,7 +150,7 @@ chrome.runtime.onMessage.addListener(
           } catch (err) {
             sendResponse({
               status: 'error',
-              shortcut: 'Set shortcut',
+              shortcut: chrome.i18n.getMessage('ui_set_shortcut'),
             });
           }
         })();
@@ -134,20 +159,6 @@ chrome.runtime.onMessage.addListener(
       case RuntimeMessageAction.OPEN_SHORTCUTS_PAGE: {
         console.debug(message.action);
         chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
-        sendResponse({ status: 'ok' });
-        break;
-      }
-      case RuntimeMessageAction.DESTROY_OFFSCREEN: {
-        console.debug(message.action);
-        (async () => {
-          await chrome.offscreen.closeDocument();
-          sendResponse({ status: 'ok' });
-        })();
-        return true;
-      }
-      case RuntimeMessageAction.NEW_CAPTURE: {
-        console.debug(message.action);
-        initialize(sender.tab?.id || null, sender.tab?.url || null);
         sendResponse({ status: 'ok' });
         break;
       }
@@ -222,12 +233,16 @@ async function classifyUrl(url: string | undefined): Promise<UrlClass> {
 }
 
 async function notifyFilePermission() {
-  chrome.notifications.create({
+  chrome.notifications.create(NOTIFICATION_IDS.FILE_PERMISSION, {
     type: 'basic',
-    iconUrl: '/icons/48.png',
+    iconUrl: '/icons/128.png',
     title: 'Local Lens',
-    message:
-      'Allow access to file URLs is disabled, enable in \"Manage extensions\"',
+    message: chrome.i18n.getMessage('noti_file_perm'),
+    buttons: [
+      {
+        title: chrome.i18n.getMessage('noti_btn'),
+      },
+    ],
   });
 }
 
