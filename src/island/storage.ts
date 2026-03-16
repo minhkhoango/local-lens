@@ -7,6 +7,8 @@ import {
 } from '../types';
 import type { Settings } from '../types';
 
+const FIRST_ENGINE_SWITCH = 'firstEngineSwitch';
+
 /** Class for talking with chrome.storage.local for loading / settings */
 export class Storage {
   /** Loading settings from storage.local, use INITIAL_STATE if none */
@@ -22,11 +24,32 @@ export class Storage {
     }
   }
 
+  /** Check if the first time user download thinking engine */
+  public async isFirstEngineSwitch(): Promise<boolean> {
+    console.debug('[Island.storage] isFirstEngineSwitch');
+    try {
+      const stored = await chrome.storage.local.get([FIRST_ENGINE_SWITCH]);
+      const saved = stored[FIRST_ENGINE_SWITCH] as boolean | undefined;
+      if (saved === false) return false;
+      return true;
+    } catch (err) {
+      console.warn('Failed to load firstEngineSwitch:', err);
+      return INITIAL_STATE.firstEngineSwitch;
+    }
+  }
+
   /** Save to storage.local */
   public async saveSettings(settings: Settings): Promise<void> {
     console.debug('[Island.storage] saveSettings');
     await chrome.storage.local.set({
       [ISLAND_STORAGE]: settings,
+    });
+  }
+
+  public async firstEngineSwitchCompleted(): Promise<void> {
+    console.debug('[Island.storage] firstEngineSwitchCompleted');
+    await chrome.storage.local.set({
+      [FIRST_ENGINE_SWITCH]: false,
     });
   }
 

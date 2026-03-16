@@ -71,15 +71,19 @@ export class View {
     this.els.toggles = queryAll(this.container, `.${CLASS.SETTINGS.toggle}`);
   }
 
-  public updateDownloadModel(status: IslandStatus, progress: number): void {
-    this.updateStatus(status, false, progress);
+  public updateDownloadModel(
+    status: IslandStatus,
+    isFirstEngineSwitch: boolean,
+    progress: number,
+  ): void {
+    this.updateStatus(status, false, isFirstEngineSwitch, progress);
   }
   /**
    * Update UI 'loading-model' | 'recognizing' | 'error' | 'finish' status
    */
   public updateOcrState(state: State): void {
-    this.updateStatus(state.status, state.hasCopied);
-    this.updateCopyBtn(state.status, state.hasCopied);
+    this.updateStatus(state.status, state.hasCopied, state.firstEngineSwitch);
+    this.updateCopyBtn(state.status, state.hasCopied, state.firstEngineSwitch);
     this.updatePreviewText(state.textarea, state.isTextExpanded);
     this.updateTextareaContent(state.status, state.textarea);
   }
@@ -111,7 +115,11 @@ export class View {
     );
   }
 
-  public updateCopyBtn(status: IslandStatus, hasCopied: boolean): void {
+  public updateCopyBtn(
+    status: IslandStatus,
+    hasCopied: boolean,
+    isFirstEngineSwitch: boolean,
+  ): void {
     if (!this.els.copyBtn) return;
     if (status === 'loading-model' || status === 'recognizing') {
       if (this.els.copyBtn.className.includes(CLASS.STATE.copyLoading)) return;
@@ -124,11 +132,12 @@ export class View {
     this.els.copyBtn.className = `${CLASS.BTN.btn} ${CLASS.BTN.copy} ${hasCopied ? CLASS.STATE.copySuccess : ''}`;
     this.els.copyBtn.innerHTML = hasCopied ? ICONS.check : ICONS.clipboard;
     this.els.copyBtn.disabled = false;
-    this.updateStatus(status, hasCopied);
+    this.updateStatus(status, hasCopied, isFirstEngineSwitch);
   }
 
   public updateSettingsToggles(
     status: IslandStatus,
+    firstEngineSwitch: boolean,
     settings: ToggleSettings,
     hasCopied: boolean,
   ): void {
@@ -139,8 +148,8 @@ export class View {
         toggle.classList.toggle(CLASS.STATE.toggleActive, settings[key]);
       }
     });
-    this.updateStatus(status, hasCopied);
-    this.updateCopyBtn(status, hasCopied);
+    this.updateStatus(status, hasCopied, firstEngineSwitch);
+    this.updateCopyBtn(status, hasCopied, firstEngineSwitch);
   }
 
   public updateSettingsSelects(settings: SelectSettings): void {
@@ -217,22 +226,30 @@ export class View {
   private updateStatus(
     status: IslandStatus,
     hasCopied: boolean,
+    isFirstEngineSwitch: boolean,
     progress?: number,
   ): void {
     if (!this.els.status) return;
     this.els.status.className = `${CLASS.MAIN.status} ${status}`;
-    const loadingModel = chrome.i18n.getMessage('ui_load_model');
+
+    const downloadText = isFirstEngineSwitch
+      ? chrome.i18n.getMessage('ui_download_model')
+      : chrome.i18n.getMessage('ui_load_model');
+    const downloadingText = isFirstEngineSwitch
+      ? chrome.i18n.getMessage('ui_downloading_model')
+      : chrome.i18n.getMessage('ui_load_model');
 
     if (status === 'downloading') {
       if (progress === undefined) {
-        this.els.status.textContent = loadingModel + '...';
+        this.els.status.textContent = downloadText + '...';
         return;
       }
-      this.els.status.textContent = `${loadingModel} ${progress}%`;
+      this.els.status.textContent = `${downloadingText}: ${progress}%`;
       return;
     }
     if (status === 'loading-model') {
-      this.els.status.textContent = loadingModel + '...';
+      this.els.status.textContent =
+        chrome.i18n.getMessage('ui_load_model') + '...';
       return;
     }
     if (status === 'recognizing') {

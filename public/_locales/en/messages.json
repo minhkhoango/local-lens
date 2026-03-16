@@ -11,6 +11,14 @@
     "message": "Click and drag to extract text",
     "description": "Top floating instruction banner"
   },
+  "ui_download_model": {
+    "message": "Downloading 1.15 GB model",
+    "description": "Island status when OCR model is begin downloading"
+  },
+  "ui_downloading_model": {
+    "message": "Progress",
+    "description": "Island status showing OCR model download core onnx files"
+  },
   "ui_load_model": {
     "message": "Loading model",
     "description": "Island status when OCR model is loading"

@@ -12,6 +12,7 @@ import type {
  */
 export interface State {
   // Rarely changing values
+  firstEngineSwitch: boolean;
   shortcutText: string;
   isPdf: boolean;
   webgpuSupported: boolean;
