@@ -78,6 +78,7 @@ export const CLASS = {
     preview: 'preview',
     viewContainer: 'view-container',
     textarea: 'textarea',
+    engineWarning: 'engine-warning',
     toolsBar: 'tools-bar',
   },
 } as const;

@@ -141,6 +141,7 @@ function renderSettingsRows(state: State): string {
 function renderViewContainer(state: State, webgpuSupported: boolean): string {
   return `
     <div contenteditable="false" class="${CLASS.MAIN.textarea}"></div>
+    <div class="${CLASS.MAIN.engineWarning} hidden"></div>
     <div class="${CLASS.MAIN.toolsBar}">
       <div class="select-wrapper">
         <select class="${CLASS.SETTINGS.select}" data-key="engine">

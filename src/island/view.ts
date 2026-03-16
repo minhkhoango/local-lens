@@ -29,6 +29,7 @@ export class View {
     preview?: HTMLDivElement;
     viewContainer?: HTMLDivElement;
     textarea?: HTMLDivElement;
+    warning?: HTMLDivElement;
     copyBtn?: HTMLButtonElement;
     toggles?: NodeListOf<HTMLDivElement>;
     selects?: NodeListOf<HTMLSelectElement>;
@@ -66,6 +67,7 @@ export class View {
       `.${CLASS.MAIN.viewContainer}`,
     );
     this.els.textarea = query(this.container, `.${CLASS.MAIN.textarea}`);
+    this.els.warning = query(this.container, `.${CLASS.MAIN.engineWarning}`);
     this.els.copyBtn = query(this.container, `.${CLASS.BTN.copy}`);
     this.els.selects = queryAll(this.container, `.${CLASS.SETTINGS.select}`);
     this.els.toggles = queryAll(this.container, `.${CLASS.SETTINGS.toggle}`);
@@ -160,6 +162,27 @@ export class View {
         select.value = settings[key];
       }
     });
+  }
+
+  /**
+   * Show warning above ViewContainer select option after granite engine switch
+   * Automatically disappear after 5 seconds
+   */
+  public warnBrowserFreeze(): void {
+    if (!this.els.warning) return;
+
+    this.els.warning.textContent =
+      'Note: Browser may freeze on weaker hardware, you may go back to "Fast" mode.';
+    this.els.warning.classList.remove('hidden', 'show');
+
+    // Restart animation when warnBrowserFreeze is called repeatedly while visible.
+    void this.els.warning.offsetWidth;
+    this.els.warning.classList.add('show');
+
+    setTimeout(() => {
+      this.els.warning?.classList.remove('show');
+      this.els.warning?.classList.add('hidden');
+    }, 5000);
   }
 
   /**

@@ -350,6 +350,7 @@ export class FloatingIsland {
     const previousText = this.state.textarea;
     if (engine === 'granite' && this.state.firstEngineSwitch) {
       this.state.status = 'downloading';
+      this.view.warnBrowserFreeze();
     } else {
       this.state.status = 'loading-model';
     }
@@ -374,10 +375,5 @@ export class FloatingIsland {
       this.state.textarea = previousText;
       this.view.updateOcrState(this.state);
     }
-
-    // // Positively assume granite engine installed successfully
-    // if (engine === 'tesseract') return;
-    // this.state.firstEngineSwitch = false;
-    // this.storage.firstEngineSwitchCompleted();
   }
 }
