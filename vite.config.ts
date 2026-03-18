@@ -4,6 +4,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 // Built seperately to avoid import statement
 const entry = process.env.VITE_ENTRY || 'background';
+const isOffscreenBuild = entry === 'offscreen';
 
 export default defineConfig({
   esbuild: {
@@ -38,7 +39,27 @@ export default defineConfig({
       input: resolve(__dirname, `src/${entry}.ts`),
       output: {
         entryFileNames: `${entry}.js`,
-        format: 'iife',
+        // Keep background/content as IIFE (no runtime imports), but let offscreen split chunks.
+        format: isOffscreenBuild ? 'es' : 'iife',
+        chunkFileNames: isOffscreenBuild
+          ? 'chunks/[name]-[hash].js'
+          : 'assets/[name]-[hash].js',
+        manualChunks: isOffscreenBuild
+          ? (id) => {
+              if (id.includes('@huggingface/transformers')) {
+                return 'engine-transformers';
+              }
+              if (id.includes('onnxruntime-web')) {
+                return 'engine-onnxruntime';
+              }
+              if (id.includes('tesseract.js')) {
+                return 'engine-tesseract';
+              }
+              if (id.includes('node_modules')) {
+                return 'vendor';
+              }
+            }
+          : undefined,
         assetFileNames: (assetInfo) => {
           const ext = assetInfo.names[0]
             ? assetInfo.names[0].split('.').pop()
@@ -53,7 +74,6 @@ export default defineConfig({
     outDir: 'dist',
     // Don't empty output dir to build multiple entries sequentially
     emptyOutDir: false,
-    chunkSizeWarningLimit: 1500,
   },
   resolve: {
     alias: {

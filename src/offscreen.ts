@@ -6,13 +6,29 @@ import type {
   SetupEnginePayload,
   TabsConnect,
 } from './types';
-import { GraniteEngine } from './engine/granite';
-import { TesseractEngine } from './engine/tesseract';
+import type { GraniteEngine } from './engine/granite';
+import type { TesseractEngine } from './engine/tesseract';
 import { OCR_PORT } from './constants';
 
 let engine: EngineOption = 'tesseract';
-let graniteEngine: GraniteEngine = new GraniteEngine();
-let tesseractEngine: TesseractEngine = new TesseractEngine();
+let graniteEngine: GraniteEngine | null = null;
+let tesseractEngine: TesseractEngine | null = null;
+
+async function getGraniteEngine(): Promise<GraniteEngine> {
+  if (!graniteEngine) {
+    const mod = await import('./engine/granite');
+    graniteEngine = new mod.GraniteEngine();
+  }
+  return graniteEngine;
+}
+
+async function getTesseractEngine(): Promise<TesseractEngine> {
+  if (!tesseractEngine) {
+    const mod = await import('./engine/tesseract');
+    tesseractEngine = new mod.TesseractEngine();
+  }
+  return tesseractEngine;
+}
 
 chrome.runtime.onMessage.addListener((message: RuntimeMessage, _sender) => {
   if (message.action === RuntimeMessageAction.STOP_OFFSCREEN) {
@@ -52,12 +68,14 @@ async function initEngine(
 
   engine = selectedEngine;
   if (selectedEngine === 'tesseract' && language) {
+    const selectedTesseractEngine = await getTesseractEngine();
     postMessage({ action: TabsConnectAction.SETUP_DONE });
-    await tesseractEngine.load(language);
+    await selectedTesseractEngine.load(language);
     return;
   }
 
-  await graniteEngine.load(postMessage);
+  const selectedGraniteEngine = await getGraniteEngine();
+  await selectedGraniteEngine.load(postMessage);
   postMessage({ action: TabsConnectAction.SETUP_DONE });
 }
 
@@ -84,17 +102,21 @@ async function performOcr(
   }
 
   if (isTesseract) {
-    await tesseractEngine.recognize(payload, postMessage);
+    const selectedTesseractEngine = await getTesseractEngine();
+    await selectedTesseractEngine.recognize(payload, postMessage);
     return;
   }
 
-  await graniteEngine.recognize(payload, postMessage);
+  const selectedGraniteEngine = await getGraniteEngine();
+  await selectedGraniteEngine.recognize(payload, postMessage);
 }
 
 async function stopOcr(): Promise<void> {
-  if (engine === 'tesseract') {
+  if (engine === 'tesseract' && tesseractEngine) {
     await tesseractEngine.stop();
     return;
   }
-  graniteEngine.stop();
+  if (graniteEngine) {
+    graniteEngine.stop();
+  }
 }
