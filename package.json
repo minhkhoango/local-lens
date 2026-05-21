@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:granite": "vitest run --config vitest.granite.config.ts",
+    "test:ui-snapshots": "vitest run --config vitest.snapshots.config.ts",
     "test:ui-update": "vitest run -u"
   },
   "devDependencies": {

@@ -32,3 +32,4 @@ playwright-report
 coverage
 __screenshots__
 .vitest-attachments
+tests/ui-snapshots/output
