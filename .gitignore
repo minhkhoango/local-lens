@@ -25,3 +25,10 @@ dist.zip
 *.sw?
 examples
 Notes
+
+# Test artifacts
+test-results
+playwright-report
+coverage
+__screenshots__
+.vitest-attachments

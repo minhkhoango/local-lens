@@ -1,9 +1,11 @@
 import type { PerformOcrPayload, TabsConnect } from '../types';
 import Tesseract from 'tesseract.js';
+import type { OcrEngine } from './types';
 
-export class TesseractEngine {
+export class TesseractEngine implements OcrEngine {
   private worker: Tesseract.Worker | null = null;
   private currentLanguage: string = 'eng';
+  public lastConfidence: number | null = null;
 
   public async load(language: string): Promise<void> {
     if (this.worker && this.currentLanguage === language) {
@@ -76,6 +78,7 @@ export class TesseractEngine {
     }
 
     const confidence = result.data.confidence;
+    this.lastConfidence = confidence;
     const textPlain = result.data.text.trim();
     const textHtml = textPlain.replace(/\n/g, '<br>');
 

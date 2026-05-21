@@ -13,6 +13,7 @@ import {
 import type { PerformOcrPayload, TabsConnect } from '../types';
 import { doclingToHtml } from './parser/html';
 import { htmlToText } from './parser/text';
+import type { OcrEngine } from './types';
 
 if (env.backends.onnx.wasm) {
   env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL(
@@ -29,7 +30,7 @@ type ProgressStatusInfo = {
   total: number;
 };
 
-export class GraniteEngine {
+export class GraniteEngine implements OcrEngine {
   private processor: Processor | null = null;
   private model: PreTrainedModel | null = null;
   private stopCriteria: InterruptableStoppingCriteria =

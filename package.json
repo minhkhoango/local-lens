@@ -6,17 +6,26 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && rm -rf dist && VITE_ENTRY=background vite build && VITE_ENTRY=content vite build && VITE_ENTRY=offscreen vite build && cp -r public/* dist/",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:granite": "vitest run --config vitest.granite.config.ts",
+    "test:ui-update": "vitest run -u"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.32",
     "@types/node": "^25.0.3",
     "@types/turndown": "^5.0.6",
+    "@vitest/browser": "^4.1.7",
+    "@vitest/browser-playwright": "^4.1.7",
+    "@vitest/coverage-v8": "^4.1.7",
     "@webgpu/types": "^0.1.69",
+    "playwright": "^1.60.0",
     "prettier": "^3.7.4",
     "typescript": "~5.9.3",
     "vite": "^7.2.4",
-    "vite-plugin-static-copy": "^3.1.6"
+    "vite-plugin-static-copy": "^3.1.6",
+    "vitest": "^4.1.7"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
