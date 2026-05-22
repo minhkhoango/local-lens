@@ -33,3 +33,6 @@ coverage
 __screenshots__
 .vitest-attachments
 tests/ui-snapshots/output
+
+# Paddle OCR models — fetched by scripts/fetch-paddle-models.mjs
+public/paddle_engine/

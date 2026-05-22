@@ -11,19 +11,18 @@ export default defineConfig({
     charset: 'ascii',
   },
   plugins: [
-    // Copy Tesseract core assets into dist/tesseract_engine for runtime loading
+    // Copy onnxruntime-web runtime assets next to the paddle ONNX models so
+    // PaddleOcrService can fetch them via chrome.runtime.getURL('paddle_engine/').
     viteStaticCopy({
       targets: [
         {
           src: [
-            'node_modules/tesseract.js-core/tesseract-core.wasm.js',
-            'node_modules/tesseract.js-core/tesseract-core-simd.wasm.js',
-            'node_modules/tesseract.js-core/tesseract-core-lstm.wasm.js',
-            'node_modules/tesseract.js-core/tesseract-core-simd-lstm.wasm.js',
-            'node_modules/tesseract.js-core/tesseract-core-relaxedsimd-lstm.wasm.js',
-            'node_modules/tesseract.js/dist/worker.min.js',
+            'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.wasm',
+            'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.mjs',
+            'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm',
+            'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs',
           ],
-          dest: 'tesseract_engine',
+          dest: 'paddle_engine',
         },
         {
           src: [
@@ -52,8 +51,8 @@ export default defineConfig({
               if (id.includes('onnxruntime-web')) {
                 return 'engine-onnxruntime';
               }
-              if (id.includes('tesseract.js')) {
-                return 'engine-tesseract';
+              if (id.includes('ppu-paddle-ocr') || id.includes('ppu-ocv')) {
+                return 'engine-paddle';
               }
               if (id.includes('node_modules')) {
                 return 'vendor';

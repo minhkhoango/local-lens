@@ -10,19 +10,19 @@ export default defineConfig({
     },
   },
   plugins: [
-    // Serve Tesseract WASM/worker assets under /tesseract_engine/* during tests.
+    // Serve onnxruntime-web runtime alongside the paddle models under
+    // /paddle_engine/* during tests. The ONNX model + dict files are
+    // picked up from public/paddle_engine/ by Vite's default public dir.
     viteStaticCopy({
       targets: [
         {
           src: [
-            'node_modules/tesseract.js-core/tesseract-core.wasm.js',
-            'node_modules/tesseract.js-core/tesseract-core-simd.wasm.js',
-            'node_modules/tesseract.js-core/tesseract-core-lstm.wasm.js',
-            'node_modules/tesseract.js-core/tesseract-core-simd-lstm.wasm.js',
-            'node_modules/tesseract.js-core/tesseract-core-relaxedsimd-lstm.wasm.js',
-            'node_modules/tesseract.js/dist/worker.min.js',
+            'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.wasm',
+            'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.mjs',
+            'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm',
+            'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs',
           ],
-          dest: 'tesseract_engine',
+          dest: 'paddle_engine',
         },
       ],
     }),

@@ -95,7 +95,7 @@ describe('FloatingIsland UI snapshots', () => {
     await page.screenshot({ path: 'output/island-done-granite.png', save: true });
   });
 
-  it('settings expanded — Language / Auto-Copy / Auto-Expand / Shortcut row', async () => {
+  it('settings expanded — Auto-Copy / Auto-Expand / Shortcut row', async () => {
     const island = await newIsland();
     island.state.settings.engine = 'granite';
     island.view.updateSettingsSelects(island.state.settings);

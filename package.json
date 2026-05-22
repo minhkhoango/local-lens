@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && rm -rf dist && VITE_ENTRY=background vite build && VITE_ENTRY=content vite build && VITE_ENTRY=offscreen vite build && cp -r public/* dist/",
+    "prebuild:models": "node scripts/fetch-paddle-models.mjs",
+    "build": "npm run prebuild:models && tsc && rm -rf dist && VITE_ENTRY=background vite build && VITE_ENTRY=content vite build && VITE_ENTRY=offscreen vite build && cp -r public/* dist/",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -31,7 +32,8 @@
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
     "katex": "^0.16.28",
-    "tesseract.js": "^7.0.0",
+    "onnxruntime-web": "^1.26.0",
+    "ppu-paddle-ocr": "^5.4.4",
     "turndown": "^7.2.2",
     "unicodeit": "^0.7.5"
   }

@@ -7,41 +7,6 @@ import type {
 } from '../types';
 import type { State } from './types';
 
-export const LANGUAGE_OPTIONS: Record<TesseractLang, string> = {
-  ara: chrome.i18n.getMessage('ara'),
-  ben: chrome.i18n.getMessage('ben'),
-  bul: chrome.i18n.getMessage('bul'),
-  cat: chrome.i18n.getMessage('cat'),
-  ces: chrome.i18n.getMessage('ces'),
-  chi_sim: chrome.i18n.getMessage('chi_sim'),
-  chi_tra: chrome.i18n.getMessage('chi_tra'),
-  dan: chrome.i18n.getMessage('dan'),
-  deu: chrome.i18n.getMessage('deu'),
-  ell: chrome.i18n.getMessage('ell'),
-  eng: chrome.i18n.getMessage('eng'),
-  fin: chrome.i18n.getMessage('fin'),
-  fra: chrome.i18n.getMessage('fra'),
-  heb: chrome.i18n.getMessage('heb'),
-  hin: chrome.i18n.getMessage('hin'),
-  hun: chrome.i18n.getMessage('hun'),
-  ind: chrome.i18n.getMessage('ind'),
-  ita: chrome.i18n.getMessage('ita'),
-  jpn: chrome.i18n.getMessage('jpn'),
-  kor: chrome.i18n.getMessage('kor'),
-  nld: chrome.i18n.getMessage('nld'),
-  nor: chrome.i18n.getMessage('nor'),
-  pol: chrome.i18n.getMessage('pol'),
-  por: chrome.i18n.getMessage('por'),
-  ron: chrome.i18n.getMessage('ron'),
-  rus: chrome.i18n.getMessage('rus'),
-  spa: chrome.i18n.getMessage('spa'),
-  swe: chrome.i18n.getMessage('swe'),
-  tha: chrome.i18n.getMessage('tha'),
-  tur: chrome.i18n.getMessage('tur'),
-  ukr: chrome.i18n.getMessage('ukr'),
-  vie: chrome.i18n.getMessage('vie'),
-} as const;
-
 const ENGINE_OPTIONS: Record<EngineOption, string> = {
   tesseract: chrome.i18n.getMessage('engine_fast'),
   granite: chrome.i18n.getMessage('engine_thinking'),
@@ -62,15 +27,6 @@ interface SelectSettingsConfig {
 
 type SettingsConfig = ToggleSettingsConfig | SelectSettingsConfig;
 
-const SELECT_SETTINGS: SelectSettingsConfig[] = [
-  {
-    key: 'language',
-    labelKey: chrome.i18n.getMessage('ui_language'),
-    type: 'select',
-    options: LANGUAGE_OPTIONS,
-  },
-];
-
 const TOGGLE_SETTINGS: ToggleSettingsConfig[] = [
   {
     key: 'autoCopy',
@@ -84,10 +40,10 @@ const TOGGLE_SETTINGS: ToggleSettingsConfig[] = [
   },
 ];
 
-const SETTINGS_CONFIG: SettingsConfig[] = [
-  ...SELECT_SETTINGS,
-  ...TOGGLE_SETTINGS,
-];
+// Language select is intentionally hidden: the fast engine (PP-OCRv5) is
+// English-only, and granite ignores language. Re-enable when multi-lang
+// rec models land.
+const SETTINGS_CONFIG: SettingsConfig[] = [...TOGGLE_SETTINGS];
 
 /**
  * Helper function to render the settings options
