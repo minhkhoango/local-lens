@@ -61,6 +61,9 @@ export class FloatingIsland {
       getCurrentPosition: () => this.position,
     });
 
+    this.storage.isFirstEngineSwitch().then(async (isFirstEngineSwitch) => {
+      this.state.firstEngineSwitch = isFirstEngineSwitch;
+    });
     this.storage.loadSettings().then(async (settings) => {
       this.state.settings = settings;
       this.state.shortcutText = await this.storage.getShortcut();
@@ -83,7 +86,11 @@ export class FloatingIsland {
 
   public updateDownload(payload: DownloadProgress): void {
     this.state.status = payload.stage;
-    this.view.updateDownloadModel(this.state.status, payload.progress);
+    this.view.updateDownloadModel(
+      this.state.status,
+      this.state.firstEngineSwitch,
+      payload.progress,
+    );
   }
 
   /**
@@ -116,6 +123,11 @@ export class FloatingIsland {
     if (this.state.settings.autoCopy) this.copyToClipboard();
     this.updateIslandWidth();
     this.view.updateOcrState(this.state);
+
+    // Positively assume the structured engine installed successfully
+    if (this.state.settings.engine === 'tesseract') return;
+    this.state.firstEngineSwitch = false;
+    this.storage.firstEngineSwitchCompleted();
   }
 
   /**
@@ -244,7 +256,11 @@ export class FloatingIsland {
     try {
       await navigator.clipboard.write([item]);
       this.state.hasCopied = true;
-      this.view.updateCopyBtn(this.state.status, this.state.hasCopied);
+      this.view.updateCopyBtn(
+        this.state.status,
+        this.state.hasCopied,
+        this.state.firstEngineSwitch,
+      );
     } catch (err) {
       if (err instanceof Error && err.message.includes('focus')) {
         console.debug('Auto-copy blocked, wait for user to click');
@@ -269,6 +285,7 @@ export class FloatingIsland {
       }
       this.view.updateSettingsToggles(
         this.state.status,
+        this.state.firstEngineSwitch,
         this.state.settings,
         this.state.hasCopied,
       );
@@ -282,6 +299,7 @@ export class FloatingIsland {
       this.state.hasCopied = false;
     this.view.updateSettingsToggles(
       this.state.status,
+      this.state.firstEngineSwitch,
       this.state.settings,
       this.state.hasCopied,
     );
@@ -297,12 +315,13 @@ export class FloatingIsland {
     this.storage.saveSettings(this.state.settings);
     this.view.updateSettingsSelects(this.state.settings);
 
-    if (this.state.settings.engine === 'granite') return;
+    if (this.state.settings.engine === 'structured') return;
 
     const previousText = this.state.textarea;
     this.state.status = 'loading-model';
     this.state.textarea = '';
     this.state.hasCopied = false;
+    this.updateIslandWidth();
     this.view.updateOcrState(this.state);
 
     try {
@@ -330,8 +349,10 @@ export class FloatingIsland {
 
     const previousText = this.state.textarea;
     this.state.status = 'loading-model';
+
     this.state.textarea = '';
     this.state.hasCopied = false;
+    this.updateIslandWidth();
     this.view.updateOcrState(this.state);
 
     try {

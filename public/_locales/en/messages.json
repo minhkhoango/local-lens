@@ -11,6 +11,14 @@
     "message": "Click and drag to extract text",
     "description": "Top floating instruction banner"
   },
+  "ui_download_model": {
+    "message": "Downloading 1.15 GB model",
+    "description": "Island status when OCR model is begin downloading"
+  },
+  "ui_downloading_model": {
+    "message": "Progress",
+    "description": "Island status showing OCR model download core onnx files"
+  },
   "ui_load_model": {
     "message": "Loading model",
     "description": "Island status when OCR model is loading"
@@ -91,21 +99,17 @@
     "message": "Fast engine failed to recognize text",
     "description": "Textarea error message when Tesseract fails to recognize"
   },
-  "engine_thinking": {
-    "message": "Thinking",
-    "description": "Select label for Granite thinking OCR engine"
+  "engine_structured": {
+    "message": "Structured",
+    "description": "Select label for the structured layout-aware OCR engine"
   },
-  "engine_thinking_err_init": {
-    "message": "Failed to initialize thinking engine",
-    "description": "Textarea error message when Granite fails to initialize"
+  "engine_structured_err_init": {
+    "message": "Failed to initialize structured engine",
+    "description": "Textarea error message when the structured engine fails to initialize"
   },
-  "engine_thinking_err_tokenizer": {
-    "message": "Tokenizer initialization failed",
-    "description": "Textarea error message when Granite tokenizer fails to initialize"
-  },
-  "engine_thinking_err_recognize": {
-    "message": "Thinking engine failed to recognize text",
-    "description": "Textarea error message when Granite fails to recognize"
+  "engine_structured_err_recognize": {
+    "message": "Structured engine failed to recognize text",
+    "description": "Textarea error message when the structured engine fails to recognize"
   },
   "backup_tab_name": {
     "message": "Screenshot of original tab",

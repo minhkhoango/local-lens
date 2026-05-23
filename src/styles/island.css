@@ -182,6 +182,7 @@
   width: 100%;
   height: var(--h-exp);
   margin-top: var(--p);
+  background: var(--surface);
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: 0 0 0 1px var(--primary);
@@ -238,6 +239,40 @@
 .tools-bar .select-wrapper {
   margin-left: auto;
 }
+
+.engine-warning {
+  margin: 8px 10px 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff8d9;
+  border: 1px solid #f2c94c;
+  color: #6b4e00;
+  font-size: 11px;
+  line-height: 1.45;
+  word-break: break-word;
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.engine-warning.hidden {
+  display: none;
+}
+
+.engine-warning.show {
+  animation: warning-reveal 0.22s ease-out forwards;
+}
+
+@keyframes warning-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* 
 edited from https://ibm-granite-granite-docling-258m-webgpu.static.hf.space/index.html
 Also, IBM Granite 258M only outputs section_header_level_1,

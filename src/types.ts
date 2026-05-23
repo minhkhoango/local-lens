@@ -10,7 +10,7 @@ export interface ToggleSettings {
   autoExpand: boolean;
 }
 
-export type EngineOption = 'tesseract' | 'granite';
+export type EngineOption = 'tesseract' | 'structured';
 
 /** Tesseract 3 letter language code */
 export type TesseractLang =

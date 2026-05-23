@@ -6,13 +6,29 @@ import type {
   SetupEnginePayload,
   TabsConnect,
 } from './types';
-import { GraniteEngine } from './engine/granite';
-import { TesseractEngine } from './engine/tesseract';
+import type { StructuredEngine } from './engine/structured';
+import type { FastEngine } from './engine/fast';
 import { OCR_PORT } from './constants';
 
 let engine: EngineOption = 'tesseract';
-let graniteEngine: GraniteEngine = new GraniteEngine();
-let tesseractEngine: TesseractEngine = new TesseractEngine();
+let structuredEngine: StructuredEngine | null = null;
+let fastEngine: FastEngine | null = null;
+
+async function getStructuredEngine(): Promise<StructuredEngine> {
+  if (!structuredEngine) {
+    const mod = await import('./engine/structured');
+    structuredEngine = new mod.StructuredEngine();
+  }
+  return structuredEngine;
+}
+
+async function getFastEngine(): Promise<FastEngine> {
+  if (!fastEngine) {
+    const mod = await import('./engine/fast');
+    fastEngine = new mod.FastEngine();
+  }
+  return fastEngine;
+}
 
 chrome.runtime.onMessage.addListener((message: RuntimeMessage, _sender) => {
   if (message.action === RuntimeMessageAction.STOP_OFFSCREEN) {
@@ -26,16 +42,39 @@ chrome.runtime.onConnect.addListener((port) => {
   console.debug('Content script connected to port:', port.name);
   if (port.name !== OCR_PORT) return;
 
+  const post = port.postMessage.bind(port);
   port.onMessage.addListener((msg: TabsConnect) => {
     switch (msg.action) {
       case TabsConnectAction.SETUP_BEGIN:
         (async () => {
-          await initEngine(msg.payload, port.postMessage.bind(port));
+          try {
+            await initEngine(msg.payload, post);
+          } catch (err) {
+            console.error('initEngine failed:', err);
+            post({
+              action: TabsConnectAction.ERROR,
+              payload: {
+                stage: 'error',
+                error: err instanceof Error ? err.message : String(err),
+              },
+            });
+          }
         })();
         break;
       case TabsConnectAction.PERFORM_OCR:
         (async () => {
-          await performOcr(msg.payload, port.postMessage.bind(port));
+          try {
+            await performOcr(msg.payload, post);
+          } catch (err) {
+            console.error('performOcr failed:', err);
+            post({
+              action: TabsConnectAction.ERROR,
+              payload: {
+                stage: 'error',
+                error: err instanceof Error ? err.message : String(err),
+              },
+            });
+          }
         })();
         break;
     }
@@ -51,13 +90,15 @@ async function initEngine(
   console.log('Offscreen init with lang:', language, 'engine:', selectedEngine);
 
   engine = selectedEngine;
-  if (selectedEngine === 'tesseract' && language) {
+  if (selectedEngine === 'tesseract') {
+    const selectedFastEngine = await getFastEngine();
+    await selectedFastEngine.load(language, postMessage);
     postMessage({ action: TabsConnectAction.SETUP_DONE });
-    await tesseractEngine.load(language);
     return;
   }
 
-  await graniteEngine.load(postMessage);
+  const selectedStructuredEngine = await getStructuredEngine();
+  await selectedStructuredEngine.load(undefined, postMessage);
   postMessage({ action: TabsConnectAction.SETUP_DONE });
 }
 
@@ -68,33 +109,32 @@ async function performOcr(
   const isTesseract =
     payload.engine === 'tesseract' ||
     (payload.engine === 'auto' && engine === 'tesseract');
-  const isGranite =
-    payload.engine === 'granite' ||
-    (payload.engine === 'auto' && engine === 'granite');
-  const isUnsupported = !isTesseract && !isGranite;
+  const isStructured =
+    payload.engine === 'structured' ||
+    (payload.engine === 'auto' && engine === 'structured');
+  const isUnsupported = !isTesseract && !isStructured;
 
   if (isUnsupported) {
     console.error('Unsupported engine specified:', payload.engine);
     return;
   }
 
-  if (isTesseract && !payload.language) {
-    console.error('Tesseract engine requires a language', payload);
-    return;
-  }
-
   if (isTesseract) {
-    await tesseractEngine.recognize(payload, postMessage);
+    const selectedFastEngine = await getFastEngine();
+    await selectedFastEngine.recognize(payload, postMessage);
     return;
   }
 
-  await graniteEngine.recognize(payload, postMessage);
+  const selectedStructuredEngine = await getStructuredEngine();
+  await selectedStructuredEngine.recognize(payload, postMessage);
 }
 
 async function stopOcr(): Promise<void> {
-  if (engine === 'tesseract') {
-    await tesseractEngine.stop();
+  if (engine === 'tesseract' && fastEngine) {
+    await fastEngine.stop();
     return;
   }
-  graniteEngine.stop();
+  if (structuredEngine) {
+    await structuredEngine.stop();
+  }
 }

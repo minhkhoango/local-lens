@@ -7,44 +7,9 @@ import type {
 } from '../types';
 import type { State } from './types';
 
-export const LANGUAGE_OPTIONS: Record<TesseractLang, string> = {
-  ara: chrome.i18n.getMessage('ara'),
-  ben: chrome.i18n.getMessage('ben'),
-  bul: chrome.i18n.getMessage('bul'),
-  cat: chrome.i18n.getMessage('cat'),
-  ces: chrome.i18n.getMessage('ces'),
-  chi_sim: chrome.i18n.getMessage('chi_sim'),
-  chi_tra: chrome.i18n.getMessage('chi_tra'),
-  dan: chrome.i18n.getMessage('dan'),
-  deu: chrome.i18n.getMessage('deu'),
-  ell: chrome.i18n.getMessage('ell'),
-  eng: chrome.i18n.getMessage('eng'),
-  fin: chrome.i18n.getMessage('fin'),
-  fra: chrome.i18n.getMessage('fra'),
-  heb: chrome.i18n.getMessage('heb'),
-  hin: chrome.i18n.getMessage('hin'),
-  hun: chrome.i18n.getMessage('hun'),
-  ind: chrome.i18n.getMessage('ind'),
-  ita: chrome.i18n.getMessage('ita'),
-  jpn: chrome.i18n.getMessage('jpn'),
-  kor: chrome.i18n.getMessage('kor'),
-  nld: chrome.i18n.getMessage('nld'),
-  nor: chrome.i18n.getMessage('nor'),
-  pol: chrome.i18n.getMessage('pol'),
-  por: chrome.i18n.getMessage('por'),
-  ron: chrome.i18n.getMessage('ron'),
-  rus: chrome.i18n.getMessage('rus'),
-  spa: chrome.i18n.getMessage('spa'),
-  swe: chrome.i18n.getMessage('swe'),
-  tha: chrome.i18n.getMessage('tha'),
-  tur: chrome.i18n.getMessage('tur'),
-  ukr: chrome.i18n.getMessage('ukr'),
-  vie: chrome.i18n.getMessage('vie'),
-} as const;
-
 const ENGINE_OPTIONS: Record<EngineOption, string> = {
   tesseract: chrome.i18n.getMessage('engine_fast'),
-  granite: chrome.i18n.getMessage('engine_thinking'),
+  structured: chrome.i18n.getMessage('engine_structured'),
 };
 
 interface ToggleSettingsConfig {
@@ -62,15 +27,6 @@ interface SelectSettingsConfig {
 
 type SettingsConfig = ToggleSettingsConfig | SelectSettingsConfig;
 
-const SELECT_SETTINGS: SelectSettingsConfig[] = [
-  {
-    key: 'language',
-    labelKey: chrome.i18n.getMessage('ui_language'),
-    type: 'select',
-    options: LANGUAGE_OPTIONS,
-  },
-];
-
 const TOGGLE_SETTINGS: ToggleSettingsConfig[] = [
   {
     key: 'autoCopy',
@@ -84,10 +40,9 @@ const TOGGLE_SETTINGS: ToggleSettingsConfig[] = [
   },
 ];
 
-const SETTINGS_CONFIG: SettingsConfig[] = [
-  ...SELECT_SETTINGS,
-  ...TOGGLE_SETTINGS,
-];
+// Language select is intentionally hidden: both engines share the PP-OCRv5
+// English-only recognition model. Re-enable when multi-lang rec models land.
+const SETTINGS_CONFIG: SettingsConfig[] = [...TOGGLE_SETTINGS];
 
 /**
  * Helper function to render the settings options
@@ -138,9 +93,10 @@ function renderSettingsRows(state: State): string {
   return rows + shortcutRow;
 }
 
-function renderViewContainer(state: State, webgpuSupported: boolean): string {
+function renderViewContainer(state: State, _webgpuSupported: boolean): string {
   return `
     <div contenteditable="false" class="${CLASS.MAIN.textarea}"></div>
+    <div class="${CLASS.MAIN.engineWarning} hidden"></div>
     <div class="${CLASS.MAIN.toolsBar}">
       <div class="select-wrapper">
         <select class="${CLASS.SETTINGS.select}" data-key="engine">
@@ -148,9 +104,6 @@ function renderViewContainer(state: State, webgpuSupported: boolean): string {
             .map(([value, display]) => {
               const isSelected =
                 value === state.settings.engine ? 'selected' : '';
-              if (value === 'granite' && !webgpuSupported) {
-                return `<option value="${value}" ${isSelected} disabled title="${chrome.i18n.getMessage('hint_webgpu_not_supported')}">${display} ${chrome.i18n.getMessage('ui_engine_unavailable')}</option>`;
-              }
               return `<option value="${value}" ${isSelected}>${display}</option>`;
             })
             .join('')}

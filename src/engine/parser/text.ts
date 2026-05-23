@@ -1,11 +1,6 @@
 import TurndownService from 'turndown';
-import { replace } from 'unicodeit';
-import { tables } from './table';
 
-export function htmlToText(docling: string): string {
+export function htmlToText(html: string): string {
   const turndownService = new TurndownService();
-  turndownService.use(tables);
-  const markdown = turndownService.turndown(docling);
-  const unicodeMarkdown = replace(markdown);
-  return unicodeMarkdown;
+  return turndownService.turndown(html);
 }

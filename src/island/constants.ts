@@ -14,6 +14,7 @@ export const ICONS = {
  */
 export const INITIAL_STATE: State = {
   // Rarely changing values
+  firstEngineSwitch: true,
   shortcutText: chrome.i18n.getMessage('ui_set_shortcut'),
   isPdf: false,
   webgpuSupported: true,
@@ -77,6 +78,7 @@ export const CLASS = {
     preview: 'preview',
     viewContainer: 'view-container',
     textarea: 'textarea',
+    engineWarning: 'engine-warning',
     toolsBar: 'tools-bar',
   },
 } as const;

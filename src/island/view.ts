@@ -1,5 +1,4 @@
 import islandStyles from '../styles/island.css?inline';
-import katex from 'katex';
 import { ICONS, CLASS } from './constants';
 import { renderMainTemplate } from './template';
 import type {
@@ -29,6 +28,7 @@ export class View {
     preview?: HTMLDivElement;
     viewContainer?: HTMLDivElement;
     textarea?: HTMLDivElement;
+    warning?: HTMLDivElement;
     copyBtn?: HTMLButtonElement;
     toggles?: NodeListOf<HTMLDivElement>;
     selects?: NodeListOf<HTMLSelectElement>;
@@ -66,20 +66,25 @@ export class View {
       `.${CLASS.MAIN.viewContainer}`,
     );
     this.els.textarea = query(this.container, `.${CLASS.MAIN.textarea}`);
+    this.els.warning = query(this.container, `.${CLASS.MAIN.engineWarning}`);
     this.els.copyBtn = query(this.container, `.${CLASS.BTN.copy}`);
     this.els.selects = queryAll(this.container, `.${CLASS.SETTINGS.select}`);
     this.els.toggles = queryAll(this.container, `.${CLASS.SETTINGS.toggle}`);
   }
 
-  public updateDownloadModel(status: IslandStatus, progress: number): void {
-    this.updateStatus(status, false, progress);
+  public updateDownloadModel(
+    status: IslandStatus,
+    isFirstEngineSwitch: boolean,
+    progress: number,
+  ): void {
+    this.updateStatus(status, false, isFirstEngineSwitch, progress);
   }
   /**
    * Update UI 'loading-model' | 'recognizing' | 'error' | 'finish' status
    */
   public updateOcrState(state: State): void {
-    this.updateStatus(state.status, state.hasCopied);
-    this.updateCopyBtn(state.status, state.hasCopied);
+    this.updateStatus(state.status, state.hasCopied, state.firstEngineSwitch);
+    this.updateCopyBtn(state.status, state.hasCopied, state.firstEngineSwitch);
     this.updatePreviewText(state.textarea, state.isTextExpanded);
     this.updateTextareaContent(state.status, state.textarea);
   }
@@ -111,7 +116,11 @@ export class View {
     );
   }
 
-  public updateCopyBtn(status: IslandStatus, hasCopied: boolean): void {
+  public updateCopyBtn(
+    status: IslandStatus,
+    hasCopied: boolean,
+    isFirstEngineSwitch: boolean,
+  ): void {
     if (!this.els.copyBtn) return;
     if (status === 'loading-model' || status === 'recognizing') {
       if (this.els.copyBtn.className.includes(CLASS.STATE.copyLoading)) return;
@@ -124,11 +133,12 @@ export class View {
     this.els.copyBtn.className = `${CLASS.BTN.btn} ${CLASS.BTN.copy} ${hasCopied ? CLASS.STATE.copySuccess : ''}`;
     this.els.copyBtn.innerHTML = hasCopied ? ICONS.check : ICONS.clipboard;
     this.els.copyBtn.disabled = false;
-    this.updateStatus(status, hasCopied);
+    this.updateStatus(status, hasCopied, isFirstEngineSwitch);
   }
 
   public updateSettingsToggles(
     status: IslandStatus,
+    firstEngineSwitch: boolean,
     settings: ToggleSettings,
     hasCopied: boolean,
   ): void {
@@ -139,8 +149,8 @@ export class View {
         toggle.classList.toggle(CLASS.STATE.toggleActive, settings[key]);
       }
     });
-    this.updateStatus(status, hasCopied);
-    this.updateCopyBtn(status, hasCopied);
+    this.updateStatus(status, hasCopied, firstEngineSwitch);
+    this.updateCopyBtn(status, hasCopied, firstEngineSwitch);
   }
 
   public updateSettingsSelects(settings: SelectSettings): void {
@@ -151,6 +161,27 @@ export class View {
         select.value = settings[key];
       }
     });
+  }
+
+  /**
+   * Show warning above ViewContainer select option (e.g. after engine switch).
+   * Automatically disappears after 5 seconds.
+   */
+  public warnBrowserFreeze(): void {
+    if (!this.els.warning) return;
+
+    this.els.warning.textContent =
+      'Note: Browser may freeze on weaker hardware, you may go back to "Fast" mode.';
+    this.els.warning.classList.remove('hidden', 'show');
+
+    // Restart animation when warnBrowserFreeze is called repeatedly while visible.
+    void this.els.warning.offsetWidth;
+    this.els.warning.classList.add('show');
+
+    setTimeout(() => {
+      this.els.warning?.classList.remove('show');
+      this.els.warning?.classList.add('hidden');
+    }, 5000);
   }
 
   /**
@@ -217,22 +248,30 @@ export class View {
   private updateStatus(
     status: IslandStatus,
     hasCopied: boolean,
+    isFirstEngineSwitch: boolean,
     progress?: number,
   ): void {
     if (!this.els.status) return;
     this.els.status.className = `${CLASS.MAIN.status} ${status}`;
-    const loadingModel = chrome.i18n.getMessage('ui_load_model');
+
+    const downloadText = isFirstEngineSwitch
+      ? chrome.i18n.getMessage('ui_download_model')
+      : chrome.i18n.getMessage('ui_load_model');
+    const downloadingText = isFirstEngineSwitch
+      ? chrome.i18n.getMessage('ui_downloading_model')
+      : chrome.i18n.getMessage('ui_load_model');
 
     if (status === 'downloading') {
       if (progress === undefined) {
-        this.els.status.textContent = loadingModel + '...';
+        this.els.status.textContent = downloadText + '...';
         return;
       }
-      this.els.status.textContent = `${loadingModel} ${progress}%`;
+      this.els.status.textContent = `${downloadingText}: ${progress}%`;
       return;
     }
     if (status === 'loading-model') {
-      this.els.status.textContent = loadingModel + '...';
+      this.els.status.textContent =
+        chrome.i18n.getMessage('ui_load_model') + '...';
       return;
     }
     if (status === 'recognizing') {
@@ -268,21 +307,5 @@ export class View {
       return;
     }
     this.els.textarea.innerHTML = text;
-    this.renderMath();
-  }
-  private renderMath(): void {
-    if (!this.els.textarea) return;
-    const mathElements = queryAll(this.els.textarea, '.formula');
-    if (mathElements.length === 0) return;
-
-    mathElements.forEach((element) => {
-      try {
-        element.innerHTML = katex.renderToString(element.textContent, {
-          output: 'mathml',
-        });
-      } catch (err) {
-        console.debug('[Island.view] KaTeX render failed:', err);
-      }
-    });
   }
 }
