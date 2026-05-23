@@ -67,9 +67,9 @@ describe('calculateDynamicWidth', () => {
     expect(w).toBe(CONFIG.maxWidthExpanded);
   });
 
-  it('granite path measures block-level elements (<p>, <h3>, <li>)', () => {
+  it('structured path measures block-level elements (<p>, <h3>, <li>)', () => {
     const html = '<p>short</p><h3>this is a longer heading line</h3>';
-    const w = calculateDynamicWidth('granite', html);
+    const w = calculateDynamicWidth('structured', html);
     // longest textContent is "this is a longer heading line".length = 29
     const expected = Math.min(
       CONFIG.maxWidthExpanded,
@@ -78,9 +78,9 @@ describe('calculateDynamicWidth', () => {
     expect(w).toBe(expected);
   });
 
-  it('granite path measures pre>code line-by-line and applies padding', () => {
+  it('structured path measures pre>code line-by-line and applies padding', () => {
     const html = '<pre><code>a\nbbbbbbbbbb</code></pre>';
-    const w = calculateDynamicWidth('granite', html);
+    const w = calculateDynamicWidth('structured', html);
     // longest line length = 10, plus PRE_H_PAD(22) + PRE_BORDER(2) = 34
     const expected = Math.min(
       CONFIG.maxWidthExpanded,
@@ -89,10 +89,10 @@ describe('calculateDynamicWidth', () => {
     expect(w).toBe(expected);
   });
 
-  it('granite path measures table rows with cell padding', () => {
+  it('structured path measures table rows with cell padding', () => {
     const html =
       '<table><tbody><tr><th>aaa</th><th>bbbb</th></tr></tbody></table>';
-    const w = calculateDynamicWidth('granite', html);
+    const w = calculateDynamicWidth('structured', html);
     // rowWidth = 3 + 20 + 4 + 20 + 1 + 2 = 50
     const expected = Math.min(
       CONFIG.maxWidthExpanded,

@@ -52,7 +52,7 @@ const PRE_H_PAD = 22;
 const PRE_BORDER = 2;
 const PRE_TAB_SIZE = 4;
 
-function getGraniteMaxWidth(
+function getStructuredMaxWidth(
   ctx: CanvasRenderingContext2D,
   html: string,
 ): number {
@@ -122,8 +122,8 @@ export function calculateDynamicWidth(
 
   try {
     let contentWidth: number;
-    if (engine === 'granite') {
-      contentWidth = getGraniteMaxWidth(ctx, text);
+    if (engine === 'structured') {
+      contentWidth = getStructuredMaxWidth(ctx, text);
     } else {
       contentWidth = getTesseractMaxWidth(ctx, text);
     }

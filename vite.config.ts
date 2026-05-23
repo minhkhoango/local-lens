@@ -24,12 +24,6 @@ export default defineConfig({
           ],
           dest: 'paddle_engine',
         },
-        {
-          src: [
-            'node_modules/@huggingface/transformers/dist/ort-wasm-simd-threaded.jsep.mjs',
-          ],
-          dest: 'transformer_engine',
-        },
       ],
     }),
   ],
@@ -45,8 +39,8 @@ export default defineConfig({
           : 'assets/[name]-[hash].js',
         manualChunks: isOffscreenBuild
           ? (id) => {
-              if (id.includes('@huggingface/transformers')) {
-                return 'engine-transformers';
+              if (id.includes('ppu-doclayout')) {
+                return 'engine-doclayout';
               }
               if (id.includes('onnxruntime-web')) {
                 return 'engine-onnxruntime';
@@ -64,7 +58,7 @@ export default defineConfig({
             ? assetInfo.names[0].split('.').pop()
             : '';
           if (ext === 'wasm') {
-            return 'transformer_engine/[name][extname]';
+            return 'paddle_engine/[name][extname]';
           }
           return 'assets/[name]-[hash][extname]';
         },
@@ -77,6 +71,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      // ppu-doclayout's shared core dynamically imports `ppu-ocv/canvas`,
+      // which resolves to the @napi-rs/canvas node binding. In the browser
+      // bundle we want the web-canvas variant so rollup doesn't try to
+      // ingest the native .node binary at build time.
+      'ppu-ocv/canvas': 'ppu-ocv/canvas-web',
     },
   },
 });

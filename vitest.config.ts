@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      'ppu-ocv/canvas': 'ppu-ocv/canvas-web',
     },
   },
   plugins: [
@@ -29,7 +30,7 @@ export default defineConfig({
   ],
   test: {
     include: ['tests/unit/**/*.test.ts', 'tests/browser/**/*.test.ts'],
-    exclude: ['tests/granite/**'],
+    exclude: ['tests/structured/**'],
     testTimeout: 60_000,
     hookTimeout: 60_000,
     browser: {

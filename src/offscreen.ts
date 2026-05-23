@@ -6,28 +6,28 @@ import type {
   SetupEnginePayload,
   TabsConnect,
 } from './types';
-import type { GraniteEngine } from './engine/granite';
-import type { PaddleFastEngine } from './engine/paddle-fast';
+import type { StructuredEngine } from './engine/structured';
+import type { FastEngine } from './engine/fast';
 import { OCR_PORT } from './constants';
 
 let engine: EngineOption = 'tesseract';
-let graniteEngine: GraniteEngine | null = null;
-let paddleFastEngine: PaddleFastEngine | null = null;
+let structuredEngine: StructuredEngine | null = null;
+let fastEngine: FastEngine | null = null;
 
-async function getGraniteEngine(): Promise<GraniteEngine> {
-  if (!graniteEngine) {
-    const mod = await import('./engine/granite');
-    graniteEngine = new mod.GraniteEngine();
+async function getStructuredEngine(): Promise<StructuredEngine> {
+  if (!structuredEngine) {
+    const mod = await import('./engine/structured');
+    structuredEngine = new mod.StructuredEngine();
   }
-  return graniteEngine;
+  return structuredEngine;
 }
 
-async function getPaddleFastEngine(): Promise<PaddleFastEngine> {
-  if (!paddleFastEngine) {
-    const mod = await import('./engine/paddle-fast');
-    paddleFastEngine = new mod.PaddleFastEngine();
+async function getFastEngine(): Promise<FastEngine> {
+  if (!fastEngine) {
+    const mod = await import('./engine/fast');
+    fastEngine = new mod.FastEngine();
   }
-  return paddleFastEngine;
+  return fastEngine;
 }
 
 chrome.runtime.onMessage.addListener((message: RuntimeMessage, _sender) => {
@@ -91,14 +91,14 @@ async function initEngine(
 
   engine = selectedEngine;
   if (selectedEngine === 'tesseract') {
-    const selectedPaddleFastEngine = await getPaddleFastEngine();
-    await selectedPaddleFastEngine.load(language, postMessage);
+    const selectedFastEngine = await getFastEngine();
+    await selectedFastEngine.load(language, postMessage);
     postMessage({ action: TabsConnectAction.SETUP_DONE });
     return;
   }
 
-  const selectedGraniteEngine = await getGraniteEngine();
-  await selectedGraniteEngine.load(postMessage);
+  const selectedStructuredEngine = await getStructuredEngine();
+  await selectedStructuredEngine.load(undefined, postMessage);
   postMessage({ action: TabsConnectAction.SETUP_DONE });
 }
 
@@ -109,10 +109,10 @@ async function performOcr(
   const isTesseract =
     payload.engine === 'tesseract' ||
     (payload.engine === 'auto' && engine === 'tesseract');
-  const isGranite =
-    payload.engine === 'granite' ||
-    (payload.engine === 'auto' && engine === 'granite');
-  const isUnsupported = !isTesseract && !isGranite;
+  const isStructured =
+    payload.engine === 'structured' ||
+    (payload.engine === 'auto' && engine === 'structured');
+  const isUnsupported = !isTesseract && !isStructured;
 
   if (isUnsupported) {
     console.error('Unsupported engine specified:', payload.engine);
@@ -120,21 +120,21 @@ async function performOcr(
   }
 
   if (isTesseract) {
-    const selectedPaddleFastEngine = await getPaddleFastEngine();
-    await selectedPaddleFastEngine.recognize(payload, postMessage);
+    const selectedFastEngine = await getFastEngine();
+    await selectedFastEngine.recognize(payload, postMessage);
     return;
   }
 
-  const selectedGraniteEngine = await getGraniteEngine();
-  await selectedGraniteEngine.recognize(payload, postMessage);
+  const selectedStructuredEngine = await getStructuredEngine();
+  await selectedStructuredEngine.recognize(payload, postMessage);
 }
 
 async function stopOcr(): Promise<void> {
-  if (engine === 'tesseract' && paddleFastEngine) {
-    await paddleFastEngine.stop();
+  if (engine === 'tesseract' && fastEngine) {
+    await fastEngine.stop();
     return;
   }
-  if (graniteEngine) {
-    graniteEngine.stop();
+  if (structuredEngine) {
+    await structuredEngine.stop();
   }
 }

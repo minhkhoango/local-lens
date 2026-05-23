@@ -6,7 +6,7 @@ import { TEST_IMAGES, fetchAsDataUrl } from '../setup/fixtures';
 // available before it runs.
 installChromeShim();
 
-import { PaddleFastEngine } from '@/engine/paddle-fast';
+import { FastEngine } from '@/engine/fast';
 import type { TabsConnect } from '@/types';
 
 // Expected substrings imported as raw text via Vite's ?raw query.
@@ -31,11 +31,11 @@ function expectedForImage(key: string): string[] {
 // Paddle confidence is 0–1; the engine rescales to 0–100 to match Tesseract's surface.
 const MIN_CONFIDENCE = 30;
 
-describe('PaddleFastEngine (real ONNX runtime, headless Chromium)', () => {
-  let engine: PaddleFastEngine;
+describe('FastEngine (real ONNX runtime, headless Chromium)', () => {
+  let engine: FastEngine;
 
   beforeAll(async () => {
-    engine = new PaddleFastEngine();
+    engine = new FastEngine();
     await engine.load('eng');
   }, 120_000);
 
@@ -93,7 +93,7 @@ describe('PaddleFastEngine (real ONNX runtime, headless Chromium)', () => {
 // These regression tests cover the silent-hang failure mode: concurrent load+recognize
 // from offscreen.ts (which previously raced) and unreachable model URLs (which
 // previously left the UI stuck at "Loading model..." instead of surfacing an error).
-describe('PaddleFastEngine resilience', () => {
+describe('FastEngine resilience', () => {
   function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
     return Promise.race([
       promise,
@@ -106,7 +106,7 @@ describe('PaddleFastEngine resilience', () => {
   it(
     'load() called concurrently with recognize() dedupes and finishes without hang',
     async () => {
-      const engine = new PaddleFastEngine();
+      const engine = new FastEngine();
       const dataUrl = await fetchAsDataUrl(TEST_IMAGES[0].url);
       const events: TabsConnect[] = [];
       const post = (m: TabsConnect) => events.push(m);
@@ -134,7 +134,7 @@ describe('PaddleFastEngine resilience', () => {
   it(
     'emits a loading-model progress event before recognizing',
     async () => {
-      const engine = new PaddleFastEngine();
+      const engine = new FastEngine();
       const dataUrl = await fetchAsDataUrl(TEST_IMAGES[0].url);
       const events: TabsConnect[] = [];
       const post = (m: TabsConnect) => events.push(m);
@@ -159,7 +159,7 @@ describe('PaddleFastEngine resilience', () => {
   it(
     'surfaces an ERROR (does not hang) when model URLs 404',
     async () => {
-      const engine = new PaddleFastEngine({
+      const engine = new FastEngine({
         detection: '/__missing__/det.ort',
         recognition: '/__missing__/rec.ort',
         charactersDictionary: '/__missing__/dict.txt',

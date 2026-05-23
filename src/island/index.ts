@@ -124,7 +124,7 @@ export class FloatingIsland {
     this.updateIslandWidth();
     this.view.updateOcrState(this.state);
 
-    // Positively assume granite engine installed successfully
+    // Positively assume the structured engine installed successfully
     if (this.state.settings.engine === 'tesseract') return;
     this.state.firstEngineSwitch = false;
     this.storage.firstEngineSwitchCompleted();
@@ -315,7 +315,7 @@ export class FloatingIsland {
     this.storage.saveSettings(this.state.settings);
     this.view.updateSettingsSelects(this.state.settings);
 
-    if (this.state.settings.engine === 'granite') return;
+    if (this.state.settings.engine === 'structured') return;
 
     const previousText = this.state.textarea;
     this.state.status = 'loading-model';
@@ -348,12 +348,7 @@ export class FloatingIsland {
     this.view.updateSettingsSelects(this.state.settings);
 
     const previousText = this.state.textarea;
-    if (engine === 'granite' && this.state.firstEngineSwitch) {
-      this.state.status = 'downloading';
-      this.view.warnBrowserFreeze();
-    } else {
-      this.state.status = 'loading-model';
-    }
+    this.state.status = 'loading-model';
 
     this.state.textarea = '';
     this.state.hasCopied = false;

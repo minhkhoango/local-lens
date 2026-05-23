@@ -1,5 +1,4 @@
 import islandStyles from '../styles/island.css?inline';
-import katex from 'katex';
 import { ICONS, CLASS } from './constants';
 import { renderMainTemplate } from './template';
 import type {
@@ -165,8 +164,8 @@ export class View {
   }
 
   /**
-   * Show warning above ViewContainer select option after granite engine switch
-   * Automatically disappear after 5 seconds
+   * Show warning above ViewContainer select option (e.g. after engine switch).
+   * Automatically disappears after 5 seconds.
    */
   public warnBrowserFreeze(): void {
     if (!this.els.warning) return;
@@ -308,21 +307,5 @@ export class View {
       return;
     }
     this.els.textarea.innerHTML = text;
-    this.renderMath();
-  }
-  private renderMath(): void {
-    if (!this.els.textarea) return;
-    const mathElements = queryAll(this.els.textarea, '.formula');
-    if (mathElements.length === 0) return;
-
-    mathElements.forEach((element) => {
-      try {
-        element.innerHTML = katex.renderToString(element.textContent, {
-          output: 'mathml',
-        });
-      } catch (err) {
-        console.debug('[Island.view] KaTeX render failed:', err);
-      }
-    });
   }
 }

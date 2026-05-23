@@ -25,11 +25,11 @@ describe('GhostOverlay UI snapshots', () => {
     await page.screenshot({ path: 'output/overlay-tesseract.png', save: true });
   });
 
-  it('granite banner — Loading model...', async () => {
-    const overlay: any = new GhostOverlay(overlayCss, false, 'granite');
+  it('structured banner — Loading model...', async () => {
+    const overlay: any = new GhostOverlay(overlayCss, false, 'structured');
     overlay.mount();
     await flush();
-    await page.screenshot({ path: 'output/overlay-granite.png', save: true });
+    await page.screenshot({ path: 'output/overlay-structured.png', save: true });
   });
 
   it('dragging — selection rectangle through dim backdrop', async () => {

@@ -9,7 +9,7 @@ import type { State } from './types';
 
 const ENGINE_OPTIONS: Record<EngineOption, string> = {
   tesseract: chrome.i18n.getMessage('engine_fast'),
-  granite: chrome.i18n.getMessage('engine_thinking'),
+  structured: chrome.i18n.getMessage('engine_structured'),
 };
 
 interface ToggleSettingsConfig {
@@ -40,9 +40,8 @@ const TOGGLE_SETTINGS: ToggleSettingsConfig[] = [
   },
 ];
 
-// Language select is intentionally hidden: the fast engine (PP-OCRv5) is
-// English-only, and granite ignores language. Re-enable when multi-lang
-// rec models land.
+// Language select is intentionally hidden: both engines share the PP-OCRv5
+// English-only recognition model. Re-enable when multi-lang rec models land.
 const SETTINGS_CONFIG: SettingsConfig[] = [...TOGGLE_SETTINGS];
 
 /**
@@ -94,7 +93,7 @@ function renderSettingsRows(state: State): string {
   return rows + shortcutRow;
 }
 
-function renderViewContainer(state: State, webgpuSupported: boolean): string {
+function renderViewContainer(state: State, _webgpuSupported: boolean): string {
   return `
     <div contenteditable="false" class="${CLASS.MAIN.textarea}"></div>
     <div class="${CLASS.MAIN.engineWarning} hidden"></div>
@@ -105,9 +104,6 @@ function renderViewContainer(state: State, webgpuSupported: boolean): string {
             .map(([value, display]) => {
               const isSelected =
                 value === state.settings.engine ? 'selected' : '';
-              if (value === 'granite' && !webgpuSupported) {
-                return `<option value="${value}" ${isSelected} disabled title="${chrome.i18n.getMessage('hint_webgpu_not_supported')}">${display} ${chrome.i18n.getMessage('ui_engine_unavailable')}</option>`;
-              }
               return `<option value="${value}" ${isSelected}>${display}</option>`;
             })
             .join('')}

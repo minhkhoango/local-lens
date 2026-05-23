@@ -82,9 +82,9 @@ describe('FloatingIsland UI snapshots', () => {
     await page.screenshot({ path: 'output/island-done-tesseract.png', save: true });
   });
 
-  it('done granite — expanded textarea with rendered HTML', async () => {
+  it('done structured — expanded textarea with rendered HTML', async () => {
     const island = await newIsland();
-    island.state.settings.engine = 'granite';
+    island.state.settings.engine = 'structured';
     island.view.updateSettingsSelects(island.state.settings);
     island.toggleTextareaExpand();
     island.updateFinish({
@@ -92,12 +92,12 @@ describe('FloatingIsland UI snapshots', () => {
       output: { textPlain: SAMPLE_TEXT, textHtml: SAMPLE_HTML },
     });
     await flush();
-    await page.screenshot({ path: 'output/island-done-granite.png', save: true });
+    await page.screenshot({ path: 'output/island-done-structured.png', save: true });
   });
 
   it('settings expanded — Auto-Copy / Auto-Expand / Shortcut row', async () => {
     const island = await newIsland();
-    island.state.settings.engine = 'granite';
+    island.state.settings.engine = 'structured';
     island.view.updateSettingsSelects(island.state.settings);
     island.toggleTextareaExpand();
     island.toggleSettingsExpand();
@@ -109,7 +109,7 @@ describe('FloatingIsland UI snapshots', () => {
 
   it('engine warning — yellow Browser may freeze banner', async () => {
     const island = await newIsland();
-    island.state.settings.engine = 'granite';
+    island.state.settings.engine = 'structured';
     island.view.updateSettingsSelects(island.state.settings);
     island.toggleTextareaExpand();
     island.state.status = 'downloading';

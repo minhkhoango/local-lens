@@ -32,8 +32,8 @@ describe('GhostOverlay', () => {
     overlay.destroy();
   });
 
-  it('shows "Loading model" banner text for granite engine', async () => {
-    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'granite');
+  it('shows "Loading model" banner text for structured engine', async () => {
+    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'structured');
     overlay.mount();
     const text = ((overlay as any).notificationBanner as HTMLDivElement)
       .querySelector('span')!.textContent;
