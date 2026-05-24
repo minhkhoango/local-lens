@@ -20,15 +20,36 @@ export interface StructuredModelUrls {
   wasmPaths?: string;
 }
 
+export type ExecutionProvider = 'webgpu' | 'wasm';
+
+export interface StructuredEngineOptions {
+  /**
+   * Override execution providers for the Paddle OCR (det/rec) sessions only.
+   * The layout model is always WASM (WebGPU EP lacks MaxPool ceil support).
+   */
+  executionProviders?: ExecutionProvider[];
+}
+
 function defaultModelUrls(): StructuredModelUrls {
   const paddleBase = chrome.runtime.getURL('paddle_engine/');
   const structuredBase = chrome.runtime.getURL('structured_engine/');
   return {
     layoutModel: structuredBase + 'PP-DocLayoutV3.onnx',
     detection: paddleBase + 'PP-OCRv5_mobile_det_infer.ort',
-    recognition: paddleBase + 'en_PP-OCRv5_mobile_rec_infer.ort',
+    // Int8 rec is byte-identical to fp32 on fixtures (tests/bench/RESULTS.md).
+    recognition: paddleBase + 'en_PP-OCRv5_mobile_rec_infer_int8.ort',
     charactersDictionary: paddleBase + 'ppocrv5_en_dict.txt',
     wasmPaths: paddleBase,
+  };
+}
+
+/** Opt-in fp32 recognition URLs, kept for benchmark comparisons. */
+export function fp32ModelUrls(): StructuredModelUrls {
+  return {
+    ...defaultModelUrls(),
+    recognition:
+      chrome.runtime.getURL('paddle_engine/') +
+      'en_PP-OCRv5_mobile_rec_infer.ort',
   };
 }
 
@@ -37,10 +58,15 @@ export class StructuredEngine implements OcrEngine {
   private paddleOcr: PaddleOcrService | null = null;
   private loadingPromise: Promise<void> | null = null;
   private modelUrls: StructuredModelUrls;
+  private executionProvidersOverride: ExecutionProvider[] | undefined;
   private stopped = false;
 
-  constructor(modelUrls?: StructuredModelUrls) {
+  constructor(
+    modelUrls?: StructuredModelUrls,
+    options?: StructuredEngineOptions,
+  ) {
     this.modelUrls = modelUrls ?? defaultModelUrls();
+    this.executionProvidersOverride = options?.executionProviders;
   }
 
   public async load(
@@ -61,7 +87,9 @@ export class StructuredEngine implements OcrEngine {
       }
 
       const webGpu = await isWebGpuAvailable();
-      const executionProviders = webGpu ? ['webgpu', 'wasm'] : ['wasm'];
+      const executionProviders =
+        this.executionProvidersOverride ??
+        (webGpu ? (['webgpu', 'wasm'] as const) : (['wasm'] as const));
       console.debug('structured: webGpu available =', webGpu);
 
       postMessage?.({
@@ -88,7 +116,7 @@ export class StructuredEngine implements OcrEngine {
           charactersDictionary: this.modelUrls.charactersDictionary,
         },
         session: {
-          executionProviders,
+          executionProviders: [...executionProviders],
           graphOptimizationLevel: 'all',
         },
       });

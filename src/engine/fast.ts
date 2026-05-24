@@ -12,13 +12,36 @@ export interface PaddleModelUrls {
   wasmPaths?: string;
 }
 
+export type ExecutionProvider = 'webgpu' | 'wasm';
+
+export interface FastEngineOptions {
+  /**
+   * Override execution providers. Default is WebGPU-then-WASM (with WASM-only
+   * fallback if WebGPU is unavailable). Used by benchmarks to force a single
+   * provider.
+   */
+  executionProviders?: ExecutionProvider[];
+}
+
 function defaultModelUrls(): PaddleModelUrls {
   const base = chrome.runtime.getURL('paddle_engine/');
   return {
     detection: base + 'PP-OCRv5_mobile_det_infer.ort',
-    recognition: base + 'en_PP-OCRv5_mobile_rec_infer.ort',
+    // Int8 produces byte-identical OCR output to fp32 on our fixtures (see
+    // tests/bench/RESULTS.md) at ~10% smaller file size, so int8 is default.
+    recognition: base + 'en_PP-OCRv5_mobile_rec_infer_int8.ort',
     charactersDictionary: base + 'ppocrv5_en_dict.txt',
     wasmPaths: base,
+  };
+}
+
+/** Opt-in fp32 recognition URLs, kept for benchmark comparisons. */
+export function fp32ModelUrls(): PaddleModelUrls {
+  return {
+    ...defaultModelUrls(),
+    recognition:
+      chrome.runtime.getURL('paddle_engine/') +
+      'en_PP-OCRv5_mobile_rec_infer.ort',
   };
 }
 
@@ -28,9 +51,11 @@ export class FastEngine implements OcrEngine {
   // Tesseract reported 0–100; we rescale Paddle's 0–1 to match.
   public lastConfidence: number | null = null;
   private modelUrls: PaddleModelUrls;
+  private executionProvidersOverride: ExecutionProvider[] | undefined;
 
-  constructor(modelUrls?: PaddleModelUrls) {
+  constructor(modelUrls?: PaddleModelUrls, options?: FastEngineOptions) {
     this.modelUrls = modelUrls ?? defaultModelUrls();
+    this.executionProvidersOverride = options?.executionProviders;
   }
 
   public async load(
@@ -56,6 +81,10 @@ export class FastEngine implements OcrEngine {
       const webGpu = await isWebGpuAvailable();
       console.debug('paddle: webGpu available =', webGpu);
 
+      const executionProviders =
+        this.executionProvidersOverride ??
+        (webGpu ? (['webgpu', 'wasm'] as const) : (['wasm'] as const));
+
       const service = new PaddleOcrService({
         model: {
           detection: this.modelUrls.detection,
@@ -63,7 +92,7 @@ export class FastEngine implements OcrEngine {
           charactersDictionary: this.modelUrls.charactersDictionary,
         },
         session: {
-          executionProviders: webGpu ? ['webgpu', 'wasm'] : ['wasm'],
+          executionProviders: [...executionProviders],
           graphOptimizationLevel: 'all',
         },
       });

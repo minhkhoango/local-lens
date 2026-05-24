@@ -6,13 +6,16 @@
   "scripts": {
     "dev": "vite",
     "prebuild:models": "node scripts/fetch-paddle-models.mjs",
+    "prebuild:bench-models": "node scripts/fetch-paddle-models.mjs --include-fp32-rec",
     "build": "npm run prebuild:models && tsc && rm -rf dist && VITE_ENTRY=background vite build && VITE_ENTRY=content vite build && VITE_ENTRY=offscreen vite build && cp -r public/* dist/",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:structured": "vitest run --config vitest.structured.config.ts",
     "test:ui-snapshots": "vitest run --config vitest.snapshots.config.ts",
-    "test:ui-update": "vitest run -u"
+    "test:ui-update": "vitest run -u",
+    "test:bench-parity": "npm run prebuild:bench-models && vitest run --config vitest.bench.config.ts tests/bench/recognition-parity.test.ts",
+    "test:bench": "npm run prebuild:bench-models && vitest run --config vitest.bench.config.ts"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.32",
