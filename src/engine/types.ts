@@ -1,12 +1,8 @@
 import type { PerformOcrPayload, TabsConnect } from '../types';
 
-/**
- * Shared shape for all OCR engines (Tesseract, Granite, future ONNX engines).
- * `load`'s argument is engine-specific: Tesseract takes a language code,
- * Granite takes the postMessage callback (for download progress).
- */
+/** Shared shape for bundled PaddleOCR engines (fast, structured). */
 export interface OcrEngine {
-  load(arg: any): Promise<void>;
+  load(arg?: unknown, post?: (message: TabsConnect) => void): Promise<void>;
   recognize(
     payload: PerformOcrPayload,
     post: (message: TabsConnect) => void,

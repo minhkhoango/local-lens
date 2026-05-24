@@ -150,7 +150,7 @@ chrome.runtime.onMessage.addListener(
           } catch (err) {
             sendResponse({
               status: 'error',
-              shortcut: chrome.i18n.getMessage('ui_set_shortcut'),
+              shortcut: 'Set shortcut',
             });
           }
         })();
@@ -237,10 +237,10 @@ async function notifyFilePermission() {
     type: 'basic',
     iconUrl: '/icons/128.png',
     title: 'Local Lens',
-    message: chrome.i18n.getMessage('noti_file_perm'),
+    message: 'Toggle "Allow access to file URLs" in extension settings',
     buttons: [
       {
-        title: chrome.i18n.getMessage('noti_btn'),
+        title: 'Go to Settings',
       },
     ],
   });

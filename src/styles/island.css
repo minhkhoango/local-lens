@@ -273,12 +273,6 @@
   }
 }
 
-/* 
-edited from https://ibm-granite-granite-docling-258m-webgpu.static.hf.space/index.html
-Also, IBM Granite 258M only outputs section_header_level_1,
-which we map to h3 to h6
-*/
-
 .textarea h3,
 .textarea h4,
 .textarea h5,

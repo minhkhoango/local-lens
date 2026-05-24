@@ -1,9 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Local Lens",
-  "default_locale": "en",
   "minimum_chrome_version": "116",
-  "description": "__MSG_appDescription__",
+  "description": "Extract text quickly and locally",
   "version": "1.5.0",
   "action": {},
   "background": {
@@ -32,6 +31,6 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' data: https://tessdata.projectnaptha.com;"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' data:;"
   }
 }

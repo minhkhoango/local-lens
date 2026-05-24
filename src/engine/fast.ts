@@ -1,7 +1,6 @@
 import * as ort from 'onnxruntime-web';
 import { PaddleOcrService, isWebGpuAvailable } from 'ppu-paddle-ocr/web';
 import type { PerformOcrPayload, TabsConnect } from '../types';
-import { localize } from './i18n';
 import type { OcrEngine } from './types';
 
 export interface PaddleModelUrls {
@@ -48,7 +47,7 @@ export function fp32ModelUrls(): PaddleModelUrls {
 export class FastEngine implements OcrEngine {
   private service: PaddleOcrService | null = null;
   private loadingPromise: Promise<void> | null = null;
-  // Tesseract reported 0–100; we rescale Paddle's 0–1 to match.
+  // Paddle reports confidence as 0–1; rescale to 0–100 for the surface API.
   public lastConfidence: number | null = null;
   private modelUrls: PaddleModelUrls;
   private executionProvidersOverride: ExecutionProvider[] | undefined;
@@ -133,10 +132,7 @@ export class FastEngine implements OcrEngine {
         action: 'ERROR',
         payload: {
           stage: 'error',
-          error: localize(
-            'engine_fast_err_init',
-            'Fast engine failed to initialize.',
-          ),
+          error: 'Failed to initialize fast engine',
         },
       });
       return;
@@ -146,10 +142,7 @@ export class FastEngine implements OcrEngine {
         action: 'ERROR',
         payload: {
           stage: 'error',
-          error: localize(
-            'engine_fast_err_init',
-            'Fast engine failed to initialize.',
-          ),
+          error: 'Failed to initialize fast engine',
         },
       });
       return;
@@ -170,10 +163,7 @@ export class FastEngine implements OcrEngine {
         action: 'ERROR',
         payload: {
           stage: 'error',
-          error: localize(
-            'engine_fast_err_recognize',
-            'Fast engine failed to recognize the image.',
-          ),
+          error: 'Fast engine failed to recognize text',
         },
       });
       return;

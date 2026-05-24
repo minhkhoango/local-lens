@@ -10,7 +10,7 @@ import type { StructuredEngine } from './engine/structured';
 import type { FastEngine } from './engine/fast';
 import { OCR_PORT } from './constants';
 
-let engine: EngineOption = 'tesseract';
+let engine: EngineOption = 'fast';
 let structuredEngine: StructuredEngine | null = null;
 let fastEngine: FastEngine | null = null;
 
@@ -86,13 +86,13 @@ async function initEngine(
   payload: SetupEnginePayload,
   postMessage: (message: TabsConnect) => void,
 ): Promise<void> {
-  const { engine: selectedEngine, language } = payload;
-  console.log('Offscreen init with lang:', language, 'engine:', selectedEngine);
+  const { engine: selectedEngine } = payload;
+  console.log('Offscreen init with engine:', selectedEngine);
 
   engine = selectedEngine;
-  if (selectedEngine === 'tesseract') {
+  if (selectedEngine === 'fast') {
     const selectedFastEngine = await getFastEngine();
-    await selectedFastEngine.load(language, postMessage);
+    await selectedFastEngine.load(undefined, postMessage);
     postMessage({ action: TabsConnectAction.SETUP_DONE });
     return;
   }
@@ -106,20 +106,20 @@ async function performOcr(
   payload: PerformOcrPayload,
   postMessage: (message: TabsConnect) => void,
 ): Promise<void> {
-  const isTesseract =
-    payload.engine === 'tesseract' ||
-    (payload.engine === 'auto' && engine === 'tesseract');
+  const isFast =
+    payload.engine === 'fast' ||
+    (payload.engine === 'auto' && engine === 'fast');
   const isStructured =
     payload.engine === 'structured' ||
     (payload.engine === 'auto' && engine === 'structured');
-  const isUnsupported = !isTesseract && !isStructured;
+  const isUnsupported = !isFast && !isStructured;
 
   if (isUnsupported) {
     console.error('Unsupported engine specified:', payload.engine);
     return;
   }
 
-  if (isTesseract) {
+  if (isFast) {
     const selectedFastEngine = await getFastEngine();
     await selectedFastEngine.recognize(payload, postMessage);
     return;
@@ -130,7 +130,7 @@ async function performOcr(
 }
 
 async function stopOcr(): Promise<void> {
-  if (engine === 'tesseract' && fastEngine) {
+  if (engine === 'fast' && fastEngine) {
     await fastEngine.stop();
     return;
   }

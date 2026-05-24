@@ -47,12 +47,12 @@ describe('calculateDynamicWidth', () => {
   });
 
   it('returns widthCollapsed for empty text', () => {
-    expect(calculateDynamicWidth('tesseract', '')).toBe(CONFIG.widthCollapsed);
+    expect(calculateDynamicWidth('fast', '')).toBe(CONFIG.widthCollapsed);
   });
 
-  it('tesseract path picks the longest <br>-separated chunk', () => {
+  it('fast path picks the longest <br>-separated chunk', () => {
     const text = 'short<br>this is the longest line<br>mid';
-    const w = calculateDynamicWidth('tesseract', text);
+    const w = calculateDynamicWidth('fast', text);
     // contentWidth = 'this is the longest line'.length = 24
     const expected = Math.min(
       CONFIG.maxWidthExpanded,
@@ -61,9 +61,9 @@ describe('calculateDynamicWidth', () => {
     expect(w).toBe(expected);
   });
 
-  it('tesseract path caps at maxWidthExpanded', () => {
+  it('fast path caps at maxWidthExpanded', () => {
     const longLine = 'x'.repeat(2000);
-    const w = calculateDynamicWidth('tesseract', longLine);
+    const w = calculateDynamicWidth('fast', longLine);
     expect(w).toBe(CONFIG.maxWidthExpanded);
   });
 

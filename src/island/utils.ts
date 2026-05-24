@@ -3,7 +3,7 @@ import type { EngineOption, Point } from '../types';
 
 let measurementCanvas: HTMLCanvasElement | null = null;
 
-function getTesseractMaxWidth(
+function getFastMaxWidth(
   ctx: CanvasRenderingContext2D,
   text: string,
 ): number {
@@ -95,7 +95,7 @@ export function calculateDynamicWidth(
     if (engine === 'structured') {
       contentWidth = getStructuredMaxWidth(ctx, text);
     } else {
-      contentWidth = getTesseractMaxWidth(ctx, text);
+      contentWidth = getFastMaxWidth(ctx, text);
     }
 
     // 4x pad (dis between, border <12> textarea <12> text) + 1 backup
