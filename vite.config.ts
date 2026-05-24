@@ -7,6 +7,9 @@ const entry = process.env.VITE_ENTRY || 'background';
 const isOffscreenBuild = entry === 'offscreen';
 
 export default defineConfig({
+  define: {
+    'process.env.NODE_ENV': '"production"',
+  },
   esbuild: {
     charset: 'ascii',
   },

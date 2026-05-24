@@ -4,7 +4,7 @@ import { installRealisticShim, mountBackdrop, unmountBackdrop, flush } from './s
 
 installRealisticShim();
 
-const { FloatingIsland } = await import('@/island');
+const { FloatingIsland } = await import('@/island/mount');
 
 async function newIsland(): Promise<any> {
   (chrome.runtime.sendMessage as any).mockImplementation(async (msg: any) => {
@@ -84,8 +84,7 @@ describe('FloatingIsland UI snapshots', () => {
 
   it('done structured — expanded textarea with rendered HTML', async () => {
     const island = await newIsland();
-    island.state.settings.engine = 'structured';
-    island.view.updateSettingsSelects(island.state.settings);
+    island.setSettings({ engine: 'structured' });
     island.toggleTextareaExpand();
     island.updateFinish({
       stage: 'done',
@@ -97,25 +96,20 @@ describe('FloatingIsland UI snapshots', () => {
 
   it('settings expanded — Auto-Copy / Auto-Expand / Shortcut row', async () => {
     const island = await newIsland();
-    island.state.settings.engine = 'structured';
-    island.view.updateSettingsSelects(island.state.settings);
+    island.setSettings({ engine: 'structured' });
     island.toggleTextareaExpand();
     island.toggleSettingsExpand();
-    island.state.status = 'downloading';
-    island.view.updateDownloadModel('downloading', true, 68);
+    island.updateDownload({ stage: 'downloading', progress: 68 });
     await flush();
     await page.screenshot({ path: 'output/island-settings-expanded.png', save: true });
   });
 
   it('engine warning — yellow Browser may freeze banner', async () => {
     const island = await newIsland();
-    island.state.settings.engine = 'structured';
-    island.view.updateSettingsSelects(island.state.settings);
+    island.setSettings({ engine: 'structured' });
     island.toggleTextareaExpand();
-    island.state.status = 'downloading';
-    island.state.firstEngineSwitch = true;
-    island.view.updateDownloadModel('downloading', true, 25);
-    island.view.warnBrowserFreeze();
+    island.updateDownload({ stage: 'downloading', progress: 25 });
+    island.warnBrowserFreeze();
     await flush(150);
     await page.screenshot({ path: 'output/island-engine-warning.png', save: true });
   });

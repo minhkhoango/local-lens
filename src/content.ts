@@ -16,7 +16,7 @@ import type {
   TabsMessage,
 } from './types';
 import { GhostOverlay } from './overlay';
-import { FloatingIsland } from './island/index';
+import { FloatingIsland } from './island/mount';
 import backupStyles from './styles/backup.css?inline';
 import overlayStyles from './styles/overlay.css?inline';
 import { ISLAND_STORAGE, OCR_PORT } from './constants';

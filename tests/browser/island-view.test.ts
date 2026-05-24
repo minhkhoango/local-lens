@@ -3,7 +3,7 @@ import { installChromeShim, uninstallChromeShim } from '../setup/chrome-shim';
 
 installChromeShim();
 
-const { FloatingIsland } = await import('@/island');
+const { FloatingIsland } = await import('@/island/mount');
 
 const flush = () => new Promise<void>((r) => setTimeout(r, 30));
 
@@ -87,7 +87,7 @@ describe('FloatingIsland (DOM state)', () => {
 
   it('autoCopy=true triggers navigator.clipboard.write on finish', async () => {
     const { island } = await makeIsland();
-    (island as any).state.settings.autoCopy = true;
+    (island as any).setSettings({ autoCopy: true });
     const spy = vi.spyOn(navigator.clipboard, 'write');
 
     island.updateFinish({

@@ -1,36 +1,6 @@
 import { CONFIG } from './constants';
 import type { EngineOption, Point } from '../types';
 
-/**
- * Wrapper for querySelector with error handling
- * @param root Overarching parent, usually this.container
- * @param selector Class name of private els
- * @returns Single HTMLElement
- */
-export function query<T extends HTMLElement>(
-  root: HTMLDivElement,
-  selector: string,
-): T {
-  const el = root.querySelector(selector);
-  if (!el) throw new Error(`Required element not found: ${selector}`);
-  return el as T;
-}
-
-/**
- * Wrapper for querySelectorAll with error handling
- * @param root Overarching parent, usually this.container
- * @param selector Class name, for the auto toggles
- * @returns NodeListOf toggles (HTMLDivElement)
- */
-export function queryAll<T extends NodeListOf<HTMLElement>>(
-  root: HTMLDivElement,
-  selector: string,
-): T {
-  const el = root.querySelectorAll(selector);
-  if (!el) throw new Error(`Required element not found: ${selector}`);
-  return el as T;
-}
-
 let measurementCanvas: HTMLCanvasElement | null = null;
 
 function getTesseractMaxWidth(
