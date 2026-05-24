@@ -19,7 +19,7 @@ async function runRecognize(
 ): Promise<OcrResult> {
   const events: TabsConnect[] = [];
   await engine.recognize(
-    { croppedImage: dataUrl, language: 'eng', engine: 'tesseract' },
+    { croppedImage: dataUrl, engine: 'fast' },
     (m) => events.push(m),
   );
   const finish = events.find((e) => e.action === 'FINISH');

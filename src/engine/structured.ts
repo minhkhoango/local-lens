@@ -8,7 +8,6 @@ import {
   type StructuredRegion,
 } from './parser/structured-html';
 import { htmlToText } from './parser/text';
-import { localize } from './i18n';
 import type { OcrEngine } from './types';
 
 export interface StructuredModelUrls {
@@ -146,13 +145,6 @@ export class StructuredEngine implements OcrEngine {
 
     this.stopped = false;
 
-    console.debug(
-      'chrome.i18n typeof:',
-      typeof chrome?.i18n,
-      'getMessage typeof:',
-      typeof chrome?.i18n?.getMessage,
-    );
-
     try {
       await this.load(undefined, postMessage);
     } catch (err) {
@@ -161,10 +153,7 @@ export class StructuredEngine implements OcrEngine {
         action: 'ERROR',
         payload: {
           stage: 'error',
-          error: localize(
-            'engine_structured_err_init',
-            'Structured engine failed to initialize.',
-          ),
+          error: 'Failed to initialize structured engine',
         },
       });
       return;
@@ -175,10 +164,7 @@ export class StructuredEngine implements OcrEngine {
         action: 'ERROR',
         payload: {
           stage: 'error',
-          error: localize(
-            'engine_structured_err_init',
-            'Structured engine failed to initialize.',
-          ),
+          error: 'Failed to initialize structured engine',
         },
       });
       return;
@@ -201,10 +187,7 @@ export class StructuredEngine implements OcrEngine {
         action: 'ERROR',
         payload: {
           stage: 'error',
-          error: localize(
-            'engine_structured_err_recognize',
-            'Structured engine failed to recognize the image.',
-          ),
+          error: 'Structured engine failed to recognize text',
         },
       });
       return;
@@ -221,10 +204,7 @@ export class StructuredEngine implements OcrEngine {
         action: 'ERROR',
         payload: {
           stage: 'error',
-          error: localize(
-            'engine_structured_err_recognize',
-            'Structured engine failed to recognize the image.',
-          ),
+          error: 'Structured engine failed to recognize text',
         },
       });
       return;

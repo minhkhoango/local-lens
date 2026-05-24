@@ -10,50 +10,14 @@ export interface ToggleSettings {
   autoExpand: boolean;
 }
 
-export type EngineOption = 'tesseract' | 'structured';
-
-/** Tesseract 3 letter language code */
-export type TesseractLang =
-  | 'ara'
-  | 'bul'
-  | 'ben'
-  | 'cat'
-  | 'ces'
-  | 'dan'
-  | 'deu'
-  | 'ell'
-  | 'eng'
-  | 'spa'
-  | 'fin'
-  | 'fra'
-  | 'heb'
-  | 'hin'
-  | 'hun'
-  | 'ind'
-  | 'ita'
-  | 'jpn'
-  | 'kor'
-  | 'nor'
-  | 'nld'
-  | 'pol'
-  | 'por'
-  | 'ron'
-  | 'rus'
-  | 'swe'
-  | 'tha'
-  | 'tur'
-  | 'ukr'
-  | 'vie'
-  | 'chi_sim'
-  | 'chi_tra';
+export type EngineOption = 'fast' | 'structured';
 
 /** Hold runtime values for island select elements */
 export interface SelectSettings {
   engine: EngineOption;
-  language: TesseractLang;
 }
 
-/** Hold runtime values of auto-copy, auto-expand, engine, and tesseract language */
+/** Hold runtime values of auto-copy, auto-expand, and engine */
 export interface Settings extends ToggleSettings, SelectSettings {}
 
 /** User's cropped rectangle dimension and dpr */
@@ -121,7 +85,6 @@ export interface ActivateOverlayPayload {
 /** Payload when crop is ready, before OCR starts */
 export interface PerformOcrPayload {
   engine: 'auto' | EngineOption;
-  language: TesseractLang;
   croppedImage: string;
 }
 
@@ -159,7 +122,6 @@ export type RuntimeMessage =
 
 export interface SetupEnginePayload {
   engine: EngineOption;
-  language: TesseractLang;
 }
 
 export const TabsConnectAction = {

@@ -1,10 +1,7 @@
 import { installChromeShim } from '../setup/chrome-shim';
-import { realGetMessage } from './i18n';
 
 export function installRealisticShim(): void {
-  const shim = installChromeShim();
-  shim.i18n.getMessage = realGetMessage;
-  (globalThis as any).chrome.i18n.getMessage = realGetMessage;
+  installChromeShim();
 }
 
 const BACKDROP_CSS = `
@@ -46,8 +43,8 @@ export function mountBackdrop(): void {
     content.innerHTML = `
       <h1>Local Lens</h1>
       <p>A privacy-first Chrome extension that OCRs any selected region of a web
-        page. All processing runs locally in your browser using either Tesseract
-        or IBM Granite — nothing leaves your machine.</p>
+        page. All processing runs locally in your browser using bundled
+        PaddleOCR models — nothing leaves your machine.</p>
       <p>Click and drag a rectangle over text, a table, an equation, or a code
         snippet. The extracted text appears in an in-page island.</p>
     `;

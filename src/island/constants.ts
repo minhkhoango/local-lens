@@ -15,7 +15,7 @@ export const ICONS = {
 export const INITIAL_STATE: State = {
   // Rarely changing values
   firstEngineSwitch: true,
-  shortcutText: chrome.i18n.getMessage('ui_set_shortcut'),
+  shortcutText: 'Set shortcut',
   isPdf: false,
   webgpuSupported: true,
   // Dynamic values
@@ -30,8 +30,7 @@ export const INITIAL_STATE: State = {
   isSettingsExpanded: false,
   hasCopied: false,
   settings: {
-    engine: 'tesseract',
-    language: 'eng',
+    engine: 'fast',
     autoCopy: false,
     autoExpand: false,
   },

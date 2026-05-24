@@ -71,7 +71,7 @@ describe('FloatingIsland UI snapshots', () => {
     await page.screenshot({ path: 'output/island-recognizing.png', save: true });
   });
 
-  it('done tesseract — expanded textarea with plain text', async () => {
+  it('done fast — expanded textarea with plain text', async () => {
     const island = await newIsland();
     island.toggleTextareaExpand();
     island.updateFinish({
@@ -79,7 +79,7 @@ describe('FloatingIsland UI snapshots', () => {
       output: { textPlain: SAMPLE_TEXT, textHtml: SAMPLE_TEXT },
     });
     await flush();
-    await page.screenshot({ path: 'output/island-done-tesseract.png', save: true });
+    await page.screenshot({ path: 'output/island-done-fast.png', save: true });
   });
 
   it('done structured — expanded textarea with rendered HTML', async () => {

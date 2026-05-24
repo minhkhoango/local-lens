@@ -29,13 +29,13 @@ import { DragController, EventsController } from './behavior';
 import { calculateDynamicWidth, clampToViewport } from './utils';
 
 const ENGINE_OPTIONS: Record<EngineOption, string> = {
-  tesseract: chrome.i18n.getMessage('engine_fast'),
-  structured: chrome.i18n.getMessage('engine_structured'),
+  fast: 'Fast',
+  structured: 'Structured',
 };
 
 const TOGGLE_KEYS: Array<{ key: keyof ToggleSettings; label: string }> = [
-  { key: 'autoCopy', label: chrome.i18n.getMessage('ui_auto_copy') },
-  { key: 'autoExpand', label: chrome.i18n.getMessage('ui_auto_expand') },
+  { key: 'autoCopy', label: 'Auto-Copy' },
+  { key: 'autoExpand', label: 'Auto-Expand' },
 ];
 
 export interface IslandHandle {
@@ -239,7 +239,7 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
             textarea,
           });
           if (current.settings.autoCopy) void copyToClipboard(payload.output);
-          if (current.settings.engine !== 'tesseract') {
+          if (current.settings.engine !== 'fast') {
             dispatch({ type: 'firstEngineSwitchCompleted' });
             void storageRef.current.firstEngineSwitchCompleted();
           }
@@ -336,7 +336,6 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
             action: RuntimeMessageAction.BG_PERFORM_OCR,
             payload: {
               engine,
-              language: 'tha',
               croppedImage: '',
             },
           });
@@ -358,27 +357,17 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
     // ---- Derived UI strings -------------------------------------------------
 
     const statusText = useMemo(() => {
-      const { status, hasCopied, firstEngineSwitch } = state;
-      const downloadText = firstEngineSwitch
-        ? chrome.i18n.getMessage('ui_download_model')
-        : chrome.i18n.getMessage('ui_load_model');
-      const downloadingText = firstEngineSwitch
-        ? chrome.i18n.getMessage('ui_downloading_model')
-        : chrome.i18n.getMessage('ui_load_model');
+      const { status, hasCopied } = state;
 
       if (status === 'downloading') {
-        if (downloadProgress === undefined) return downloadText + '...';
-        return `${downloadingText}: ${downloadProgress}%`;
+        if (downloadProgress === undefined) return 'Loading model...';
+        return `Loading model: ${downloadProgress}%`;
       }
-      if (status === 'loading-model') {
-        return chrome.i18n.getMessage('ui_load_model') + '...';
-      }
-      if (status === 'recognizing') {
-        return chrome.i18n.getMessage('ui_recognizing') + '...';
-      }
-      if (status === 'error') return chrome.i18n.getMessage('ui_error');
-      if (hasCopied) return chrome.i18n.getMessage('ui_copied');
-      return chrome.i18n.getMessage('ui_extracted');
+      if (status === 'loading-model') return 'Loading model...';
+      if (status === 'recognizing') return 'Recognizing...';
+      if (status === 'error') return 'Error';
+      if (hasCopied) return 'Copied!';
+      return 'Extracted';
     }, [state, downloadProgress]);
 
     const previewText = useMemo(() => {
@@ -387,9 +376,7 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
       return text.length > max ? text.slice(0, max) + '...' : text;
     }, [state.textarea, state.isTextExpanded]);
 
-    const previewTitle = state.isTextExpanded
-      ? chrome.i18n.getMessage('hint_collapse')
-      : chrome.i18n.getMessage('hint_expand');
+    const previewTitle = state.isTextExpanded ? 'Collapse' : 'Expand';
 
     const isLoadingForCopy =
       state.status === 'loading-model' || state.status === 'recognizing';
@@ -438,14 +425,14 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
           <div className="actions">
             <button
               className={copyBtnClass}
-              title={chrome.i18n.getMessage('hint_copy')}
+              title="Copy"
               disabled={isLoadingForCopy}
               onClick={handleCopyClick}
               dangerouslySetInnerHTML={{ __html: copyBtnIcon }}
             />
             <button
               className={`${CLASS.BTN.btn} ${CLASS.BTN.settings}`}
-              title={chrome.i18n.getMessage('hint_settings')}
+              title="Settings"
               onClick={handleSettingsClick}
               dangerouslySetInnerHTML={{ __html: ICONS.settings }}
             />
@@ -509,7 +496,7 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
             </div>
           ))}
           <div className="settings-row">
-            <span>{chrome.i18n.getMessage('ui_shortcut')}</span>
+            <span>Keyboard shortcut</span>
             <button
               className={CLASS.BTN.shortcut}
               onClick={handleShortcutClick}

@@ -38,7 +38,7 @@ describe('StructuredEngine (real ONNX runtime, headless Chromium)', () => {
       const post = (m: TabsConnect) => events.push(m);
 
       await engine.recognize(
-        { croppedImage: dataUrl, language: 'eng', engine: 'structured' },
+        { croppedImage: dataUrl, engine: 'structured' },
         post,
       );
 
@@ -66,7 +66,7 @@ describe('StructuredEngine (real ONNX runtime, headless Chromium)', () => {
       const post = (m: TabsConnect) => events.push(m);
 
       const running = engine.recognize(
-        { croppedImage: dataUrl, language: 'eng', engine: 'structured' },
+        { croppedImage: dataUrl, engine: 'structured' },
         post,
       );
       setTimeout(() => {

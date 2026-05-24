@@ -89,7 +89,7 @@ export class GhostOverlay {
 
     const bannerText = document.createElement('span');
 
-    if (this.engine === 'tesseract')
+    if (this.engine === 'fast')
       bannerText.textContent = `Click and drag to extract text`;
     else bannerText.textContent = 'Loading model...';
 
@@ -109,7 +109,7 @@ export class GhostOverlay {
     this.resizeCanvas();
     window.addEventListener('resize', this.handleResize);
 
-    if (this.engine === 'tesseract') return;
+    if (this.engine === 'fast') return;
     this.fillBackground(0.4);
   }
 

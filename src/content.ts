@@ -11,7 +11,6 @@ import type {
   Settings,
   Point,
   EngineOption,
-  TesseractLang,
   TabsConnect,
   TabsMessage,
 } from './types';
@@ -97,13 +96,11 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
   if (imageUrl) capturedImage = imageUrl;
   if (activeOverlay) activeOverlay.destroy();
 
-  let language: TesseractLang = 'eng';
-  let engine: EngineOption = 'tesseract';
+  let engine: EngineOption = 'fast';
   try {
     const stored = await chrome.storage.local.get([ISLAND_STORAGE]);
     const saved = stored[ISLAND_STORAGE] as Partial<Settings>;
-    language = saved.language || 'eng';
-    engine = saved.engine || 'tesseract';
+    engine = saved.engine || 'fast';
   } catch {}
 
   activeOverlay = new GhostOverlay(overlayStyles, !imageUrl, engine);
@@ -125,7 +122,6 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
     action: 'SETUP_BEGIN',
     payload: {
       engine: engine,
-      language: language,
     },
   };
   port.postMessage(initiateMessage);
@@ -176,10 +172,8 @@ async function handlePerformOcr(
     });
 
     if (ensureOffscreen.status === 'error' || !croppedImage)
-      throw new Error('offscreen is not started, cannot update lang');
+      throw new Error('offscreen is not started, cannot perform OCR');
   }
-
-  const language = await getUserLanguage();
 
   // switch to chrome.runtime.connect for streaming of OCR progress
   const port = await chrome.runtime.connect({ name: OCR_PORT });
@@ -206,7 +200,6 @@ async function handlePerformOcr(
     action: 'PERFORM_OCR',
     payload: {
       engine: engine,
-      language: language,
       croppedImage: croppedImage,
     },
   };
@@ -295,17 +288,6 @@ async function cropImage(
 //   return { pixelWidth, pixelHeight, effectiveDpi, recommendation };
 // }
 
-/** Find translation language */
-async function getUserLanguage(): Promise<TesseractLang> {
-  try {
-    const stored = await chrome.storage.local.get(ISLAND_STORAGE);
-    const settings = stored[ISLAND_STORAGE] as Settings;
-    return settings.language;
-  } catch {}
-
-  return 'eng';
-}
-
 /** Open a identical new tab on restricted sites */
 function setupBackupDisplay(payload: ImagePayload): void {
   try {
@@ -313,7 +295,7 @@ function setupBackupDisplay(payload: ImagePayload): void {
     capturedImage = imageUrl;
 
     const title = document.createElement('title');
-    title.textContent = chrome.i18n.getMessage('backup_tab_name');
+    title.textContent = 'Screenshot of original tab';
     document.head.append(title);
 
     const styleElement = document.createElement('style');
@@ -335,7 +317,8 @@ function setupBackupDisplay(payload: ImagePayload): void {
 
     const banner = document.createElement('div');
     banner.className = CLASSES.banner;
-    banner.textContent = chrome.i18n.getMessage('backup_banner');
+    banner.textContent =
+      'Original tab was protected. Using read-only screenshot.';
     document.body.appendChild(banner);
   } catch (err) {
     console.error('Failed to setup backup display:', err);

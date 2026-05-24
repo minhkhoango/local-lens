@@ -2,7 +2,6 @@ import type {
   Settings,
   ToggleSettings,
   EngineOption,
-  TesseractLang,
   IslandStatus,
   ClipboardOutput,
 } from '../types';
@@ -13,7 +12,6 @@ export type Action =
   | { type: 'firstEngineSwitchLoaded'; value: boolean }
   | { type: 'firstEngineSwitchCompleted' }
   | { type: 'toggleSetting'; key: keyof ToggleSettings }
-  | { type: 'setLanguage'; language: TesseractLang }
   | { type: 'setEngine'; engine: EngineOption }
   | { type: 'expandText' }
   | { type: 'setTextExpanded'; value: boolean }
@@ -50,12 +48,6 @@ export function reducer(state: State, action: Action): State {
         key === 'autoCopy' && !next ? false : state.hasCopied;
       return { ...state, settings, hasCopied };
     }
-
-    case 'setLanguage':
-      return {
-        ...state,
-        settings: { ...state.settings, language: action.language },
-      };
 
     case 'setEngine':
       return {

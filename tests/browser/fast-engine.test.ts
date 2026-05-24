@@ -2,8 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { installChromeShim } from '../setup/chrome-shim';
 import { TEST_IMAGES, fetchAsDataUrl } from '../setup/fixtures';
 
-// Engine source needs `chrome.i18n.getMessage` / `chrome.runtime.getURL`
-// available before it runs.
+// Engine source needs `chrome.runtime.getURL` available before it runs.
 installChromeShim();
 
 import { FastEngine } from '@/engine/fast';
@@ -28,7 +27,7 @@ function expectedForImage(key: string): string[] {
   return [];
 }
 
-// Paddle confidence is 0–1; the engine rescales to 0–100 to match Tesseract's surface.
+// Paddle confidence is 0–1; the engine rescales to 0–100 for the surface API.
 const MIN_CONFIDENCE = 30;
 
 describe('FastEngine (real ONNX runtime, headless Chromium)', () => {
@@ -36,7 +35,7 @@ describe('FastEngine (real ONNX runtime, headless Chromium)', () => {
 
   beforeAll(async () => {
     engine = new FastEngine();
-    await engine.load('eng');
+    await engine.load();
   }, 120_000);
 
   for (const img of TEST_IMAGES) {
@@ -48,7 +47,7 @@ describe('FastEngine (real ONNX runtime, headless Chromium)', () => {
         const post = (m: TabsConnect) => events.push(m);
 
         await engine.recognize(
-          { croppedImage: dataUrl, language: 'eng', engine: 'tesseract' },
+          { croppedImage: dataUrl, engine: 'fast' },
           post,
         );
 
@@ -113,9 +112,9 @@ describe('FastEngine resilience', () => {
 
       await withTimeout(
         Promise.all([
-          engine.load('eng', post),
+          engine.load(undefined, post),
           engine.recognize(
-            { croppedImage: dataUrl, language: 'eng', engine: 'tesseract' },
+            { croppedImage: dataUrl, engine: 'fast' },
             post,
           ),
         ]),
@@ -140,7 +139,7 @@ describe('FastEngine resilience', () => {
       const post = (m: TabsConnect) => events.push(m);
 
       await engine.recognize(
-        { croppedImage: dataUrl, language: 'eng', engine: 'tesseract' },
+        { croppedImage: dataUrl, engine: 'fast' },
         post,
       );
 
@@ -170,7 +169,7 @@ describe('FastEngine resilience', () => {
 
       await withTimeout(
         engine.recognize(
-          { croppedImage: dataUrl, language: 'eng', engine: 'tesseract' },
+          { croppedImage: dataUrl, engine: 'fast' },
           post,
         ),
         30_000,

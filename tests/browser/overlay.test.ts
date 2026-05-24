@@ -23,8 +23,8 @@ describe('GhostOverlay', () => {
     uninstallChromeShim();
   });
 
-  it('shows "Click and drag" banner text for tesseract engine', async () => {
-    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'tesseract');
+  it('shows "Click and drag" banner text for fast engine', async () => {
+    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast');
     overlay.mount();
     const text = ((overlay as any).notificationBanner as HTMLDivElement)
       .querySelector('span')!.textContent;
@@ -42,7 +42,7 @@ describe('GhostOverlay', () => {
   });
 
   it('sends CAPTURE_SUCCESS with SelectionRect on mouseup after drag', async () => {
-    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'tesseract');
+    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast');
     overlay.mount();
     overlay.activate();
     await flush();
@@ -72,7 +72,7 @@ describe('GhostOverlay', () => {
   });
 
   it('Escape keydown destroys overlay without sending CAPTURE_SUCCESS', async () => {
-    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'tesseract');
+    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast');
     overlay.mount();
     overlay.activate();
     await flush();
@@ -91,7 +91,7 @@ describe('GhostOverlay', () => {
   });
 
   it('does not send CAPTURE_SUCCESS when drag rectangle is < 5x5', async () => {
-    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'tesseract');
+    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast');
     overlay.mount();
     overlay.activate();
     await flush();

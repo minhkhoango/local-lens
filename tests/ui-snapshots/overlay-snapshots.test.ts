@@ -17,12 +17,12 @@ describe('GhostOverlay UI snapshots', () => {
     unmountBackdrop();
   });
 
-  it('tesseract banner — Click and drag to extract text', async () => {
-    const overlay: any = new GhostOverlay(overlayCss, false, 'tesseract');
+  it('fast banner — Click and drag to extract text', async () => {
+    const overlay: any = new GhostOverlay(overlayCss, false, 'fast');
     overlay.mount();
     overlay.activate();
     await flush();
-    await page.screenshot({ path: 'output/overlay-tesseract.png', save: true });
+    await page.screenshot({ path: 'output/overlay-fast.png', save: true });
   });
 
   it('structured banner — Loading model...', async () => {
@@ -33,7 +33,7 @@ describe('GhostOverlay UI snapshots', () => {
   });
 
   it('dragging — selection rectangle through dim backdrop', async () => {
-    const overlay: any = new GhostOverlay(overlayCss, false, 'tesseract');
+    const overlay: any = new GhostOverlay(overlayCss, false, 'fast');
     overlay.mount();
     overlay.activate();
 
