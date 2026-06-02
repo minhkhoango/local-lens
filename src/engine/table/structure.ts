@@ -40,6 +40,15 @@ export interface TableStructureResult {
   confidence: number;
 }
 
+/** Narrow a tensor's data to Float32Array, throwing on any other dtype. */
+function asFloat32(tensor: ort.Tensor): Float32Array {
+  const { data } = tensor;
+  if (tensor.type !== 'float32' || !(data instanceof Float32Array)) {
+    throw new Error(`table: expected float32 tensor, got ${tensor.type}`);
+  }
+  return data;
+}
+
 /** Map a normalized [0,1] cell box (relative to original crop) to crop px. */
 function scaleBbox(
   b: ArrayLike<number>,
@@ -223,8 +232,8 @@ export class TableStructureService {
       );
     }
 
-    const probs = structure.data as Float32Array;
-    const locData = loc.data as Float32Array;
+    const probs = asFloat32(structure);
+    const locData = asFloat32(loc);
     const steps = structure.dims[1];
     const locStride = loc.dims[loc.dims.length - 1];
 
