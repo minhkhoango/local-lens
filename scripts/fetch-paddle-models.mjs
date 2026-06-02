@@ -36,6 +36,18 @@ const BASE_FILES = [
     url: 'https://media.githubusercontent.com/media/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main/layout/PP-DocLayoutV3.onnx',
     name: 'PP-DocLayoutV3.onnx',
   },
+  {
+    dir: STRUCTURED_DIR,
+    url: 'https://media.githubusercontent.com/media/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main/table/SLANet_plus.onnx',
+    name: 'SLANet_plus.onnx',
+  },
+  {
+    dir: STRUCTURED_DIR,
+    // PPU's model repo doesn't ship the structure vocabulary; pull the
+    // canonical one from PaddleOCR (used with merge_no_span_structure=true).
+    url: 'https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/release/2.7/ppocr/utils/dict/table_structure_dict.txt',
+    name: 'table_structure_dict.txt',
+  },
 ];
 
 const FP32_REC_FILE = {

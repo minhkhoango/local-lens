@@ -1,13 +1,19 @@
 import * as ort from 'onnxruntime-web';
 import { DocLayoutService } from 'ppu-doclayout/web';
 import type { LayoutBox } from 'ppu-doclayout/web';
-import { PaddleOcrService, isWebGpuAvailable } from 'ppu-paddle-ocr/web';
+import {
+  PaddleOcrService,
+  isWebGpuAvailable,
+  type PaddleOcrResult,
+} from 'ppu-paddle-ocr/web';
 import type { PerformOcrPayload, TabsConnect } from '../types';
 import {
   composeStructuredHtml,
   type StructuredRegion,
 } from './parser/structured-html';
 import { htmlToText } from './parser/text';
+import { TableStructureService } from './table/structure';
+import { buildTableHtml, type OcrLine } from './table/match';
 import type { OcrEngine } from './types';
 
 export interface StructuredModelUrls {
@@ -15,6 +21,10 @@ export interface StructuredModelUrls {
   detection: string;
   recognition: string;
   charactersDictionary: string;
+  /** SLANet_plus table structure recognition model. */
+  tableStructureModel: string;
+  /** PaddleOCR table structure vocabulary (table_structure_dict.txt). */
+  tableStructureDictionary: string;
   /** Directory containing onnxruntime-web .wasm/.mjs assets. */
   wasmPaths?: string;
 }
@@ -38,6 +48,8 @@ function defaultModelUrls(): StructuredModelUrls {
     // Int8 rec is byte-identical to fp32 on fixtures (tests/bench/RESULTS.md).
     recognition: paddleBase + 'en_PP-OCRv5_mobile_rec_infer_int8.ort',
     charactersDictionary: paddleBase + 'ppocrv5_en_dict.txt',
+    tableStructureModel: structuredBase + 'SLANet_plus.onnx',
+    tableStructureDictionary: structuredBase + 'table_structure_dict.txt',
     wasmPaths: paddleBase,
   };
 }
@@ -52,9 +64,22 @@ export function fp32ModelUrls(): StructuredModelUrls {
   };
 }
 
+/** Flatten a grouped OCR result into table-cell-matchable lines. */
+function extractOcrLines(ocr: PaddleOcrResult): OcrLine[] {
+  const lines: OcrLine[] = [];
+  for (const line of ocr.lines ?? []) {
+    for (const item of line) {
+      const { x, y, width, height } = item.box;
+      lines.push({ text: item.text, box: [x, y, x + width, y + height] });
+    }
+  }
+  return lines;
+}
+
 export class StructuredEngine implements OcrEngine {
   private docLayout: DocLayoutService | null = null;
   private paddleOcr: PaddleOcrService | null = null;
+  private tableStructure: TableStructureService | null = null;
   private loadingPromise: Promise<void> | null = null;
   private modelUrls: StructuredModelUrls;
   private executionProvidersOverride: ExecutionProvider[] | undefined;
@@ -121,6 +146,25 @@ export class StructuredEngine implements OcrEngine {
       });
       await paddleOcr.initialize();
       this.paddleOcr = paddleOcr;
+
+      // SLANet has attention/RNN ops the WebGPU EP may not support; keep it on
+      // WASM (same constraint as the layout model) for reliability. A failure
+      // here only disables table reconstruction (regions fall back to <pre>),
+      // so it must not break the whole engine.
+      try {
+        const tableStructure = new TableStructureService(
+          {
+            model: this.modelUrls.tableStructureModel,
+            dictionary: this.modelUrls.tableStructureDictionary,
+          },
+          { executionProviders: ['wasm'] },
+        );
+        await tableStructure.initialize();
+        this.tableStructure = tableStructure;
+      } catch (err) {
+        console.warn('structured: table structure model unavailable', err);
+        this.tableStructure = null;
+      }
     })();
 
     try {
@@ -128,6 +172,8 @@ export class StructuredEngine implements OcrEngine {
     } catch (err) {
       this.docLayout = null;
       this.paddleOcr = null;
+      this.tableStructure?.dispose();
+      this.tableStructure = null;
       throw err;
     } finally {
       this.loadingPromise = null;
@@ -223,20 +269,34 @@ export class StructuredEngine implements OcrEngine {
         ctx.drawImage(imageBitmap, x1, y1, w, h, 0, 0, w, h);
 
         let text = '';
+        let tableHtml: string | undefined;
         try {
           const blob = await canvas.convertToBlob({ type: 'image/png' });
           const buf = await blob.arrayBuffer();
           const ocr = await this.paddleOcr.recognize(buf, { flatten: false });
           text = (ocr?.text ?? '').trim();
+
+          // Reconstruct a real <table> from a detected table region. Any
+          // failure here falls back to the plain-text <pre> rendering below.
+          if (box.label === 'table' && this.tableStructure) {
+            try {
+              const struct = await this.tableStructure.recognize(canvas);
+              if (struct.cellBoxes.length > 0) {
+                tableHtml = buildTableHtml(
+                  struct.structureTokens,
+                  struct.cellBoxes,
+                  extractOcrLines(ocr),
+                );
+              }
+            } catch (err) {
+              console.debug('structured: table structure failed', err);
+            }
+          }
         } catch (err) {
-          console.debug(
-            'structured: OCR failed for region',
-            box.label,
-            err,
-          );
+          console.debug('structured: OCR failed for region', box.label, err);
         }
 
-        regions.push({ label: box.label, text });
+        regions.push({ label: box.label, text, html: tableHtml });
 
         const partialHtml = composeStructuredHtml(regions);
         postMessage({
