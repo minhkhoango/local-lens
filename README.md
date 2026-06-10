@@ -13,7 +13,7 @@ A privacy-first Chrome extension that OCRs any selected region of a web page. Bo
 - The extracted text appears in an in-page island you can copy from.
 - Switch between engines in the island:
   - **Fast** — PP-OCRv5 mobile recognition. Plain text output. WebGPU with WASM fallback.
-  - **Structured** — PP-DocLayoutV3 segments the crop into regions; each region is OCR'd and reassembled into HTML (tables, headings, code blocks, equations). Layout runs WASM-only; recognition runs WebGPU when available.
+  - **Structured** — PP-DocLayoutV3 segments the crop into regions; each region is OCR'd and reassembled into HTML (headings, code blocks, equations). Detected tables are reconstructed into real `<table>` markup with SLANet_plus (structure + per-cell boxes) and the recognized cell text. Layout and table structure run WASM-only; recognition runs WebGPU when available.
 
 ## Install from source
 
@@ -76,12 +76,12 @@ src/
   offscreen.ts    offscreen document — runs OCR engines off the main thread
   overlay.ts      drag-to-select rectangle UI
   island/         floating result panel (React 19; engine switcher, copy, status)
-  engine/         fast.ts (PP-OCRv5), structured.ts (PP-DocLayoutV3 + PP-OCRv5), parser/
+  engine/         fast.ts (PP-OCRv5), structured.ts (PP-DocLayoutV3 + PP-OCRv5), table/ (SLANet_plus), parser/
 public/
   manifest.json       MV3 manifest
   offscreen.html      host for the offscreen OCR worker
   paddle_engine/      bundled PP-OCRv5 ONNX models + ORT WASM runtime
-  structured_engine/  bundled PP-DocLayoutV3 ONNX model
+  structured_engine/  bundled PP-DocLayoutV3 + SLANet_plus ONNX models + table dict
 ```
 
 ## Privacy

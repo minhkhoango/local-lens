@@ -8,6 +8,12 @@
 export interface StructuredRegion {
   label: string;
   text: string;
+  /**
+   * Prebuilt, trusted HTML for the region (e.g. a reconstructed <table>).
+   * When present it is emitted verbatim, bypassing label-based tagging and the
+   * empty-text guard.
+   */
+  html?: string;
 }
 
 const SKIP_LABELS = new Set([
@@ -21,10 +27,7 @@ const SKIP_LABELS = new Set([
 ]);
 
 function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function tagFor(label: string): { open: string; close: string } | null {
@@ -74,6 +77,14 @@ export function composeStructuredHtml(regions: StructuredRegion[]): string {
 
   for (const region of regions) {
     if (SKIP_LABELS.has(region.label)) continue;
+
+    // Prebuilt HTML (reconstructed tables) is trusted and emitted as-is.
+    if (region.html) {
+      closeList();
+      parts.push(region.html);
+      continue;
+    }
+
     const text = region.text.trim();
     if (!text) continue;
 

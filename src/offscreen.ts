@@ -1,4 +1,8 @@
-import { TabsConnectAction, RuntimeMessageAction } from './types';
+import {
+  TabsConnectAction,
+  RuntimeMessageAction,
+  toEngineOption,
+} from './types';
 import type {
   EngineOption,
   PerformOcrPayload,
@@ -86,7 +90,9 @@ async function initEngine(
   payload: SetupEnginePayload,
   postMessage: (message: TabsConnect) => void,
 ): Promise<void> {
-  const { engine: selectedEngine } = payload;
+  // Older extension versions can send engines that no longer exist (e.g.
+  // 'tesseract'); coerce rather than wedge the setup flow.
+  const selectedEngine = toEngineOption(payload.engine);
   console.log('Offscreen init with engine:', selectedEngine);
 
   engine = selectedEngine;
@@ -106,20 +112,13 @@ async function performOcr(
   payload: PerformOcrPayload,
   postMessage: (message: TabsConnect) => void,
 ): Promise<void> {
-  const isFast =
-    payload.engine === 'fast' ||
-    (payload.engine === 'auto' && engine === 'fast');
-  const isStructured =
-    payload.engine === 'structured' ||
-    (payload.engine === 'auto' && engine === 'structured');
-  const isUnsupported = !isFast && !isStructured;
+  // Resolve 'auto' against the engine chosen at setup; coerce anything else
+  // so a stale value can never make this function return without posting a
+  // FINISH/ERROR (which leaves the island spinning forever).
+  const selected =
+    payload.engine === 'auto' ? engine : toEngineOption(payload.engine);
 
-  if (isUnsupported) {
-    console.error('Unsupported engine specified:', payload.engine);
-    return;
-  }
-
-  if (isFast) {
+  if (selected === 'fast') {
     const selectedFastEngine = await getFastEngine();
     await selectedFastEngine.recognize(payload, postMessage);
     return;

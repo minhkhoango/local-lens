@@ -17,9 +17,7 @@ describe('composeStructuredHtml', () => {
       { label: 'number', text: 'second' },
       { label: 'text', text: 'after' },
     ]);
-    expect(html).toMatch(
-      /<ul>\s*<li>first<\/li>\s*<li>second<\/li>\s*<\/ul>/,
-    );
+    expect(html).toMatch(/<ul>\s*<li>first<\/li>\s*<li>second<\/li>\s*<\/ul>/);
     expect(html).toContain('<p>after</p>');
   });
 
@@ -48,5 +46,16 @@ describe('composeStructuredHtml', () => {
       { label: 'paragraph_title', text: 'Section' },
     ]);
     expect(html).toBe('<h2>Section</h2>');
+  });
+
+  it('emits prebuilt region html verbatim, bypassing the empty-text guard', () => {
+    const html = composeStructuredHtml([
+      {
+        label: 'table',
+        text: '',
+        html: '<table><tr><td>A</td><td>B</td></tr></table>',
+      },
+    ]);
+    expect(html).toBe('<table><tr><td>A</td><td>B</td></tr></table>');
   });
 });

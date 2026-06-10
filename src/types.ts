@@ -12,6 +12,15 @@ export interface ToggleSettings {
 
 export type EngineOption = 'fast' | 'structured';
 
+/**
+ * Coerce a value of unknown provenance (chrome.storage, messages from older
+ * extension versions) to a valid engine. Stale values like the removed
+ * 'tesseract' engine otherwise leak through and wedge the OCR flow.
+ */
+export function toEngineOption(value: unknown): EngineOption {
+  return value === 'structured' ? 'structured' : 'fast';
+}
+
 /** Hold runtime values for island select elements */
 export interface SelectSettings {
   engine: EngineOption;
