@@ -2,6 +2,7 @@ import { ISLAND_STORAGE } from '../constants';
 import { INITIAL_STATE } from './constants';
 import {
   RuntimeMessageAction,
+  toEngineOption,
   type RuntimeMessage,
   type ShortcutResponse,
 } from '../types';
@@ -16,8 +17,12 @@ export class Storage {
     console.debug('[Island.storage] loadSettings');
     try {
       const stored = await chrome.storage.local.get([ISLAND_STORAGE]);
-      const saved = stored[ISLAND_STORAGE] as Partial<Settings>;
-      return { ...INITIAL_STATE.settings, ...saved };
+      const saved = stored[ISLAND_STORAGE] as Partial<Settings> | undefined;
+      const settings = { ...INITIAL_STATE.settings, ...saved };
+      // Storage may hold engine values from older versions (e.g. the removed
+      // 'tesseract'); coerce so the switcher and OCR flow stay in sync.
+      settings.engine = toEngineOption(settings.engine);
+      return settings;
     } catch (err) {
       console.warn('Failed to load settings:', err);
       return { ...INITIAL_STATE.settings };

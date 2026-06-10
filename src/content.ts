@@ -1,6 +1,7 @@
 import {
   RuntimeMessageAction,
   TabsMessageAction,
+  toEngineOption,
   type SelectionRect,
 } from './types';
 import type {
@@ -99,8 +100,8 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
   let engine: EngineOption = 'fast';
   try {
     const stored = await chrome.storage.local.get([ISLAND_STORAGE]);
-    const saved = stored[ISLAND_STORAGE] as Partial<Settings>;
-    engine = saved.engine || 'fast';
+    const saved = stored[ISLAND_STORAGE] as Partial<Settings> | undefined;
+    engine = toEngineOption(saved?.engine);
   } catch {}
 
   activeOverlay = new GhostOverlay(overlayStyles, !imageUrl, engine);
