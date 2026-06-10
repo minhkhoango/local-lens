@@ -40,10 +40,12 @@ describe('decodeStructure', () => {
     const seq = [tbody, tr, td, td, trClose, tbodyClose, dict.endIdx, tbody];
     const probs = oneHot(seq);
 
-    // loc rows are normalized [0,1]; only the two td steps (t=2,3) are read.
+    // loc rows are normalized to the padded square input; only the two td
+    // steps (t=2,3) are read. At 100x40 both axes scale by max(w,h) = 100.
+    // (0.25/0.5 are exact in float32, so toEqual below is safe.)
     const loc = new Float32Array(seq.length * 4);
-    loc.set([0, 0, 0.5, 0.5], 2 * 4); // -> [0,0,50,20] at 100x40
-    loc.set([0.5, 0, 1.0, 0.5], 3 * 4); // -> [50,0,100,20]
+    loc.set([0, 0, 0.5, 0.25], 2 * 4); // -> [0,0,50,25]
+    loc.set([0.5, 0, 1.0, 0.25], 3 * 4); // -> [50,0,100,25]
 
     const res = decodeStructure(
       probs,
@@ -65,8 +67,8 @@ describe('decodeStructure', () => {
       '</tbody>',
     ]);
     expect(res.cellBoxes).toEqual([
-      [0, 0, 50, 20],
-      [50, 0, 100, 20],
+      [0, 0, 50, 25],
+      [50, 0, 100, 25],
     ]);
     expect(res.confidence).toBeCloseTo(1);
   });

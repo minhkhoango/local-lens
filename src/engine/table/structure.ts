@@ -49,14 +49,18 @@ function asFloat32(tensor: ort.Tensor): Float32Array {
   return data;
 }
 
-/** Map a normalized [0,1] cell box (relative to original crop) to crop px. */
+/**
+ * Map a normalized [0,1] cell box to crop px. The model emits boxes
+ * normalized to the padded square input, so mapping back to the crop is one
+ * uniform scale by 488/ratio = max(srcW, srcH) on BOTH axes (verified
+ * empirically: per-axis (srcW, srcH) scaling squashes the short axis).
+ */
 function scaleBbox(
   b: ArrayLike<number>,
-  srcW: number,
-  srcH: number,
+  scale: number,
 ): [number, number, number, number] {
-  // Mirrors TableLabelDecode._bbox_decode: x *= w, y *= h. SLANet_plus emits 4
-  // coords (x1,y1,x2,y2); the 8-coord SLANet polygon is reduced to its extent.
+  // SLANet_plus emits 4 coords (x1,y1,x2,y2); the 8-coord SLANet polygon is
+  // reduced to its axis-aligned extent.
   if (b.length >= 8) {
     let minX = Infinity;
     let minY = Infinity;
@@ -68,9 +72,9 @@ function scaleBbox(
       minY = Math.min(minY, b[i + 1]);
       maxY = Math.max(maxY, b[i + 1]);
     }
-    return [minX * srcW, minY * srcH, maxX * srcW, maxY * srcH];
+    return [minX * scale, minY * scale, maxX * scale, maxY * scale];
   }
-  return [b[0] * srcW, b[1] * srcH, b[2] * srcW, b[3] * srcH];
+  return [b[0] * scale, b[1] * scale, b[2] * scale, b[3] * scale];
 }
 
 /**
@@ -94,6 +98,7 @@ export function decodeStructure(
   let confSum = 0;
   let confCount = 0;
 
+  const scale = Math.max(srcW, srcH);
   const limit = Math.min(steps, MAX_STEPS);
   for (let t = 0; t < limit; t++) {
     const base = t * vocab;
@@ -118,7 +123,7 @@ export function decodeStructure(
       const off = t * locStride;
       const slice: number[] = [];
       for (let k = 0; k < locStride; k++) slice.push(locData[off + k]);
-      cellBoxes.push(scaleBbox(slice, srcW, srcH));
+      cellBoxes.push(scaleBbox(slice, scale));
     }
   }
 
@@ -186,9 +191,12 @@ export class TableStructureService {
         const p = (y * INPUT_SIZE + x) * 4;
         const o = y * INPUT_SIZE + x;
         for (let c = 0; c < 3; c++) {
+          // PaddleOCR decodes with cv2 (BGR) and normalizes in that channel
+          // order (DecodeImage img_mode: BGR in inference.yml); canvas
+          // ImageData is RGBA, so channel c reads component 2-c.
           // Padding is literal 0 (applied after normalize), per PaddleOCR.
           out[c * plane + o] = inside
-            ? (data[p + c] / 255 - MEAN[c]) / STD[c]
+            ? (data[p + (2 - c)] / 255 - MEAN[c]) / STD[c]
             : 0;
         }
       }

@@ -5,11 +5,22 @@ import { installChromeShim } from '../setup/chrome-shim';
 installChromeShim();
 
 import { TableStructureService } from '@/engine/table/structure';
+import { buildTableHtml, type OcrLine } from '@/engine/table/match';
 
 const TD_TOKENS = new Set(['<td></td>', '<td>', '<td']);
 
-/** Draw a clean ruled grid (the easy case for SLANet) onto an OffscreenCanvas. */
-function drawTable(): OffscreenCanvas {
+const CELLS = [
+  ['Name', 'Age', 'City'],
+  ['Alice', '30', 'NYC'],
+  ['Bob', '25', 'LA'],
+];
+
+/**
+ * Draw a clean ruled grid (the easy case for SLANet) onto an OffscreenCanvas.
+ * Also returns the drawn text with its exact boxes, standing in for the OCR
+ * lines the structured engine would feed to buildTableHtml.
+ */
+function drawTable(): { canvas: OffscreenCanvas; lines: OcrLine[] } {
   const cols = 3;
   const rows = 3;
   const cw = 120;
@@ -36,20 +47,21 @@ function drawTable(): OffscreenCanvas {
     ctx.stroke();
   }
 
-  const cells = [
-    ['Name', 'Age', 'City'],
-    ['Alice', '30', 'NYC'],
-    ['Bob', '25', 'LA'],
-  ];
   ctx.fillStyle = '#000000';
   ctx.font = '20px sans-serif';
   ctx.textBaseline = 'middle';
+  const lines: OcrLine[] = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      ctx.fillText(cells[r][c], c * cw + 12, r * ch + ch / 2);
+      const text = CELLS[r][c];
+      const x = c * cw + 12;
+      const y = r * ch + ch / 2;
+      ctx.fillText(text, x, y);
+      const w = ctx.measureText(text).width;
+      lines.push({ text, box: [x, y - 10, x + w, y + 10] });
     }
   }
-  return canvas;
+  return { canvas, lines };
 }
 
 describe('TableStructureService (real SLANet_plus ONNX, headless Chromium)', () => {
@@ -68,13 +80,13 @@ describe('TableStructureService (real SLANet_plus ONNX, headless Chromium)', () 
       },
       { executionProviders: ['wasm'] },
     );
-    // initialize() also asserts the model's structure vocab == dict size, so a
-    // mismatch between the bundled model and dict fails loudly here.
     await service.initialize();
   }, 300_000);
 
   it('recognizes structure tokens and one box per cell token', async () => {
-    const result = await service.recognize(drawTable());
+    // recognize() resolves the structure output by matching its last dim to
+    // the dict size, so a bundled model/dict vocab mismatch fails loudly here.
+    const result = await service.recognize(drawTable().canvas);
 
     expect(Array.isArray(result.structureTokens)).toBe(true);
     expect(result.structureTokens.length).toBeGreaterThan(0);
@@ -95,7 +107,7 @@ describe('TableStructureService (real SLANet_plus ONNX, headless Chromium)', () 
   }, 300_000);
 
   it('returns cell boxes within the crop bounds', async () => {
-    const canvas = drawTable();
+    const { canvas } = drawTable();
     const result = await service.recognize(canvas);
 
     const padX = canvas.width * 0.1;
@@ -110,5 +122,22 @@ describe('TableStructureService (real SLANet_plus ONNX, headless Chromium)', () 
       expect(x2).toBeLessThanOrEqual(canvas.width + padX);
       expect(y2).toBeLessThanOrEqual(canvas.height + padY);
     }
+  }, 300_000);
+
+  it('reconstructs a 3x3 HTML table with the text in the right cells', async () => {
+    // End-to-end through the same path structured.ts uses: SLANet structure +
+    // cell boxes, then buildTableHtml with the (here: ground-truth) OCR lines.
+    // This validates the bbox scale convention — if cell boxes were scaled
+    // wrong, the text would land in the wrong cells or be dropped entirely.
+    const { canvas, lines } = drawTable();
+    const struct = await service.recognize(canvas);
+    const html = buildTableHtml(struct.structureTokens, struct.cellBoxes, lines);
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const grid = [...doc.querySelectorAll('tr')].map((tr) =>
+      [...tr.querySelectorAll('td, th')].map((td) => td.textContent?.trim()),
+    );
+
+    expect(grid).toEqual(CELLS);
   }, 300_000);
 });

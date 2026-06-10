@@ -311,8 +311,24 @@ export class StructuredEngine implements OcrEngine {
       imageBitmap.close();
     }
 
-    const textHtml = composeStructuredHtml(regions);
-    const textPlain = htmlToText(textHtml);
+    let textHtml = composeStructuredHtml(regions);
+    let textPlain = htmlToText(textHtml);
+
+    // Layout models are trained on documents; on UI screenshots they can
+    // return no usable regions. Rather than finish empty, OCR the whole crop
+    // and emit it as plain paragraphs.
+    if (!textPlain.trim() && !this.stopped) {
+      try {
+        const ocr = await this.paddleOcr.recognize(imageBuffer);
+        const text = (ocr?.text ?? '').trim();
+        if (text) {
+          textHtml = composeStructuredHtml([{ label: 'text', text }]);
+          textPlain = htmlToText(textHtml);
+        }
+      } catch (err) {
+        console.debug('structured: full-image OCR fallback failed', err);
+      }
+    }
 
     postMessage({
       action: 'FINISH',

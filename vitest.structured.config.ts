@@ -8,12 +8,18 @@ import base from './vitest.config';
 // engine falls back to WASM — but the flags let us exercise the WebGPU path
 // where the host supports it.
 
-export default mergeConfig(
+interface MergedTestConfig {
+  test: {
+    include: string[];
+    exclude: string[];
+    browser: { instances: { browser: string; name: string }[] };
+  };
+}
+
+const config = mergeConfig(
   base as never,
   defineConfig({
     test: {
-      include: ['tests/structured/**/*.test.ts'],
-      exclude: [],
       testTimeout: 180_000,
       hookTimeout: 180_000,
       browser: {
@@ -29,8 +35,19 @@ export default mergeConfig(
           },
         }),
         headless: true,
-        instances: [{ browser: 'chromium', name: 'chromium-structured' }],
       },
     },
   }),
-);
+) as ReturnType<typeof defineConfig> & MergedTestConfig;
+
+// mergeConfig CONCATENATES arrays, so the base `exclude` (which blocks
+// tests/structured/**) and the base browser instance would survive the merge —
+// the suite would silently run zero structured tests, each unit test twice.
+// Replace the array fields outright instead of merging them.
+config.test.include = ['tests/structured/**/*.test.ts'];
+config.test.exclude = [];
+config.test.browser.instances = [
+  { browser: 'chromium', name: 'chromium-structured' },
+];
+
+export default config;
