@@ -9,6 +9,7 @@ const flush = () => new Promise<void>((r) => setTimeout(r, 30));
 
 async function makeIsland(
   onEngineChange: (engine: string) => Promise<void> = async () => {},
+  webgpuSupported = true,
 ): Promise<{ island: any; host: HTMLElement; shadow: ShadowRoot }> {
   // chrome.runtime.sendMessage GET_SHORTCUT → return a stub shortcut response.
   (chrome.runtime.sendMessage as any).mockImplementation(async (msg: any) => {
@@ -22,7 +23,7 @@ async function makeIsland(
     { x: 100, y: 100 },
     '',
     /* isPdf */ false,
-    /* webgpuSupported */ true,
+    webgpuSupported,
     onEngineChange as any,
   );
   island.mount();
@@ -128,6 +129,45 @@ describe('FloatingIsland (DOM state)', () => {
     expect(requested).toEqual(['structured']);
     expect((island as any).state.settings.engine).toBe('structured');
     expect((island as any).state.status).toBe('loading-model');
+  });
+
+  // Regression: webgpuSupported and firstEngineSwitch were both written and
+  // never read, and warnBrowserFreeze() had no production caller, so this
+  // banner could never reach a real user despite its markup, CSS, background
+  // GPU probe and persisted flag all being in place.
+  it('warns about freezing on the first structured switch without WebGPU', async () => {
+    // No GPU adapter → the structured pipeline is WASM-only on this machine.
+    const { island, shadow } = await makeIsland(undefined, false);
+    expect(
+      (island as any).state.firstEngineSwitch,
+      'fixture should be a first switch',
+    ).toBe(true);
+
+    const select = shadow.querySelector(
+      'select.settings-select',
+    ) as HTMLSelectElement;
+    select.value = 'structured';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    await flush();
+
+    const banner = shadow.querySelector('.engine-warning');
+    expect(banner, 'warning banner should be rendered').toBeTruthy();
+    expect(banner!.className).toContain('show');
+    expect(banner!.textContent).toContain('may freeze');
+  });
+
+  it('does not warn about freezing when a WebGPU adapter is available', async () => {
+    const { shadow } = await makeIsland(undefined, true);
+
+    const select = shadow.querySelector(
+      'select.settings-select',
+    ) as HTMLSelectElement;
+    select.value = 'structured';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    await flush();
+
+    const banner = shadow.querySelector('.engine-warning');
+    expect(banner!.className).toContain('hidden');
   });
 
   it('surfaces an error in the island when onEngineChange rejects', async () => {

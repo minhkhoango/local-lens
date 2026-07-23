@@ -13,6 +13,10 @@ dist-ssr
 dist.zip
 *.local
 
+# Claude Code local state (personal settings, scratch worktrees)
+.claude/settings.local.json
+.claude/worktrees/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

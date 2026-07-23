@@ -213,6 +213,18 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
       [],
     );
 
+    /** Flash the "browser may freeze" banner for 5s, restarting any running timer. */
+    const showFreezeWarning = useCallback((): void => {
+      if (warningTimerRef.current !== null) {
+        window.clearTimeout(warningTimerRef.current);
+      }
+      setWarningVisible(true);
+      warningTimerRef.current = window.setTimeout(() => {
+        setWarningVisible(false);
+        warningTimerRef.current = null;
+      }, 5000);
+    }, []);
+
     useImperativeHandle(
       ref,
       () => ({
@@ -268,18 +280,9 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
         toggleSettingsExpand() {
           dispatch({ type: 'expandSettings' });
         },
-        warnBrowserFreeze() {
-          if (warningTimerRef.current !== null) {
-            window.clearTimeout(warningTimerRef.current);
-          }
-          setWarningVisible(true);
-          warningTimerRef.current = window.setTimeout(() => {
-            setWarningVisible(false);
-            warningTimerRef.current = null;
-          }, 5000);
-        },
+        warnBrowserFreeze: showFreezeWarning,
       }),
-      [copyToClipboard],
+      [copyToClipboard, showFreezeWarning],
     );
 
     // ---- Handlers -----------------------------------------------------------
@@ -331,6 +334,19 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
         void storageRef.current.saveSettings(newSettings);
         dispatch({ type: 'ocrStartLoading' });
 
+        // Switching to a heavier engine on a machine with no WebGPU adapter
+        // means the whole pipeline runs on WASM, which can lock the tab up for
+        // tens of seconds. Say so once, the first time, so the user knows Fast
+        // is still there. `firstEngineSwitch` clears when a non-fast run
+        // actually completes (see updateFinish).
+        if (
+          engine !== 'fast' &&
+          state.firstEngineSwitch &&
+          !state.webgpuSupported
+        ) {
+          showFreezeWarning();
+        }
+
         try {
           await props.onEngineChange(engine);
         } catch (err) {
@@ -341,7 +357,13 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
           });
         }
       },
-      [props, state.settings],
+      [
+        props,
+        showFreezeWarning,
+        state.firstEngineSwitch,
+        state.settings,
+        state.webgpuSupported,
+      ],
     );
 
     const handleMouseDown = useCallback((e: React.MouseEvent): void => {
