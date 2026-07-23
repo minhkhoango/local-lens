@@ -1,5 +1,5 @@
 import { describe, it, beforeEach, afterEach } from 'vitest';
-import { page } from '@vitest/browser/context';
+import { page } from 'vitest/browser';
 import { installRealisticShim, mountBackdrop, unmountBackdrop, flush } from './shim';
 import overlayCss from '@/styles/overlay.css?raw';
 
