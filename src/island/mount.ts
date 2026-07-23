@@ -35,7 +35,7 @@ export class FloatingIsland {
     imageUrl: string,
     isPdf: boolean,
     webgpuSupported: boolean,
-    onEngineChange: (engine: EngineOption) => Promise<void> = async () => {},
+    onEngineChange: (engine: EngineOption) => Promise<void>,
   ) {
     console.debug('[Island.mount] constructor');
     this.host = document.createElement('div');

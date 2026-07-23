@@ -20,6 +20,7 @@ async function newIsland(): Promise<any> {
     '',
     false,
     true,
+    async () => {},
   );
   island.mount();
   await flush();

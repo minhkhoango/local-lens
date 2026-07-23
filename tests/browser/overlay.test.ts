@@ -25,7 +25,7 @@ describe('GhostOverlay', () => {
   });
 
   it('shows "Click and drag" banner text for fast engine', async () => {
-    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast');
+    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast', () => {});
     overlay.mount();
     const text = ((overlay as any).notificationBanner as HTMLDivElement)
       .querySelector('span')!.textContent;
@@ -34,7 +34,12 @@ describe('GhostOverlay', () => {
   });
 
   it('shows "Loading model" banner text for structured engine', async () => {
-    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'structured');
+    const overlay = new GhostOverlay(
+      OVERLAY_CSS,
+      false,
+      'structured',
+      () => {},
+    );
     overlay.mount();
     const text = ((overlay as any).notificationBanner as HTMLDivElement)
       .querySelector('span')!.textContent;

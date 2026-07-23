@@ -45,7 +45,7 @@ export class GhostOverlay {
     overlayStyles: string,
     backupMode: boolean,
     engine: EngineOption,
-    onSelection: (rect: SelectionRect) => void = () => {},
+    onSelection: (rect: SelectionRect) => void,
   ) {
     this.onSelection = onSelection;
     console.debug('[Overlay]: Initiate overlay for screenshot rect');

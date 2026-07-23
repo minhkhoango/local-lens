@@ -19,7 +19,7 @@ describe('GhostOverlay UI snapshots', () => {
   });
 
   it('fast banner — Click and drag to extract text', async () => {
-    const overlay: any = new GhostOverlay(overlayCss, false, 'fast');
+    const overlay: any = new GhostOverlay(overlayCss, false, 'fast', () => {});
     overlay.mount();
     overlay.activate();
     await flush();
@@ -27,14 +27,19 @@ describe('GhostOverlay UI snapshots', () => {
   });
 
   it('structured banner — Loading model...', async () => {
-    const overlay: any = new GhostOverlay(overlayCss, false, 'structured');
+    const overlay: any = new GhostOverlay(
+      overlayCss,
+      false,
+      'structured',
+      () => {},
+    );
     overlay.mount();
     await flush();
     await page.screenshot({ path: 'output/overlay-structured.png', save: true });
   });
 
   it('dragging — selection rectangle through dim backdrop', async () => {
-    const overlay: any = new GhostOverlay(overlayCss, false, 'fast');
+    const overlay: any = new GhostOverlay(overlayCss, false, 'fast', () => {});
     overlay.mount();
     overlay.activate();
 
