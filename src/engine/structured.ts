@@ -14,6 +14,7 @@ import {
 import { htmlToText } from './parser/text';
 import { TableStructureService } from './table/structure';
 import { buildTableHtml, type OcrLine } from './table/match';
+import { geometricTableHtml } from './table/geometry';
 import type { OcrEngine } from './types';
 
 export interface StructuredModelUrls {
@@ -44,23 +45,14 @@ function defaultModelUrls(): StructuredModelUrls {
   const structuredBase = chrome.runtime.getURL('structured_engine/');
   return {
     layoutModel: structuredBase + 'PP-DocLayoutV3.onnx',
-    detection: paddleBase + 'PP-OCRv5_mobile_det_infer.ort',
-    // Int8 rec is byte-identical to fp32 on fixtures (tests/bench/RESULTS.md).
-    recognition: paddleBase + 'en_PP-OCRv5_mobile_rec_infer_int8.ort',
-    charactersDictionary: paddleBase + 'ppocrv5_en_dict.txt',
+    // PP-OCRv6 tiny, fp32 .onnx (shared with the fast engine). See fast.ts for
+    // why we ship .onnx rather than .ort on the WebGPU path.
+    detection: paddleBase + 'PP-OCRv6_tiny_det.onnx',
+    recognition: paddleBase + 'PP-OCRv6_tiny_rec.onnx',
+    charactersDictionary: paddleBase + 'ppocrv6_tiny_dict.txt',
     tableStructureModel: structuredBase + 'SLANet_plus.onnx',
     tableStructureDictionary: structuredBase + 'table_structure_dict.txt',
     wasmPaths: paddleBase,
-  };
-}
-
-/** Opt-in fp32 recognition URLs, kept for benchmark comparisons. */
-export function fp32ModelUrls(): StructuredModelUrls {
-  return {
-    ...defaultModelUrls(),
-    recognition:
-      chrome.runtime.getURL('paddle_engine/') +
-      'en_PP-OCRv5_mobile_rec_infer.ort',
   };
 }
 
@@ -143,6 +135,9 @@ export class StructuredEngine implements OcrEngine {
           executionProviders: [...executionProviders],
           graphOptimizationLevel: 'all',
         },
+        // Pure-canvas preprocessing (no OpenCV.js) to keep the bundle lean and
+        // offline; ppu-paddle-ocr 6.x otherwise defaults to the 'opencv' engine.
+        processing: { engine: 'canvas-native' },
       });
       await paddleOcr.initialize();
       this.paddleOcr = paddleOcr;
@@ -178,6 +173,48 @@ export class StructuredEngine implements OcrEngine {
     } finally {
       this.loadingPromise = null;
     }
+  }
+
+  /**
+   * Reconstruct an HTML <table> for one region, or return undefined when the
+   * region is not tabular. Two strategies, in order:
+   *   1. SLANet_plus — only for regions the layout model labeled `table`, since
+   *      it is an expensive 488x488 ONNX pass and trained on bordered document
+   *      tables. Used only when it yields a plausible structure (>=1 cell box).
+   *   2. Geometric reconstruction — pure JS over the OCR line boxes. It
+   *      self-guards (returns null for non-tabular content), so it is safe and
+   *      cheap to attempt on ANY region, which is what recovers borderless web
+   *      tables the layout model mislabeled as `text`.
+   * All failures are swallowed: table reconstruction must never break the
+   * engine (the region simply falls back to its plain-text rendering).
+   */
+  private async reconstructTableHtml(
+    canvas: OffscreenCanvas,
+    ocr: PaddleOcrResult,
+    isTableLabel: boolean,
+  ): Promise<string | undefined> {
+    if (isTableLabel && this.tableStructure) {
+      try {
+        const struct = await this.tableStructure.recognize(canvas);
+        if (struct.cellBoxes.length > 0) {
+          return buildTableHtml(
+            struct.structureTokens,
+            struct.cellBoxes,
+            extractOcrLines(ocr),
+          );
+        }
+      } catch (err) {
+        console.debug('structured: table structure failed', err);
+      }
+    }
+
+    try {
+      const geo = geometricTableHtml(extractOcrLines(ocr));
+      if (geo) return geo;
+    } catch (err) {
+      console.debug('structured: geometric table failed', err);
+    }
+    return undefined;
   }
 
   public async recognize(
@@ -276,22 +313,15 @@ export class StructuredEngine implements OcrEngine {
           const ocr = await this.paddleOcr.recognize(buf, { flatten: false });
           text = (ocr?.text ?? '').trim();
 
-          // Reconstruct a real <table> from a detected table region. Any
-          // failure here falls back to the plain-text <pre> rendering below.
-          if (box.label === 'table' && this.tableStructure) {
-            try {
-              const struct = await this.tableStructure.recognize(canvas);
-              if (struct.cellBoxes.length > 0) {
-                tableHtml = buildTableHtml(
-                  struct.structureTokens,
-                  struct.cellBoxes,
-                  extractOcrLines(ocr),
-                );
-              }
-            } catch (err) {
-              console.debug('structured: table structure failed', err);
-            }
-          }
+          // Reconstruct a real <table>: SLANet for regions the layout model
+          // actually labeled `table`, and a geometric fallback for everything
+          // else (borderless tables the layout model mislabels as `text`).
+          // Any failure here falls back to the plain-text rendering below.
+          tableHtml = await this.reconstructTableHtml(
+            canvas,
+            ocr,
+            box.label === 'table',
+          );
         } catch (err) {
           console.debug('structured: OCR failed for region', box.label, err);
         }
@@ -315,13 +345,22 @@ export class StructuredEngine implements OcrEngine {
     let textPlain = htmlToText(textHtml);
 
     // Layout models are trained on documents; on UI screenshots they can
-    // return no usable regions. Rather than finish empty, OCR the whole crop
-    // and emit it as plain paragraphs.
+    // return no usable regions. Rather than finish empty, OCR the whole crop.
+    // Try a geometric <table> first (this is the borderless-table case the
+    // layout model missed entirely); otherwise emit plain paragraphs.
     if (!textPlain.trim() && !this.stopped) {
       try {
-        const ocr = await this.paddleOcr.recognize(imageBuffer);
+        const ocr = await this.paddleOcr.recognize(imageBuffer, {
+          flatten: false,
+        });
         const text = (ocr?.text ?? '').trim();
-        if (text) {
+        const geo = geometricTableHtml(extractOcrLines(ocr));
+        if (geo) {
+          textHtml = composeStructuredHtml([
+            { label: 'table', text, html: geo },
+          ]);
+          textPlain = htmlToText(textHtml);
+        } else if (text) {
           textHtml = composeStructuredHtml([{ label: 'text', text }]);
           textPlain = htmlToText(textHtml);
         }

@@ -1,5 +1,12 @@
 # PP-OCRv5 int8 vs fp32 — benchmark results
 
+> **⚠️ SUPERSEDED (historical record).** This benchmark drove the earlier
+> decision to default to PP-OCRv5 int8 `.ort`. That has since been reversed:
+> both engines now run **PP-OCRv6 tiny, fp32 `.onnx`** (int8 dropped). `.onnx`
+> is required for the WebGPU execution provider to actually run on GPU
+> (onnxruntime-web #24475), and int8 gave no steady-state speed gain anyway
+> (see below). Kept only as a record of the int8-vs-fp32 investigation.
+
 Branch: `bench/int8-eval` · headless Chromium (Playwright, swiftshader) · WASM SIMD threaded.
 
 ## Environment notes

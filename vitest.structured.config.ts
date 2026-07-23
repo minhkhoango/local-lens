@@ -26,11 +26,18 @@ const config = mergeConfig(
         enabled: true,
         provider: playwright({
           launchOptions: {
+            // Enable the WebGPU path on a REAL GPU where one exists, and fall
+            // back cleanly to Chromium's SwiftShader software adapter otherwise
+            // (the engines already degrade WebGPU -> WASM on their own).
+            // NOTE: do NOT pass `--use-vulkan=swiftshader` here — that FORCES
+            // software Vulkan and hides real-GPU regressions. `--ignore-gpu-
+            // blocklist` + ANGLE/Vulkan lets a hardware adapter through when
+            // present without blocking the software fallback.
             args: [
               '--enable-unsafe-webgpu',
               '--enable-features=Vulkan',
-              '--use-vulkan=swiftshader',
               '--use-angle=vulkan',
+              '--ignore-gpu-blocklist',
             ],
           },
         }),

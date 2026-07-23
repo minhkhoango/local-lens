@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { installChromeShim } from '../setup/chrome-shim';
 import { TEST_IMAGES, fetchAsDataUrl } from '../setup/fixtures';
 
@@ -182,5 +182,66 @@ describe('FastEngine resilience', () => {
       expect(errors.length, 'should surface at least one ERROR event').toBeGreaterThanOrEqual(1);
     },
     45_000,
+  );
+});
+
+// The warm-stop contract: stop() must leave the loaded model in memory so the
+// UI island closing/reopening does not trigger a multi-second cold reload. We
+// prove the *exact same* underlying service instance survives stop() and is
+// reused by a later load()/recognize() instead of being rebuilt.
+describe('FastEngine warm-stop reuse', () => {
+  it(
+    'keeps the service warm across stop() so the next load()/recognize() reuses it',
+    async () => {
+      const engine = new FastEngine();
+      await engine.load();
+
+      // Reach into the private service handle to assert instance identity.
+      const internals = engine as unknown as { service: object | null };
+      const loadedService = internals.service;
+      expect(loadedService, 'service should exist after load()').not.toBeNull();
+
+      // Warm stop must NOT destroy or null out the service.
+      await engine.stop();
+      expect(
+        internals.service,
+        'warm stop() must NOT tear down the loaded service',
+      ).toBe(loadedService);
+
+      // A second load() must short-circuit via `if (this.service) return`
+      // (which logs "reusing paddle service") rather than rebuilding sessions.
+      const debugSpy = vi.spyOn(console, 'debug');
+      await engine.load();
+      const reused = debugSpy.mock.calls.some((args) =>
+        String(args[0] ?? '').includes('reusing paddle service'),
+      );
+      debugSpy.mockRestore();
+      expect(reused, 'load() after stop() should reuse the warm service').toBe(
+        true,
+      );
+      expect(
+        internals.service,
+        'service instance preserved after a second load()',
+      ).toBe(loadedService);
+
+      // And a real recognize() still succeeds on the warm service, without
+      // swapping the instance (i.e. no cold re-init happened).
+      const dataUrl = await fetchAsDataUrl(TEST_IMAGES[0].url);
+      const events: TabsConnect[] = [];
+      await engine.recognize(
+        { croppedImage: dataUrl, engine: 'fast' },
+        (m) => events.push(m),
+      );
+      expect(
+        internals.service,
+        'service instance unchanged across recognize()',
+      ).toBe(loadedService);
+      expect(events.filter((e) => e.action === 'ERROR')).toHaveLength(0);
+      expect(
+        events.some((e) => e.action === 'FINISH'),
+        'recognize() on the warm service should still FINISH',
+      ).toBe(true);
+    },
+    120_000,
   );
 });

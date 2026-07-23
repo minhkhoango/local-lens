@@ -65,4 +65,20 @@ describe('buildTableHtml', () => {
     );
     expect(html).toBe('<table><tr><td>only</td><td></td></tr></table>');
   });
+
+  it('snaps a line outside every cell to the nearest cell instead of dropping it', () => {
+    // 'X' sits well below both cells (no containment, zero IoU), but its center
+    // is nearer the right cell's center, so it must land in the right cell.
+    const html = buildTableHtml(
+      ['<tr>', '<td></td>', '<td></td>', '</tr>'],
+      [
+        [0, 0, 50, 20], // top-left
+        [50, 0, 100, 20], // top-right
+      ],
+      [{ text: 'X', box: [60, 100, 80, 120] }],
+    );
+    // Text is preserved (not dropped) and placed in the nearest (right) cell.
+    expect(html).toBe('<table><tr><td></td><td>X</td></tr></table>');
+    expect(html).toContain('X');
+  });
 });

@@ -185,16 +185,12 @@ async function captureTabImage(tabId: number): Promise<void> {
  * Get id of the tab that send the message
  */
 function getTabId(sender: chrome.runtime.MessageSender): number {
-  try {
-    const targetTabId = sender.tab?.id;
-    if (!targetTabId) {
-      throw new Error('Missing tab Id');
-    }
-
-    return targetTabId;
-  } catch (err) {
-    throw err;
+  const targetTabId = sender.tab?.id;
+  if (!targetTabId) {
+    throw new Error('Missing tab Id');
   }
+
+  return targetTabId;
 }
 
 /**
@@ -255,23 +251,19 @@ async function activateOverlay(
   capturedImage: string | null,
   isPdf = false,
 ): Promise<void> {
-  try {
-    console.debug('warming up offscreen engine...');
-    await ensureOffscreenLoaded();
+  console.debug('warming up offscreen engine...');
+  await ensureOffscreenLoaded();
 
-    console.debug('send ACTIVATE_OVERLAY to content');
-    await ensureContentLoaded(tabId);
+  console.debug('send ACTIVATE_OVERLAY to content');
+  await ensureContentLoaded(tabId);
 
-    const overlayResponse = await chrome.tabs.sendMessage<TabsMessage>(tabId, {
-      action: TabsMessageAction.ACTIVATE_OVERLAY,
-      payload: { imageUrl: capturedImage, isPdf: isPdf },
-    });
-    if (overlayResponse.status !== 'ok') {
-      console.error('Overlay failed:', overlayResponse.message);
-      return;
-    }
-  } catch (err) {
-    throw err;
+  const overlayResponse = await chrome.tabs.sendMessage<TabsMessage>(tabId, {
+    action: TabsMessageAction.ACTIVATE_OVERLAY,
+    payload: { imageUrl: capturedImage, isPdf: isPdf },
+  });
+  if (overlayResponse.status !== 'ok') {
+    console.error('Overlay failed:', overlayResponse.message);
+    return;
   }
 }
 
@@ -324,7 +316,6 @@ async function ensureOffscreenLoaded(): Promise<void> {
       reasons: [chrome.offscreen.Reason.BLOBS],
       justification: 'Processing screenshot image data for OCR',
     });
-    // await new Promise((letOffscreenLoad) => setTimeout(letOffscreenLoad, 100));
   }
 }
 
@@ -368,20 +359,20 @@ async function transferCapture(
   console.debug('Transfering capture success bg -> content');
   await chrome.tabs.sendMessage<TabsMessage>(tabId, {
     action: TabsMessageAction.CAPTURE_SUCCESS,
-    payload: payload as SelectionRect,
+    payload,
   });
 }
 
 /**
- * A inefficient bridge that transfer updated language from island.index -> bg -> content
+ * An inefficient bridge that transfers the OCR request from island -> bg -> content
  * @param tabId Id of the tab of the island that sent PERFORM_OCR request
- * @param payload new language
+ * @param payload engine selection + cropped image for OCR
  */
 async function transferPerformOcr(
   tabId: number,
   payload: PerformOcrPayload,
 ): Promise<void> {
-  console.debug('Transfering language payload bg -> content');
+  console.debug('Transfering OCR request bg -> content');
   await chrome.tabs.sendMessage<RuntimeMessage>(tabId, {
     action: RuntimeMessageAction.BG_PERFORM_OCR,
     payload: payload,

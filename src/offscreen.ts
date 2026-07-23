@@ -1,3 +1,4 @@
+import * as ort from 'onnxruntime-web';
 import {
   TabsConnectAction,
   RuntimeMessageAction,
@@ -13,6 +14,29 @@ import type {
 import type { StructuredEngine } from './engine/structured';
 import type { FastEngine } from './engine/fast';
 import { OCR_PORT } from './constants';
+
+// Configure ORT WASM threading ONCE, at offscreen startup — before the lazy
+// engine imports run and create any ORT session. `ort.env` is a shared
+// singleton across the module graph, so setting it here also applies to the
+// engines' own `onnxruntime-web` import.
+//
+// onnxruntime-web ships a threaded+JSEP wasm binary that only uses multiple
+// threads (via SharedArrayBuffer) when the document is cross-origin-isolated.
+// MV3 offscreen documents are usually NOT cross-origin-isolated: MV3 removed
+// the MV2 COOP/COEP manifest keys, so `self.crossOriginIsolated` is commonly
+// false and this guard keeps us at 1 thread today — which is correct and safe.
+// The code is ready to use threads the moment isolation is enabled (handled
+// separately by adding cross-origin-isolation headers; do NOT add them here).
+const wasmCrossOriginIsolated = self.crossOriginIsolated === true;
+ort.env.wasm.numThreads = wasmCrossOriginIsolated
+  ? Math.min(navigator.hardwareConcurrency ?? 4, 4)
+  : 1;
+console.debug(
+  '[Offscreen] ORT WASM threading: crossOriginIsolated =',
+  wasmCrossOriginIsolated,
+  '| numThreads =',
+  ort.env.wasm.numThreads,
+);
 
 let engine: EngineOption = 'fast';
 let structuredEngine: StructuredEngine | null = null;

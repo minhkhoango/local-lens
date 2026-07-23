@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Local Lens e2e — table</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #ffffff;
+      }
+      /*
+        A small BORDERLESS table (border: none on every cell). The structured
+        engine's layout model tends to label this region as plain text, so the
+        engine's geometric table reconstruction is what recovers the grid — this
+        fixture exercises exactly that path. Column values are unambiguous so the
+        spec can assert both the recognized cell tokens and a reconstructed
+        <table> in the island output.
+      */
+      #target {
+        position: absolute;
+        left: 60px;
+        top: 120px;
+        border-collapse: collapse;
+        font: 24px/1.4 Arial, Helvetica, sans-serif;
+        color: #000000;
+        background: #ffffff;
+      }
+      #target th,
+      #target td {
+        padding: 8px 26px;
+        text-align: left;
+        border: none;
+      }
+      #target th {
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <table id="target">
+      <thead>
+        <tr>
+          <th>Fruit</th>
+          <th>Price</th>
+          <th>Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Apple</td>
+          <td>3</td>
+          <td>120</td>
+        </tr>
+        <tr>
+          <td>Banana</td>
+          <td>2</td>
+          <td>340</td>
+        </tr>
+        <tr>
+          <td>Cherry</td>
+          <td>7</td>
+          <td>58</td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>

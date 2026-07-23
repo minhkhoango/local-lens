@@ -38,7 +38,10 @@ function contains(cell: readonly number[], cx: number, cy: number): boolean {
 /**
  * Assign each OCR line to its cell, then join per-cell text in reading order.
  * A line lands in the cell that contains its center; failing that, the cell
- * with the largest IoU. Lines that match nothing are dropped.
+ * with the largest IoU. A line that matches no cell by either signal (SLANet's
+ * boxes can sit slightly off the text) is snapped to the NEAREST cell by
+ * center-to-center distance rather than dropped — text is only ever lost when
+ * there are literally no cells.
  */
 function assignLinesToCells(
   cellBoxes: number[][],
@@ -64,6 +67,23 @@ function assignLinesToCells(
         best = i;
       }
     }
+
+    // No containment and no overlap with any cell: assign to the nearest cell
+    // by center distance so the text survives (only impossible when cellless).
+    if (best === -1 && cellBoxes.length > 0) {
+      let bestDist = Infinity;
+      for (let i = 0; i < cellBoxes.length; i++) {
+        const cell = cellBoxes[i];
+        const ccx = (cell[0] + cell[2]) / 2;
+        const ccy = (cell[1] + cell[3]) / 2;
+        const dist = (cx - ccx) ** 2 + (cy - ccy) ** 2;
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = i;
+        }
+      }
+    }
+
     if (best !== -1) buckets[best].push(line);
   }
 

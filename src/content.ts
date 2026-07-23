@@ -132,31 +132,23 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
 async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
   console.debug('handle capture success');
 
-  try {
-    // Analyze image quality for OCR and log recommendation
-    // const analysis = await analyzeImageForOcr(capturedImage, rect);
-    // console.log('analyzeImageForOcr result:', analysis);
+  console.debug(`cropping capturedImage to rect: ${rect}`);
+  croppedImage = await cropImage(capturedImage, rect);
+  cursorPosition = {
+    x: rect.x + rect.width,
+    y: rect.y + rect.height,
+  };
 
-    console.debug(`cropping capturedImage to rect: ${rect}`);
-    croppedImage = await cropImage(capturedImage, rect);
-    cursorPosition = {
-      x: rect.x + rect.width,
-      y: rect.y + rect.height,
-    };
+  console.debug('Update floating island with new image');
+  activeIsland = new FloatingIsland(
+    cursorPosition,
+    croppedImage,
+    isPdf,
+    webGpuSupported,
+  );
+  activeIsland.mount();
 
-    console.debug('Update floating island with new image');
-    activeIsland = new FloatingIsland(
-      cursorPosition,
-      croppedImage,
-      isPdf,
-      webGpuSupported,
-    );
-    activeIsland.mount();
-
-    await handlePerformOcr('auto');
-  } catch (err) {
-    throw err;
-  }
+  await handlePerformOcr('auto');
 }
 
 /** Handle UI update when offscreen finishing OCR the image */
@@ -236,8 +228,23 @@ async function cropImage(
   const scaledWidth = rect.width * dpr;
   const scaledHeight = rect.height * dpr;
 
-  canvas.width = scaledWidth;
-  canvas.height = scaledHeight;
+  // Cap the longest side of the output canvas. A large selection on a 2x/3x
+  // display would otherwise produce a huge canvas — slow PNG encode plus
+  // downstream fetch/decode cost — for no OCR benefit: PaddleOCR detection
+  // internally resizes to a ~960px max side anyway, so no accuracy is lost.
+  // We only ever downscale (scale <= 1, never upscale) and use high-quality
+  // smoothing so the shrunken text stays legible.
+  const MAX_CROP_SIDE = 3000;
+  const longestSide = Math.max(scaledWidth, scaledHeight);
+  const scale = longestSide > MAX_CROP_SIDE ? MAX_CROP_SIDE / longestSide : 1;
+  const destWidth = Math.max(1, Math.round(scaledWidth * scale));
+  const destHeight = Math.max(1, Math.round(scaledHeight * scale));
+
+  canvas.width = destWidth;
+  canvas.height = destHeight;
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   ctx.drawImage(
     img,
@@ -247,47 +254,12 @@ async function cropImage(
     scaledHeight,
     0,
     0,
-    scaledWidth,
-    scaledHeight,
+    destWidth,
+    destHeight,
   );
 
   return canvas.toDataURL(`image/png`);
 }
-
-// async function analyzeImageForOcr(
-//   dataUrl: string,
-//   rect: SelectionRect,
-// ): Promise<{
-//   pixelWidth: number;
-//   pixelHeight: number;
-//   effectiveDpi: number;
-//   recommendation: string;
-// }> {
-//   const img = new Image();
-//   await new Promise((resolve, reject) => {
-//     img.onload = resolve;
-//     img.onerror = reject;
-//     img.src = dataUrl;
-//   });
-
-//   const dpr = rect.devicePixelRatio || 1;
-//   const pixelWidth = rect.width * dpr;
-//   const pixelHeight = rect.height * dpr;
-
-//   // Extension runs on ChromeOS and Windows, so assume 96
-//   const effectiveDpi = dpr * 96;
-
-//   let recommendation = '';
-//   if (effectiveDpi < 150) {
-//     recommendation = 'Low quality - consider upscaling for better OCR';
-//   } else if (effectiveDpi < 300) {
-//     recommendation = 'Acceptable - may benefit from upscaling';
-//   } else {
-//     recommendation = 'Good quality for OCR';
-//   }
-
-//   return { pixelWidth, pixelHeight, effectiveDpi, recommendation };
-// }
 
 /** Open a identical new tab on restricted sites */
 function setupBackupDisplay(payload: ImagePayload): void {

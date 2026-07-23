@@ -6,15 +6,13 @@ installChromeShim();
 
 import {
   StructuredEngine,
-  fp32ModelUrls,
   type StructuredModelUrls,
 } from '@/engine/structured';
 import type { TabsConnect } from '@/types';
 
 // Structured engine end-to-end timing: layout (WASM-only, 124 MB model) plus
-// per-region paddle recognition. Layout dominates, so int8-rec uplift may be
-// modest; we still measure both. Only the smallest fixture is included by
-// default to keep wall time reasonable.
+// per-region paddle recognition. Layout dominates the wall time. Only the
+// smallest fixture is included by default to keep runs reasonable.
 
 async function runRecognize(
   engine: StructuredEngine,
@@ -47,10 +45,7 @@ interface Stat {
   max: number;
 }
 
-const CONDITIONS: Condition[] = [
-  { label: 'fp32 rec', modelUrls: fp32ModelUrls() },
-  { label: 'int8 rec (default)' },
-];
+const CONDITIONS: Condition[] = [{ label: 'default' }];
 
 const ITERATIONS = 2;
 const BENCH_IMAGES = [TEST_IMAGES[0]];

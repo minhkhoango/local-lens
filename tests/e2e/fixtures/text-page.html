@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Local Lens e2e — text</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #ffffff;
+      }
+      /*
+        A single, deliberately unambiguous paragraph on a clean white
+        background. Large Arial with generous line-height so the OCR is
+        reliable regardless of the host's font rendering. The known tokens
+        the e2e spec asserts on are: quick, brown, fox, jumps, 12345.
+      */
+      #target {
+        position: absolute;
+        left: 40px;
+        top: 140px;
+        width: 520px;
+        font: 30px/1.5 Arial, Helvetica, sans-serif;
+        color: #111111;
+        background: #ffffff;
+        padding: 10px;
+        letter-spacing: 0.3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">The quick brown fox<br />jumps over 12345</div>
+  </body>
+</html>

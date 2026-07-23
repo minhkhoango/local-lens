@@ -25,22 +25,14 @@ export interface FastEngineOptions {
 function defaultModelUrls(): PaddleModelUrls {
   const base = chrome.runtime.getURL('paddle_engine/');
   return {
-    detection: base + 'PP-OCRv5_mobile_det_infer.ort',
-    // Int8 produces byte-identical OCR output to fp32 on our fixtures (see
-    // tests/bench/RESULTS.md) at ~10% smaller file size, so int8 is default.
-    recognition: base + 'en_PP-OCRv5_mobile_rec_infer_int8.ort',
-    charactersDictionary: base + 'ppocrv5_en_dict.txt',
+    // PP-OCRv6 tiny, fp32 .onnx. We ship .onnx (not .ort) because the WebGPU
+    // execution provider mis-partitions .ort graphs back onto WASM
+    // (onnxruntime-web #24475); PP-OCRv6's recognizer is SVTR/CTC (no LSTM), so
+    // with .onnx the det+rec sessions actually run on the GPU.
+    detection: base + 'PP-OCRv6_tiny_det.onnx',
+    recognition: base + 'PP-OCRv6_tiny_rec.onnx',
+    charactersDictionary: base + 'ppocrv6_tiny_dict.txt',
     wasmPaths: base,
-  };
-}
-
-/** Opt-in fp32 recognition URLs, kept for benchmark comparisons. */
-export function fp32ModelUrls(): PaddleModelUrls {
-  return {
-    ...defaultModelUrls(),
-    recognition:
-      chrome.runtime.getURL('paddle_engine/') +
-      'en_PP-OCRv5_mobile_rec_infer.ort',
   };
 }
 
@@ -51,6 +43,9 @@ export class FastEngine implements OcrEngine {
   public lastConfidence: number | null = null;
   private modelUrls: PaddleModelUrls;
   private executionProvidersOverride: ExecutionProvider[] | undefined;
+  // Mirrors StructuredEngine: a normal stop() only flips this flag and leaves
+  // the model warm. recognize() resets it, so it can never block a later call.
+  private stopped = false;
 
   constructor(modelUrls?: PaddleModelUrls, options?: FastEngineOptions) {
     this.modelUrls = modelUrls ?? defaultModelUrls();
@@ -58,10 +53,9 @@ export class FastEngine implements OcrEngine {
   }
 
   public async load(
-    arg?: unknown,
+    _arg?: unknown,
     postMessage?: (message: TabsConnect) => void,
   ): Promise<void> {
-    void arg;
     if (this.service) {
       console.debug('reusing paddle service');
       return;
@@ -94,6 +88,10 @@ export class FastEngine implements OcrEngine {
           executionProviders: [...executionProviders],
           graphOptimizationLevel: 'all',
         },
+        // Pure-canvas preprocessing (no OpenCV.js). ppu-paddle-ocr 6.x defaults
+        // to the 'opencv' engine, which would pull ppu-ocv's OpenCV wasm into
+        // the bundle; 'canvas-native' keeps the extension lean and fully offline.
+        processing: { engine: 'canvas-native' },
       });
 
       postMessage?.({
@@ -124,6 +122,10 @@ export class FastEngine implements OcrEngine {
       throw new Error('No cropped image found for recognize');
     }
 
+    // A prior warm stop() may have left this set; clear it so a fresh request
+    // always proceeds (symmetry with StructuredEngine.recognize).
+    this.stopped = false;
+
     try {
       await this.load(undefined, postMessage);
     } catch (err) {
@@ -147,6 +149,13 @@ export class FastEngine implements OcrEngine {
       });
       return;
     }
+
+    // If stop() arrived while the model was loading, cancel cooperatively: the
+    // island that requested this OCR is already tearing down (STOP_OFFSCREEN
+    // fires on island close), so nothing is waiting on a terminal event. This
+    // mirrors StructuredEngine's in-loop `stopped` check. recognize() reset the
+    // flag on entry, so this only trips for a stop() concurrent with THIS call.
+    if (this.stopped) return;
 
     postMessage({
       action: 'PROGRESS',
@@ -184,7 +193,25 @@ export class FastEngine implements OcrEngine {
     });
   }
 
+  /**
+   * Warm stop: mirror StructuredEngine's semantics. The UI island closing
+   * (STOP_OFFSCREEN) must NOT tear down the loaded model — cold-reloading it
+   * (fetch + session create + kernel compile) costs several seconds on the
+   * next OCR. We keep `this.service` in memory so the `if (this.service) return`
+   * guard in load() makes the next recognize() instant. `stopped` is reset by
+   * recognize(), so it never blocks a subsequent request.
+   */
   public async stop(): Promise<void> {
+    this.stopped = true;
+  }
+
+  /**
+   * Explicit teardown for genuine shutdown. Unlike stop(), this actually
+   * releases the ONNX sessions; the next recognize() will cold-load again.
+   * Deliberately NOT called from the normal stop path.
+   */
+  public async destroy(): Promise<void> {
+    this.stopped = true;
     if (!this.service) return;
     try {
       await this.service.destroy();

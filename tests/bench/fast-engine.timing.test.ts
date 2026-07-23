@@ -1,4 +1,4 @@
-import { describe, it, beforeAll } from 'vitest';
+import { describe, it, beforeAll, expect } from 'vitest';
 import { installChromeShim } from '../setup/chrome-shim';
 import { TEST_IMAGES, fetchAsDataUrl } from '../setup/fixtures';
 
@@ -6,7 +6,6 @@ installChromeShim();
 
 import {
   FastEngine,
-  fp32ModelUrls,
   type ExecutionProvider,
   type PaddleModelUrls,
 } from '@/engine/fast';
@@ -66,12 +65,11 @@ const ITERATIONS = 3;
 // path produce a number rather than skipping. In a real browser with a real
 // GPU, WebGPU will exercise; here we surface that the path is effectively
 // WASM-only and report the timing as such.
-// Default model URLs are int8 since the swap. fp32 is the explicit opt-in.
+// PP-OCRv6 tiny fp32 .onnx is the sole recognition model (int8 dropped), so we
+// bench the two execution-provider paths rather than a precision matrix.
 const CONDITIONS: Condition[] = [
-  { label: 'fp32 + WASM', modelUrls: fp32ModelUrls(), executionProviders: ['wasm'] },
-  { label: 'int8 + WASM (default)', executionProviders: ['wasm'] },
-  { label: 'fp32 + WebGPU (fallback to WASM ok)', modelUrls: fp32ModelUrls(), executionProviders: ['webgpu', 'wasm'] },
-  { label: 'int8 + WebGPU (fallback to WASM ok) (default)', executionProviders: ['webgpu', 'wasm'] },
+  { label: 'WASM', executionProviders: ['wasm'] },
+  { label: 'WebGPU (fallback to WASM ok)', executionProviders: ['webgpu', 'wasm'] },
 ];
 
 describe('FastEngine timing (real ONNX runtime)', () => {
@@ -129,6 +127,53 @@ describe('FastEngine timing (real ONNX runtime)', () => {
       }
     });
   }
+
+  // Regression guard for the warm-stop fix: stop() must keep the model warm so
+  // the next recognize() reuses it instead of paying the multi-second cold load
+  // again. We measure the cold load, a normal warm recognize, then a recognize
+  // right after stop(); the post-stop call must stay in warm territory.
+  it(
+    'warm-stop: recognize after stop() skips the cold-load cost',
+    async () => {
+      const engine = new FastEngine(undefined, {
+        executionProviders: ['wasm'],
+      });
+      const dataUrl = await fetchAsDataUrl(TEST_IMAGES[0].url);
+
+      const tLoad0 = performance.now();
+      await engine.load('eng');
+      const coldLoadMs = performance.now() - tLoad0;
+
+      // Warm the kernels once so the comparison isolates model-reload cost
+      // rather than first-call kernel compilation.
+      await runRecognize(engine, dataUrl);
+
+      const tWarm0 = performance.now();
+      await runRecognize(engine, dataUrl);
+      const warmMs = performance.now() - tWarm0;
+
+      // Warm stop() must NOT destroy the model.
+      await engine.stop();
+
+      const tAfterStop0 = performance.now();
+      await runRecognize(engine, dataUrl);
+      const afterStopMs = performance.now() - tAfterStop0;
+
+      // eslint-disable-next-line no-console
+      console.log(
+        `[fast-warmstop] cold-load=${coldLoadMs.toFixed(0)}ms ` +
+          `warm-recognize=${warmMs.toFixed(0)}ms ` +
+          `after-stop-recognize=${afterStopMs.toFixed(0)}ms`,
+      );
+
+      // The post-stop recognize must not re-pay the cold model-load cost.
+      expect(afterStopMs).toBeLessThan(coldLoadMs);
+      // And it should stay in the same ballpark as a normal warm recognize —
+      // loose multiplier + slack so CI variance doesn't make it flaky.
+      expect(afterStopMs).toBeLessThan(warmMs * 3 + 1000);
+    },
+    600_000,
+  );
 
   it('summary: all conditions × all images', () => {
     const header = ['condition', ...TEST_IMAGES.map((i) => i.name)];
