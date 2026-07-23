@@ -21,8 +21,9 @@ import { join, resolve } from 'node:path';
  *     roots (src/overlay.ts, src/island/mount.ts). Their *host* elements
  *     (#xr-screenshot-reader-host / #xr-floating-island-host) are visible in the
  *     light DOM — so we can DETECT them — but the recognized text inside is not
- *     reachable from the page's main world. We therefore read the result the way
- *     the extension itself surfaces it to the user: the clipboard (auto-copy).
+ *     reachable from the page's main world. We read it over CDP instead:
+ *     `DOM.getDocument({pierce: true})` descends into closed shadow roots, so
+ *     the assertions see exactly the text the island shows the user.
  *
  *  2. The extension is gated on the `activeTab` permission, which Chromium only
  *     grants after a genuine user gesture on the action (toolbar click, the
@@ -122,15 +123,15 @@ export interface OcrCaptureParams {
 export interface OcrCaptureResult {
   overlayAppeared: boolean;
   islandAppeared: boolean;
-  /** text/plain from the clipboard (auto-copy) — the recognized text. */
+  /** innerText of the island's result element — the recognized text. */
   plain: string;
-  /** text/html from the clipboard — contains reconstructed <table> for structured. */
+  /** innerHTML of the same element — the reconstructed <table> for structured. */
   html: string;
-  clipboardError: string | null;
+  readError: string | null;
   timings: {
-    /** Trigger (activateOverlay) → clipboard populated (island FINISH + auto-copy). */
+    /** Trigger (activateOverlay) → island rendered its result. */
     activateToFinishMs: number;
-    /** Drag mouse-up (OCR start) → clipboard populated. The inference wall-clock. */
+    /** Drag mouse-up (OCR start) → island rendered its result. Inference wall-clock. */
     dragToFinishMs: number;
   };
 }
@@ -218,7 +219,9 @@ export async function launchExtensionContext(options: LaunchOptions): Promise<La
     args,
     channel,
     executablePath,
-    // Grant clipboard so the island's auto-copy (our result channel) succeeds.
+    // Grant clipboard so the island's auto-copy path still runs for real. The
+    // assertions read the island directly (see readIslandResult), so a clipboard
+    // failure no longer fails the suite — but the copy is part of the flow.
     permissions: ['clipboard-read', 'clipboard-write'],
   });
 
@@ -338,36 +341,9 @@ export async function runOcrCapture(params: OcrCaptureParams): Promise<OcrCaptur
   }, engine);
 
   await page.bringToFront();
-  // A real pointer gesture guarantees the document is focused so the sentinel
-  // clipboard write below actually lands (writeText silently no-ops on an
-  // unfocused document, which is what let a prior test's clipboard leak through).
+  // A real pointer gesture focuses the document, which the island's auto-copy
+  // needs (clipboard writes silently no-op on an unfocused document).
   await page.mouse.click(2, 2).catch(() => {});
-  // The OS clipboard is shared across browser contexts, so a previous test's
-  // auto-copied result can linger and be misread as this capture's output. Stamp
-  // a unique sentinel and treat whatever is actually on the clipboard now as the
-  // baseline; readClipboardResult then waits for THIS capture's fresh auto-copy
-  // (a value that differs from the baseline), rather than trusting a plain clear
-  // that silently no-ops when the freshly-launched page isn't focused yet.
-  const sentinel = `__ll_e2e_pending_${Date.now()}__`;
-  const clipboardBaseline = await page.evaluate(async (s) => {
-    try {
-      await navigator.clipboard.writeText(s);
-    } catch {
-      /* focus/permission — the read below captures the real baseline instead */
-    }
-    try {
-      const items = await navigator.clipboard.read();
-      for (const item of items) {
-        if (item.types.includes('text/plain')) {
-          return await (await item.getType('text/plain')).text();
-        }
-      }
-    } catch {
-      /* ignore — fall back to the sentinel as baseline */
-    }
-    return s;
-  }, sentinel);
-
   const tabId = await serviceWorker.evaluate(async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     return tab?.id ?? null;
@@ -433,10 +409,8 @@ export async function runOcrCapture(params: OcrCaptureParams): Promise<OcrCaptur
     }
   }
 
-  // 4) Read the recognized text off the clipboard (island auto-copy on FINISH),
-  //    waiting for content that differs from the pre-trigger baseline so a prior
-  //    test's stale clipboard is never mistaken for this capture's result.
-  const clip = await readClipboardResult(page, deadline, clipboardBaseline);
+  // 4) Read the recognized text straight out of the island's closed shadow root.
+  const clip = await readIslandResult(page, deadline);
   const finishAt = Date.now();
 
   return {
@@ -444,7 +418,7 @@ export async function runOcrCapture(params: OcrCaptureParams): Promise<OcrCaptur
     islandAppeared,
     plain: clip.plain,
     html: clip.html,
-    clipboardError: clip.error,
+    readError: clip.error,
     timings: {
       activateToFinishMs: finishAt - activateStart,
       dragToFinishMs: dragEndedAt > 0 ? finishAt - dragEndedAt : -1,
@@ -498,53 +472,123 @@ async function performDrag(page: Page, box: DragBox): Promise<void> {
   await page.mouse.up();
 }
 
-interface ClipboardResult {
+interface IslandResult {
   plain: string;
   html: string;
   error: string | null;
 }
 
+/** Subset of the CDP `DOM.Node` shape this module walks. */
+interface CdpNode {
+  nodeId: number;
+  nodeName: string;
+  attributes?: string[];
+  children?: CdpNode[];
+  shadowRoots?: CdpNode[];
+  contentDocument?: CdpNode;
+}
+
+/** CDP returns attributes as a flat [name, value, name, value, ...] array. */
+function cdpAttr(node: CdpNode, name: string): string | undefined {
+  const a = node.attributes;
+  if (!a) return undefined;
+  for (let i = 0; i + 1 < a.length; i += 2) {
+    if (a[i] === name) return a[i + 1];
+  }
+  return undefined;
+}
+
+/** Depth-first search through children, shadow roots (open OR closed) and frames. */
+function findCdpNode(
+  node: CdpNode,
+  match: (n: CdpNode) => boolean,
+): CdpNode | null {
+  if (match(node)) return node;
+  const descendants = [
+    ...(node.children ?? []),
+    ...(node.shadowRoots ?? []),
+    ...(node.contentDocument ? [node.contentDocument] : []),
+  ];
+  for (const child of descendants) {
+    const hit = findCdpNode(child, match);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 /**
- * Poll the system clipboard until THIS capture's auto-copy populates it — a
- * non-empty value whose text/plain differs from `baselinePlain` (the sentinel or
- * stale content stamped before the trigger). This defeats the shared-OS-clipboard
- * race where a prior test's result would otherwise be read back instantly.
+ * Poll until the island renders a result, reading it straight out of the CLOSED
+ * shadow root via CDP.
+ *
+ * `DOM.getDocument({pierce: true})` walks shadow roots regardless of mode, so
+ * this reads exactly what the user sees in the island. That replaces reading the
+ * result back off the OS clipboard (via the island's auto-copy): the clipboard
+ * is shared with the host, and on a bridged one (WSL, VMs, clipboard managers)
+ * foreign content — a URL, a screenshot bitmap — gets pushed in mid-run and was
+ * then reported as recognized text, failing the suite with whatever the host
+ * happened to have copied. No amount of sentinel-stamping fixes that, because
+ * the foreign write lands *after* the baseline is taken.
+ *
+ * Auto-copy stays enabled for the capture so the copy path still runs; it is
+ * simply no longer the channel the assertions depend on.
  */
-async function readClipboardResult(
+async function readIslandResult(
   page: Page,
   deadline: number,
-  baselinePlain: string,
-): Promise<ClipboardResult> {
-  let last: ClipboardResult = {
+): Promise<IslandResult> {
+  const cdp = await page.context().newCDPSession(page);
+  let last: IslandResult = {
     plain: '',
     html: '',
-    error: 'clipboard never populated with a fresh result',
+    error: 'the island never rendered a result',
   };
-  while (Date.now() < deadline) {
-    last = await page.evaluate(async () => {
-      const out = { plain: '', html: '', error: null as string | null };
+  try {
+    while (Date.now() < deadline) {
       try {
-        const items = await navigator.clipboard.read();
-        for (const item of items) {
-          if (item.types.includes('text/plain')) {
-            out.plain = await (await item.getType('text/plain')).text();
-          }
-          if (item.types.includes('text/html')) {
-            out.html = await (await item.getType('text/html')).text();
+        const { root } = (await cdp.send('DOM.getDocument', {
+          depth: -1,
+          pierce: true,
+        })) as { root: CdpNode };
+
+        const host = findCdpNode(
+          root,
+          (n) => cdpAttr(n, 'id') === 'xr-floating-island-host',
+        );
+        const textarea =
+          host &&
+          findCdpNode(host, (n) =>
+            (cdpAttr(n, 'class') ?? '').split(/\s+/).includes('textarea'),
+          );
+
+        if (textarea) {
+          const { object } = await cdp.send('DOM.resolveNode', {
+            nodeId: textarea.nodeId,
+          });
+          if (object.objectId) {
+            const { result } = await cdp.send('Runtime.callFunctionOn', {
+              objectId: object.objectId,
+              returnByValue: true,
+              functionDeclaration: `function () {
+                return {
+                  plain: this.innerText ?? this.textContent ?? '',
+                  html: this.innerHTML ?? '',
+                };
+              }`,
+            });
+            const value = result.value as { plain: string; html: string };
+            if (value.plain.trim() || value.html.trim()) {
+              return { plain: value.plain, html: value.html, error: null };
+            }
+            last = { ...value, error: 'the island result stayed empty' };
           }
         }
       } catch (e) {
-        out.error = e instanceof Error ? e.message : String(e);
+        last.error = e instanceof Error ? e.message : String(e);
       }
-      return out;
-    });
-    const hasContent = !!(last.plain || last.html);
-    const isFresh = last.plain !== baselinePlain;
-    if (hasContent && isFresh) {
-      last.error = null;
-      return last;
+      await page.waitForTimeout(300);
     }
-    await page.waitForTimeout(500);
+  } finally {
+    await cdp.detach().catch(() => {});
   }
   return last;
 }

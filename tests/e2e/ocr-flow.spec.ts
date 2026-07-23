@@ -46,7 +46,7 @@ function logResult(engine: string, r: OcrCaptureResult): void {
     `[e2e-timing] ${engine}: dragToFinish=${r.timings.dragToFinishMs}ms ` +
       `activateToFinish=${r.timings.activateToFinishMs}ms ` +
       `overlay=${r.overlayAppeared} island=${r.islandAppeared}` +
-      (r.clipboardError ? ` clipboardError=${r.clipboardError}` : ''),
+      (r.readError ? ` readError=${r.readError}` : ''),
   );
   console.log(`[e2e-result] ${engine} plain: ${JSON.stringify(r.plain.slice(0, 200))}`);
 }
@@ -87,7 +87,7 @@ test.describe('Local Lens — real extension OCR (headed persistent context)', (
     expect(result.islandAppeared, 'the floating island should mount after the drag').toBe(true);
     expect(
       result.plain.length,
-      `no text reached the clipboard${result.clipboardError ? ` (${result.clipboardError})` : ''}`,
+      `no text reached the island${result.readError ? ` (${result.readError})` : ''}`,
     ).toBeGreaterThan(0);
 
     const text = result.plain.toLowerCase();
@@ -117,11 +117,11 @@ test.describe('Local Lens — real extension OCR (headed persistent context)', (
     expect(result.islandAppeared, 'the floating island should mount after the drag').toBe(true);
     expect(
       result.plain.length + result.html.length,
-      `no output reached the clipboard${result.clipboardError ? ` (${result.clipboardError})` : ''}`,
+      `no output reached the island${result.readError ? ` (${result.readError})` : ''}`,
     ).toBeGreaterThan(0);
 
-    // The structured engine reconstructs a real HTML table; the tags survive the
-    // browser's clipboard sanitization even though inline styles get rewritten.
+    // The structured engine reconstructs a real HTML table, rendered into the
+    // island's result element as markup rather than escaped text.
     const html = result.html.toLowerCase();
     expect(
       /<table/.test(html) || /<td/.test(html),

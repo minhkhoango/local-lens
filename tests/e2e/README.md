@@ -188,7 +188,7 @@ xdotool search --onlyvisible --class chrome windowactivate --sync key alt+shift+
 `xdotool`/`ydotool` were not available in the reference environment, so the
 default path is the service-worker reproduction above.
 
-### 2. Reading the result — clipboard vs. DOM
+### 2. Reading the result — piercing the closed shadow root
 
 The overlay and island render inside `attachShadow({ mode: 'closed' })` roots
 (`src/overlay.ts`, `src/island/mount.ts`). Their **host** elements
@@ -197,28 +197,30 @@ light DOM — so the harness detects overlay/island presence directly — but th
 recognized **text** inside a *closed* root is unreachable from the page's main
 world (and from a content-script isolated world).
 
-So the harness reads the result the way the extension surfaces it to you: it
-forces the island's **auto-copy** on and reads the **system clipboard**
-(`text/plain` for the recognized text, `text/html` for the reconstructed
-`<table>`). This exercises *more* of the real feature, not less. The browser
-sanitizes clipboard `text/html` (inline styles get rewritten, `<style>` is
-stripped), but structural tags like `<table>`/`<td>` survive, which is what the
-structured assertion checks.
+CDP is not bound by that. `DOM.getDocument({ pierce: true })` descends into
+shadow roots regardless of mode, so `readIslandResult()` walks to the island's
+result element and reads its `innerText`/`innerHTML` over
+`Runtime.callFunctionOn`. Assertions therefore see exactly what the island shows
+the user, with **no production change** — the shadow roots stay closed.
 
-> Want DOM-level assertions instead of the clipboard? A **one-line production
-> change** would enable them: switch the two `attachShadow({ mode: 'closed' })`
-> calls in `src/overlay.ts` and `src/island/mount.ts` to `mode: 'open'`. Then a
-> test could read the island's rendered text straight from `host.shadowRoot`.
-> (Described only — not changed here; those files are owned by another lane.)
+Auto-copy is still forced on so the clipboard path runs for real as part of the
+flow; it is simply not what the assertions read.
+
+> **Why not read the clipboard?** It used to. The OS clipboard is shared with
+> the host, and on a bridged one (WSL, VMs, clipboard managers) foreign content
+> — a URL, a screenshot bitmap — gets pushed in mid-run and was then asserted on
+> as "recognized text", failing the suite with whatever happened to be copied.
+> Sentinel-stamping a baseline before the trigger does not fix it, because the
+> foreign write lands *after* the baseline is taken.
 
 ---
 
 ## Flakiness notes & mitigations
 
-- **Clipboard focus** — async clipboard writes require the document to be
-  focused. The harness calls `page.bringToFront()` and the drag itself provides
-  a user gesture; clipboard perms are granted at launch. If a window manager
-  steals focus, the result poll surfaces `clipboardError`.
+- **Host clipboard interference** — no longer a failure mode. The result is read
+  out of the island's shadow root over CDP, so a shared/bridged OS clipboard
+  cannot inject foreign content into the assertions. `page.bringToFront()` and
+  the drag gesture remain so the island's real auto-copy still succeeds.
 - **Slow model load (structured)** — the overlay only becomes clickable after
   the engine's `SETUP_DONE`; the harness **retries the drag** until the island
   appears, so a multi-second structured model load is tolerated (240s test
