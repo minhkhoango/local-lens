@@ -12,28 +12,17 @@ Branch early with `git switch -c`, commit in logical chunks, and delete the work
 Do not push or merge without asking first.
 When multiple agents touch overlapping files in parallel, give each one its own worktree.
 
-## Engineering standards
+## UI design
 
-When making technical decisions, do not give much weight to development cost.
-Prefer quality, simplicity, robustness, scalability, and long term maintainability.
-
-When fixing a bug, always start by reproducing it in an end-to-end setting as closely aligned as possible with how a real end user hits it.
-Only then write the fix.
-Reproducing first is what confirms you found the real problem, so the fix actually solves it.
-
-Lint errors, test failures, and test flakiness are always in scope.
-If you see one, get it fixed even when it was not caused by what you are working on right now.
-
-## UI quality
-
-When end-to-end testing the product, be picky about the UI you see and obsessed with pixel perfection.
-If something clearly looks off, even if it is not directly related to what you are doing, get it fixed along the way.
+Draw design inspiration from Google Material 3 and the Perplexity.ai UI.
 
 ## OCR engine
 
-Lean on the `ppu-paddle-ocr` library as much as possible.
+Lean on existing open-source libraries as much as possible instead of hand-rolling the engine.
+When picking one, prefer libraries that are actively maintained on GitHub, ship TypeScript types, and support local inference inside a Chrome extension.
+`ppu-paddle-ocr` is the current choice, not a fixed requirement: swap or add libraries when something fits those criteria better.
 Avoid hand-rolled onnxruntime-web plumbing, custom preprocessing, and int8 quantization.
-Write custom code only where the library genuinely has no support, such as SLANet_plus table structure.
+Write custom code only where no suitable library exists, such as SLANet_plus table structure.
 
 ## Commands
 
