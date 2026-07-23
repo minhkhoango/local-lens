@@ -55,7 +55,19 @@ export const TEST_IMAGES: TestImage[] = Object.entries(images)
 
 export async function fetchAsDataUrl(url: string): Promise<string> {
   const res = await fetch(url);
+  // Without these guards a missing or mis-served fixture turns into a
+  // `data:text/html,...` URL that every engine happily "recognizes" as empty
+  // text, so the suite fails with an unreadable `expected 0 to be greater
+  // than 0` several layers away from the actual cause.
+  if (!res.ok) {
+    throw new Error(`fixture fetch failed: HTTP ${res.status} for ${url}`);
+  }
   const blob = await res.blob();
+  if (!blob.type.startsWith('image/')) {
+    throw new Error(
+      `fixture ${url} is not an image (content-type ${blob.type || 'unset'}, ${blob.size} bytes)`,
+    );
+  }
   return await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result as string);
