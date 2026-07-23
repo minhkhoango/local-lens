@@ -75,6 +75,18 @@ const chromium = (name: string, args: string[] = []) => ({
 
 export default defineConfig({
   test: {
+    /**
+     * Vitest 4 leaks file handles when browser mode runs under `projects`, so
+     * close() never resolves and every browser run pays the full teardown
+     * timeout after the suite has already passed. Verified against 4.1.7 and
+     * 4.1.10, and against an otherwise-identical flat (project-less) config,
+     * which exits cleanly — so this is the `projects` wrapper, not our setup.
+     *
+     * Tests have finished and the exit code is unaffected by the time this
+     * fires; capping it just stops us waiting 10s for a teardown that cannot
+     * complete. Drop this line once upstream closes the handles.
+     */
+    teardownTimeout: 1_000,
     projects: [
       {
         resolve: { alias },
