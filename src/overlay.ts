@@ -18,9 +18,13 @@ const ID = 'xr-screenshot-reader-host';
 const ICON = `<svg viewBox="3 -0.375 18 21" fill="none" width="24" height="24"><path stroke="#4285f4" stroke-width="1.7143125" d="M6.857 4.286H17.143a2.571 2.571 0 0 1 2.571 2.571v6.857A2.571 2.571 0 0 1 17.143 16.286H6.857a2.571 2.571 0 0 1 -2.571 -2.571V6.857a2.571 2.571 0 0 1 2.571 -2.571z"/><path fill="#b1caf5" d="M16.971 10.286a4.286 4.286 0 0 1 -4.286 4.286A4.286 4.286 0 0 1 8.4 10.286a4.286 4.286 0 0 1 8.571 0M6.686 0.857h3.771a0.686 0.686 0 0 1 0.686 0.686v0.514a0.686 0.686 0 0 1 -0.686 0.686H6.686A0.686 0.686 0 0 1 6 2.057V1.543a0.686 0.686 0 0 1 0.686 -0.686"/></svg>`;
 
 /**
- * Darkens user's screen, prompt user to click & drag to create a rectangle,
- * then send the result to background message BG_CAPTURE_SUCCESS
- * to forward to content
+ * Darkens the user's screen, prompts them to click & drag a rectangle, then
+ * hands the resulting SelectionRect to `onSelection`.
+ *
+ * The overlay lives in the content script's own context, so the selection is
+ * delivered by direct call. It used to round-trip content -> service worker ->
+ * content via CAPTURE_SUCCESS purely to reach a function in the same module
+ * graph.
  */
 export class GhostOverlay {
   private host: HTMLDivElement;
@@ -30,6 +34,7 @@ export class GhostOverlay {
   private backupMode: boolean;
   private engine: EngineOption;
   private notificationBanner: HTMLDivElement;
+  private onSelection: (rect: SelectionRect) => void;
 
   private isDragging = false;
   private startPos: Point = { x: 0, y: 0 };
@@ -40,7 +45,9 @@ export class GhostOverlay {
     overlayStyles: string,
     backupMode: boolean,
     engine: EngineOption,
+    onSelection: (rect: SelectionRect) => void = () => {},
   ) {
+    this.onSelection = onSelection;
     console.debug('[Overlay]: Initiate overlay for screenshot rect');
     this.host = document.createElement('div');
     this.host.id = ID;
@@ -216,11 +223,9 @@ export class GhostOverlay {
     this.draw();
   };
 
-  /** Check rect, send image to BG, destroy */
+  /** Check rect, hand it to the content script, destroy */
   private handleMouseUp = (): void => {
-    console.debug(
-      '[Overlay] on mouseup, check rect, send image to BG, destroy',
-    );
+    console.debug('[Overlay] on mouseup, check rect, emit selection, destroy');
     this.isDragging = false;
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);
@@ -228,10 +233,7 @@ export class GhostOverlay {
 
     if (rect.width > 5 && rect.height > 5) {
       console.debug('Image captured:', rect);
-      chrome.runtime.sendMessage<RuntimeMessage>({
-        action: RuntimeMessageAction.CAPTURE_SUCCESS,
-        payload: rect,
-      });
+      this.onSelection(rect);
     }
     this.destroy();
   };

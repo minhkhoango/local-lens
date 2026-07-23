@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { RuntimeMessageAction } from '../types';
 import type {
   ClipboardOutput,
   DownloadProgress,
@@ -17,7 +16,6 @@ import type {
   Point,
   ProgressPayload,
   ResultPayload,
-  RuntimeMessage,
   Settings,
   ToggleSettings,
 } from '../types';
@@ -48,7 +46,6 @@ export interface IslandHandle {
   setSettings(partial: Partial<Settings>): void;
   toggleTextareaExpand(): void;
   toggleSettingsExpand(): void;
-  setEngine(engine: EngineOption): void;
   warnBrowserFreeze(): void;
 }
 
@@ -58,6 +55,12 @@ export interface FloatingIslandProps {
   isPdf: boolean;
   webgpuSupported: boolean;
   onDestroy: () => void;
+  /**
+   * Re-run OCR on the current crop with a different engine. Resolves when the
+   * request has been handed to the offscreen document, not when OCR finishes —
+   * results stream back through the update* handle methods.
+   */
+  onEngineChange: (engine: EngineOption) => Promise<void>;
 }
 
 export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
@@ -265,9 +268,6 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
         toggleSettingsExpand() {
           dispatch({ type: 'expandSettings' });
         },
-        setEngine(engine) {
-          dispatch({ type: 'setEngine', engine });
-        },
         warnBrowserFreeze() {
           if (warningTimerRef.current !== null) {
             window.clearTimeout(warningTimerRef.current);
@@ -332,13 +332,7 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
         dispatch({ type: 'ocrStartLoading' });
 
         try {
-          await chrome.runtime.sendMessage<RuntimeMessage>({
-            action: RuntimeMessageAction.BG_PERFORM_OCR,
-            payload: {
-              engine,
-              croppedImage: '',
-            },
-          });
+          await props.onEngineChange(engine);
         } catch (err) {
           console.error('Engine update failed:', err);
           dispatch({
@@ -347,7 +341,7 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
           });
         }
       },
-      [state.settings],
+      [props, state.settings],
     );
 
     const handleMouseDown = useCallback((e: React.MouseEvent): void => {

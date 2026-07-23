@@ -1,10 +1,8 @@
 import { RuntimeMessageAction, TabsMessageAction } from './types';
 import type {
   RuntimeMessage,
-  SelectionRect,
   ShortcutResponse,
   StatusResponse,
-  PerformOcrPayload,
   TabsMessage,
 } from './types';
 
@@ -119,24 +117,6 @@ chrome.runtime.onMessage.addListener(
         })();
         return true;
       }
-      case RuntimeMessageAction.CAPTURE_SUCCESS: {
-        console.debug(message.action);
-        const targetTabId = getTabId(sender);
-        (async () => {
-          await transferCapture(targetTabId, message.payload);
-          sendResponse({ status: 'ok' });
-        })();
-        return true;
-      }
-      case RuntimeMessageAction.BG_PERFORM_OCR: {
-        console.debug(message.action);
-        (async () => {
-          const targetTabId = getTabId(sender);
-          await transferPerformOcr(targetTabId, message.payload);
-          sendResponse({ status: 'ok' });
-        })();
-        return true;
-      }
       case RuntimeMessageAction.GET_SHORTCUT: {
         console.debug(message.action);
         // Handle async work in IIFE while returning true synchronously
@@ -174,7 +154,7 @@ async function captureTabImage(tabId: number): Promise<void> {
   });
 
   await chrome.tabs.sendMessage<TabsMessage>(tabId, {
-    action: TabsMessageAction.CAPTURE_VISIBLE_TAB,
+    action: TabsMessageAction.CAPTURE_RESULT,
     payload: {
       imageUrl: capturedImage,
     },
@@ -345,38 +325,6 @@ async function ensureContentLoaded(tabId: number): Promise<void> {
       },
     });
   }
-}
-
-/**
- * A inefficient bridge that transfer selectionRect from overlay -> bg -> content
- * @param tabId Id of the tab of the island that sent PERFORM_OCR request
- * @param payload dimension of user's cropped rectangle
- */
-async function transferCapture(
-  tabId: number,
-  payload: SelectionRect,
-): Promise<void> {
-  console.debug('Transfering capture success bg -> content');
-  await chrome.tabs.sendMessage<TabsMessage>(tabId, {
-    action: TabsMessageAction.CAPTURE_SUCCESS,
-    payload,
-  });
-}
-
-/**
- * An inefficient bridge that transfers the OCR request from island -> bg -> content
- * @param tabId Id of the tab of the island that sent PERFORM_OCR request
- * @param payload engine selection + cropped image for OCR
- */
-async function transferPerformOcr(
-  tabId: number,
-  payload: PerformOcrPayload,
-): Promise<void> {
-  console.debug('Transfering OCR request bg -> content');
-  await chrome.tabs.sendMessage<RuntimeMessage>(tabId, {
-    action: RuntimeMessageAction.BG_PERFORM_OCR,
-    payload: payload,
-  });
 }
 
 async function getShortcutCommand(): Promise<string> {

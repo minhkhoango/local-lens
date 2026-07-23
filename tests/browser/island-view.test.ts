@@ -7,7 +7,9 @@ const { FloatingIsland } = await import('@/island/mount');
 
 const flush = () => new Promise<void>((r) => setTimeout(r, 30));
 
-async function makeIsland(): Promise<{ island: any; host: HTMLElement }> {
+async function makeIsland(
+  onEngineChange: (engine: string) => Promise<void> = async () => {},
+): Promise<{ island: any; host: HTMLElement; shadow: ShadowRoot }> {
   // chrome.runtime.sendMessage GET_SHORTCUT → return a stub shortcut response.
   (chrome.runtime.sendMessage as any).mockImplementation(async (msg: any) => {
     if (msg?.action === 'GET_SHORTCUT') {
@@ -21,6 +23,7 @@ async function makeIsland(): Promise<{ island: any; host: HTMLElement }> {
     '',
     /* isPdf */ false,
     /* webgpuSupported */ true,
+    onEngineChange as any,
   );
   island.mount();
   // Wait for storage + view.init() promises to resolve.
@@ -28,7 +31,10 @@ async function makeIsland(): Promise<{ island: any; host: HTMLElement }> {
   await flush();
 
   const host = document.getElementById('xr-floating-island-host')!;
-  return { island, host };
+  // The island uses a CLOSED shadow root, so host.shadowRoot is null from the
+  // outside; reach it through the wrapper's own handle instead.
+  const shadow = (island as any).shadow as ShadowRoot;
+  return { island, host, shadow };
 }
 
 describe('FloatingIsland (DOM state)', () => {
@@ -97,5 +103,46 @@ describe('FloatingIsland (DOM state)', () => {
     await flush();
 
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  // The engine switcher used to post BG_PERFORM_OCR to the service worker,
+  // which relayed it by chrome.tabs.sendMessage straight back to the content
+  // script hosting this island. It now calls onEngineChange directly. Drive the
+  // real <select> so the wiring, not just the handler, is under test.
+  it('changing the engine <select> calls onEngineChange and enters loading', async () => {
+    const requested: string[] = [];
+    const { island, shadow } = await makeIsland(async (engine) => {
+      requested.push(engine);
+    });
+
+    const select = shadow.querySelector(
+      'select.settings-select',
+    ) as HTMLSelectElement | null;
+    expect(select, 'engine <select> should be rendered').toBeTruthy();
+    expect(select!.value).toBe('fast');
+
+    select!.value = 'structured';
+    select!.dispatchEvent(new Event('change', { bubbles: true }));
+    await flush();
+
+    expect(requested).toEqual(['structured']);
+    expect((island as any).state.settings.engine).toBe('structured');
+    expect((island as any).state.status).toBe('loading-model');
+  });
+
+  it('surfaces an error in the island when onEngineChange rejects', async () => {
+    const { island, shadow } = await makeIsland(async () => {
+      throw new Error('offscreen is gone');
+    });
+
+    const select = shadow.querySelector(
+      'select.settings-select',
+    ) as HTMLSelectElement;
+    select.value = 'structured';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    await flush();
+
+    expect((island as any).state.status).toBe('error');
+    expect((island as any).state.textarea).toBe('offscreen is gone');
   });
 });

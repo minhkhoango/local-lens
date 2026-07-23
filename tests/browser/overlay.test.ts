@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { installChromeShim, uninstallChromeShim } from '../setup/chrome-shim';
+import type { SelectionRect } from '@/types';
 
 installChromeShim();
 
@@ -41,8 +42,11 @@ describe('GhostOverlay', () => {
     overlay.destroy();
   });
 
-  it('sends CAPTURE_SUCCESS with SelectionRect on mouseup after drag', async () => {
-    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast');
+  it('emits the SelectionRect on mouseup after drag', async () => {
+    const selections: SelectionRect[] = [];
+    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast', (r) =>
+      selections.push(r),
+    );
     overlay.mount();
     overlay.activate();
     await flush();
@@ -59,44 +63,39 @@ describe('GhostOverlay', () => {
     document.dispatchEvent(new MouseEvent('mouseup', { clientX: 110, clientY: 220 }));
     await flush();
 
-    const calls = (chrome.runtime.sendMessage as any).mock.calls;
-    const captureCall = calls.find(
-      (c: any[]) => c[0]?.action === 'CAPTURE_SUCCESS',
-    );
-    expect(captureCall, 'CAPTURE_SUCCESS should be sent').toBeDefined();
-    const payload = captureCall![0].payload;
-    expect(payload.x).toBe(10);
-    expect(payload.y).toBe(20);
-    expect(payload.width).toBeCloseTo(100, 0);
-    expect(payload.height).toBeCloseTo(200, 0);
+    expect(selections, 'onSelection should fire exactly once').toHaveLength(1);
+    const rect = selections[0];
+    expect(rect.x).toBe(10);
+    expect(rect.y).toBe(20);
+    expect(rect.width).toBeCloseTo(100, 0);
+    expect(rect.height).toBeCloseTo(200, 0);
+    expect(rect.devicePixelRatio).toBeGreaterThan(0);
   });
 
-  it('Escape keydown destroys overlay without sending CAPTURE_SUCCESS', async () => {
-    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast');
+  it('Escape keydown destroys overlay without emitting a selection', async () => {
+    const selections: SelectionRect[] = [];
+    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast', (r) =>
+      selections.push(r),
+    );
     overlay.mount();
     overlay.activate();
     await flush();
-
-    (chrome.runtime.sendMessage as any).mockClear();
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await flush();
 
     expect(findOverlay()).toBeNull();
-    const calls = (chrome.runtime.sendMessage as any).mock.calls;
-    const captureCall = calls.find(
-      (c: any[]) => c[0]?.action === 'CAPTURE_SUCCESS',
-    );
-    expect(captureCall).toBeUndefined();
+    expect(selections).toHaveLength(0);
   });
 
-  it('does not send CAPTURE_SUCCESS when drag rectangle is < 5x5', async () => {
-    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast');
+  it('does not emit a selection when drag rectangle is < 5x5', async () => {
+    const selections: SelectionRect[] = [];
+    const overlay = new GhostOverlay(OVERLAY_CSS, false, 'fast', (r) =>
+      selections.push(r),
+    );
     overlay.mount();
     overlay.activate();
     await flush();
-
-    (chrome.runtime.sendMessage as any).mockClear();
 
     const canvas = (overlay as any).canvas as HTMLCanvasElement;
     canvas.dispatchEvent(
@@ -108,10 +107,6 @@ describe('GhostOverlay', () => {
     document.dispatchEvent(new MouseEvent('mouseup', { clientX: 52, clientY: 52 }));
     await flush();
 
-    const calls = (chrome.runtime.sendMessage as any).mock.calls;
-    const captureCall = calls.find(
-      (c: any[]) => c[0]?.action === 'CAPTURE_SUCCESS',
-    );
-    expect(captureCall).toBeUndefined();
+    expect(selections).toHaveLength(0);
   });
 });

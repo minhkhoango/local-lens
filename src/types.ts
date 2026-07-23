@@ -36,13 +36,19 @@ export interface SelectionRect extends Point {
   devicePixelRatio: number;
 }
 
+/**
+ * background -> content script, over chrome.tabs.sendMessage.
+ *
+ * Every member is something the content script cannot originate for itself:
+ * it needs a tab id, a captured image, or an injected script. Anything the
+ * content script and the UI it hosts (overlay, island) can settle between
+ * themselves is a direct call, not a message — they share one JS context.
+ */
 export const TabsMessageAction = {
   PING_CONTENT: 'PING_CONTENT',
   INITIALIZE_BACKUP: 'INITIALIZE_BACKUP',
   ACTIVATE_OVERLAY: 'ACTIVATE_OVERLAY',
-  CAPTURE_VISIBLE_TAB: 'CAPTURE_VISIBLE_TAB',
-  CAPTURE_SUCCESS: 'CAPTURE_SUCCESS',
-  BG_PERFORM_OCR: 'BG_PERFORM_OCR',
+  CAPTURE_RESULT: 'CAPTURE_RESULT',
 } as const;
 
 export type TabsMessageAction =
@@ -62,17 +68,8 @@ export type TabsMessage =
       payload: ActivateOverlayPayload;
     }
   | {
-      action: typeof TabsMessageAction.CAPTURE_VISIBLE_TAB;
+      action: typeof TabsMessageAction.CAPTURE_RESULT;
       payload: ImagePayload;
-    }
-  // overlay route to bg to content
-  | {
-      action: typeof TabsMessageAction.CAPTURE_SUCCESS;
-      payload: SelectionRect;
-    }
-  | {
-      action: typeof TabsMessageAction.BG_PERFORM_OCR;
-      payload: PerformOcrPayload;
     };
 
 /** Payload when initilizing content script */
@@ -97,11 +94,14 @@ export interface PerformOcrPayload {
   croppedImage: string;
 }
 
-/** Cross .ts files actions messaged using chrome */
+/**
+ * page contexts -> privileged contexts, over chrome.runtime.sendMessage.
+ *
+ * Every member is an operation only the service worker or the offscreen
+ * document can perform: tab capture, offscreen lifecycle, chrome.commands.
+ */
 export const RuntimeMessageAction = {
   CAPTURE_VISIBLE_TAB: 'CAPTURE_VISIBLE_TAB',
-  CAPTURE_SUCCESS: 'CAPTURE_SUCCESS',
-  BG_PERFORM_OCR: 'BG_PERFORM_OCR',
   ENSURE_OFFSCREEN: 'ENSURE_OFFSCREEN',
   STOP_OFFSCREEN: 'STOP_OFFSCREEN',
   OPEN_SHORTCUTS_PAGE: 'OPEN_SHORTCUTS_PAGE',
@@ -115,14 +115,6 @@ export type RuntimeMessageAction =
 export type RuntimeMessage =
   | {
       action: typeof RuntimeMessageAction.CAPTURE_VISIBLE_TAB;
-    }
-  | {
-      action: typeof RuntimeMessageAction.CAPTURE_SUCCESS;
-      payload: SelectionRect;
-    }
-  | {
-      action: typeof RuntimeMessageAction.BG_PERFORM_OCR;
-      payload: PerformOcrPayload;
     }
   | { action: typeof RuntimeMessageAction.ENSURE_OFFSCREEN }
   | { action: typeof RuntimeMessageAction.STOP_OFFSCREEN }

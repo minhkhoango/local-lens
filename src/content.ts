@@ -62,27 +62,11 @@ chrome.runtime.onMessage.addListener(
         })();
         return true;
 
-      case TabsMessageAction.CAPTURE_VISIBLE_TAB:
+      case TabsMessageAction.CAPTURE_RESULT:
         console.debug(message.action);
         capturedImage = message.payload.imageUrl;
         sendResponse({ status: 'ok' });
         break;
-
-      case TabsMessageAction.CAPTURE_SUCCESS:
-        console.debug(message.action);
-        (async () => {
-          await handleCaptureSuccess(message.payload);
-          sendResponse({ status: 'ok' });
-        })();
-        return true;
-
-      case TabsMessageAction.BG_PERFORM_OCR:
-        console.debug(message.action);
-        (async () => {
-          await handlePerformOcr(message.payload.engine, true);
-          sendResponse({ status: 'ok' });
-        })();
-        return true;
     }
     return false;
   },
@@ -104,7 +88,9 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
     engine = toEngineOption(saved?.engine);
   } catch {}
 
-  activeOverlay = new GhostOverlay(overlayStyles, !imageUrl, engine);
+  activeOverlay = new GhostOverlay(overlayStyles, !imageUrl, engine, (rect) => {
+    void handleCaptureSuccess(rect);
+  });
   activeOverlay.mount();
 
   const port = await chrome.runtime.connect({ name: OCR_PORT });
@@ -145,6 +131,7 @@ async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
     croppedImage,
     isPdf,
     webGpuSupported,
+    (engine) => handlePerformOcr(engine, true),
   );
   activeIsland.mount();
 

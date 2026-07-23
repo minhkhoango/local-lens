@@ -35,6 +35,7 @@ export class FloatingIsland {
     imageUrl: string,
     isPdf: boolean,
     webgpuSupported: boolean,
+    onEngineChange: (engine: EngineOption) => Promise<void> = async () => {},
   ) {
     console.debug('[Island.mount] constructor');
     this.host = document.createElement('div');
@@ -57,6 +58,7 @@ export class FloatingIsland {
         isPdf,
         webgpuSupported,
         onDestroy: () => void this.destroy(),
+        onEngineChange,
       }),
     );
   }
@@ -101,10 +103,6 @@ export class FloatingIsland {
 
   public toggleSettingsExpand(): void {
     this.handleRef.current?.toggleSettingsExpand();
-  }
-
-  public setEngine(engine: EngineOption): void {
-    this.handleRef.current?.setEngine(engine);
   }
 
   public warnBrowserFreeze(): void {
