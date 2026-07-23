@@ -1,8 +1,9 @@
 import { describe, it, beforeEach, afterEach } from 'vitest';
 import { page } from 'vitest/browser';
-import { installRealisticShim, mountBackdrop, unmountBackdrop, flush } from './shim';
+import { mountBackdrop, unmountBackdrop, flush } from './shim';
+import { installChromeShim } from '../setup/chrome-shim';
 
-installRealisticShim();
+installChromeShim();
 
 const { FloatingIsland } = await import('@/island/mount');
 
@@ -50,7 +51,7 @@ and drag over the area you want to capture.</p>
 
 describe('FloatingIsland UI snapshots', () => {
   beforeEach(() => {
-    installRealisticShim();
+    installChromeShim();
     mountBackdrop();
   });
 

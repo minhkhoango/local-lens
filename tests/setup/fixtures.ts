@@ -1,18 +1,57 @@
-import img1 from '../../test_pictures/Screenshot 2025-12-27 104306.png?url';
-import img2 from '../../test_pictures/Screenshot 2025-12-30 140247.png?url';
-import img3 from '../../test_pictures/Screenshot 2025-12-30 152450.png?url';
+/**
+ * OCR test images, discovered from disk.
+ *
+ * Each fixture is a pair of sibling files in tests/fixtures/images/:
+ *
+ *   <name>.png             the image to OCR
+ *   <name>.expected.txt    one substring per line that must appear in the
+ *                          recognized text (matched case-insensitively)
+ *
+ * Adding a fixture means dropping in those two files — no code change. A .png
+ * without a matching .expected.txt is a hard error rather than a silently
+ * unasserted test.
+ */
+
+const images = import.meta.glob('../fixtures/images/*.png', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
+
+const expectations = import.meta.glob('../fixtures/images/*.expected.txt', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
 
 export interface TestImage {
+  /** Fixture basename, e.g. 'typescript-code-dark'. Used as the test title. */
   name: string;
+  /** Served URL of the .png, for fetchAsDataUrl(). */
   url: string;
-  expectedKey: string;
+  /** Substrings that must appear in the OCR output. */
+  expected: string[];
 }
 
-export const TEST_IMAGES: TestImage[] = [
-  { name: 'Screenshot 2025-12-27 104306.png', url: img1, expectedKey: 'screenshot-2025-12-27-104306' },
-  { name: 'Screenshot 2025-12-30 140247.png', url: img2, expectedKey: 'screenshot-2025-12-30-140247' },
-  { name: 'Screenshot 2025-12-30 152450.png', url: img3, expectedKey: 'screenshot-2025-12-30-152450' },
-];
+export const TEST_IMAGES: TestImage[] = Object.entries(images)
+  .map(([path, url]) => {
+    const name = path.replace(/^.*\//, '').replace(/\.png$/, '');
+    const raw = expectations[path.replace(/\.png$/, '.expected.txt')];
+    if (raw === undefined) {
+      throw new Error(
+        `OCR fixture "${name}.png" has no sibling "${name}.expected.txt"`,
+      );
+    }
+    const expected = raw
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    if (expected.length === 0) {
+      throw new Error(`OCR fixture "${name}.expected.txt" is empty`);
+    }
+    return { name, url, expected };
+  })
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 export async function fetchAsDataUrl(url: string): Promise<string> {
   const res = await fetch(url);

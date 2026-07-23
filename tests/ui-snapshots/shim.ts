@@ -1,9 +1,3 @@
-import { installChromeShim } from '../setup/chrome-shim';
-
-export function installRealisticShim(): void {
-  installChromeShim();
-}
-
 const BACKDROP_CSS = `
   html, body {
     margin: 0;

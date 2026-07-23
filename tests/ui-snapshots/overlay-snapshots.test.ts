@@ -1,15 +1,16 @@
 import { describe, it, beforeEach, afterEach } from 'vitest';
 import { page } from 'vitest/browser';
-import { installRealisticShim, mountBackdrop, unmountBackdrop, flush } from './shim';
+import { mountBackdrop, unmountBackdrop, flush } from './shim';
+import { installChromeShim } from '../setup/chrome-shim';
 import overlayCss from '@/styles/overlay.css?raw';
 
-installRealisticShim();
+installChromeShim();
 
 const { GhostOverlay } = await import('@/overlay');
 
 describe('GhostOverlay UI snapshots', () => {
   beforeEach(() => {
-    installRealisticShim();
+    installChromeShim();
     mountBackdrop();
   });
 

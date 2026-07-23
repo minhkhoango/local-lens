@@ -8,25 +8,6 @@ installChromeShim();
 import { FastEngine } from '@/engine/fast';
 import type { TabsConnect } from '@/types';
 
-// Expected substrings imported as raw text via Vite's ?raw query.
-const expectedRaw = import.meta.glob('../expected/*.txt', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>;
-
-function expectedForImage(key: string): string[] {
-  for (const [path, content] of Object.entries(expectedRaw)) {
-    if (path.includes(key)) {
-      return content
-        .split(/\r?\n/)
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
-    }
-  }
-  return [];
-}
-
 // Paddle confidence is 0–1; the engine rescales to 0–100 for the surface API.
 const MIN_CONFIDENCE = 30;
 
@@ -69,12 +50,7 @@ describe('FastEngine (real ONNX runtime, headless Chromium)', () => {
         expect(out.textHtml.length).toBeGreaterThan(0);
 
         const text = out.textPlain.toLowerCase();
-        const expected = expectedForImage(img.expectedKey);
-        expect(
-          expected.length,
-          `expected substrings file for ${img.expectedKey}`,
-        ).toBeGreaterThan(0);
-        for (const phrase of expected) {
+        for (const phrase of img.expected) {
           expect(
             text,
             `expected substring "${phrase}" in OCR output of ${img.name}`,
