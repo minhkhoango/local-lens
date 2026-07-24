@@ -1,0 +1,868 @@
+<title>Local Lens — Capsule, round 6</title>
+<style>
+  /* ---------------------------------------------------------------
+     Colour = Material 3 tonal roles, seeded from Perplexity's
+     turquoise #20808D so the two systems agree on one hue.
+     Design choices = Perplexity: paper/ink grounds, a mono metadata
+     face, restraint, the low-key chevron switcher.
+     Nothing here is settled. Every number is a starting point.
+     --------------------------------------------------------------- */
+  @property --g { syntax: '<number>'; inherits: true; initial-value: 1; }
+
+  :root {
+    color-scheme: light dark;
+    --ground:      #FBFAF4;
+    --surface:     #FFFFFF;
+    --surface-2:   #F1F1EA;
+    --ink:         #091717;
+    --ink-2:       #3F484A;
+    --muted:       #6F797A;
+    --outline:     #D6D8CF;
+    --outline-2:   #E8E8E0;
+    --primary:     #20808D;
+    --prim-cont:   #CFECF0;
+    --on-prim-cont:#00363D;
+    --elev: 0 1px 2px rgba(9,23,23,.06), 0 6px 20px -10px rgba(9,23,23,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:#091717; --surface:#0F1D1E; --surface-2:#152526;
+      --ink:#DDE4E5; --ink-2:#BFC8CA; --muted:#899294;
+      --outline:#243637; --outline-2:#1A2A2B;
+      --primary:#82D3E0; --prim-cont:#004F58; --on-prim-cont:#9EEFFD;
+      --elev: 0 1px 2px rgba(0,0,0,.5), 0 10px 28px -14px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#091717; --surface:#0F1D1E; --surface-2:#152526;
+    --ink:#DDE4E5; --ink-2:#BFC8CA; --muted:#899294;
+    --outline:#243637; --outline-2:#1A2A2B;
+    --primary:#82D3E0; --prim-cont:#004F58; --on-prim-cont:#9EEFFD;
+    --elev: 0 1px 2px rgba(0,0,0,.5), 0 10px 28px -14px rgba(0,0,0,.8);
+  }
+  :root[data-theme="light"] {
+    --ground:#FBFAF4; --surface:#FFFFFF; --surface-2:#F1F1EA;
+    --ink:#091717; --ink-2:#3F484A; --muted:#6F797A;
+    --outline:#D6D8CF; --outline-2:#E8E8E0;
+    --primary:#20808D; --prim-cont:#CFECF0; --on-prim-cont:#00363D;
+    --elev: 0 1px 2px rgba(9,23,23,.06), 0 6px 20px -10px rgba(9,23,23,.18);
+  }
+
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 40px 24px 160px; }
+
+  .eyebrow {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--primary); margin: 0 0 10px;
+  }
+  h1 { font-size: clamp(28px,4vw,40px); line-height: 1.08; letter-spacing: -.028em; font-weight: 700; margin: 0 0 14px; max-width: 22ch; text-wrap: balance; }
+  .lede { margin: 0; max-width: 70ch; color: var(--ink-2); font-size: 16px; }
+  .lede + .lede { margin-top: 10px; }
+  .lede b { color: var(--ink); font-weight: 600; }
+
+  h2 {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+    font-weight: 500; margin: 0 0 14px;
+  }
+  .sect { margin-top: 52px; }
+  .k, code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; color: var(--ink);
+    background: var(--surface-2); border-radius: 6px; padding: 1px 5px;
+  }
+
+  /* ---------- transport ---------- */
+  .transport {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 40; max-width: calc(100vw - 28px); padding: 8px 10px;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 7px;
+    background: color-mix(in srgb, var(--surface) 86%, transparent);
+    backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid var(--outline); border-radius: 16px; box-shadow: var(--elev);
+  }
+  button {
+    font: inherit; font-size: 12.5px; font-weight: 500; letter-spacing: .01em;
+    color: var(--ink-2); background: transparent;
+    border: 1px solid var(--outline); border-radius: 999px;
+    padding: 5px 13px; cursor: pointer;
+    transition: background .13s, color .13s, border-color .13s;
+  }
+  button:hover { background: var(--surface-2); color: var(--ink); }
+  button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  button.on {
+    background: var(--prim-cont); color: var(--on-prim-cont);
+    border-color: color-mix(in srgb, var(--primary) 40%, var(--outline));
+  }
+  .seg { display: flex; gap: 3px; padding: 3px; border: 1px solid var(--outline); border-radius: 999px; }
+  .seg button { border: 0; padding: 4px 11px; }
+  .seglab {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted);
+    padding-left: 3px; white-space: nowrap;
+  }
+  .seglab b { color: var(--primary); font-weight: 600; }
+  #model { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; }
+
+  /* ---------- bench ---------- */
+  .bench { margin-top: 30px; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 32px; }
+  @media (max-width: 900px) { .bench { grid-template-columns: 1fr; } }
+  figure { margin: 0; }
+  .cap { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .tag { font-size: 17px; font-weight: 650; letter-spacing: -.012em; }
+  .one { font-size: 12.5px; color: var(--muted); }
+
+  .station {
+    position: relative; aspect-ratio: 16/10; overflow: hidden;
+    border-radius: 14px; border: 1px solid var(--outline);
+    box-shadow: var(--elev); background: #fff;
+    --sx: 24px; --sy: 34px; --sw: 240px; --sh: 190px;
+    --g: 1;
+  }
+
+  /* --- the captured page --- */
+  .pg { position: absolute; inset: 0; background: #fdfdfd; color: #1b1f27; }
+  .pg .bar { height: 20px; display:flex; align-items:center; gap:5px; padding:0 9px; background:#eef0f3; border-bottom:1px solid #e2e5ea; }
+  .pg .bar i { width:6px; height:6px; border-radius:50%; background:#cbd0d8; }
+  .pg .bar u { flex:1; height:9px; border-radius:5px; background:#dfe3e9; margin-left:6px; }
+  .pg .body { display:flex; flex-direction:column; gap:13px; padding:30px 16px 16px; }
+  .pg .cols { display:flex; gap:16px; }
+  .pg .below { display:flex; flex-direction:column; gap:7px; }
+  .pg .card { flex:0 0 43%; }
+  .pg .lbl { border:1.5px solid currentColor; padding:6px 8px 8px; }
+  .pg .l1 { font-size:15px; font-weight:800; letter-spacing:-.02em; line-height:1.15; }
+  .pg .l2 { font-size:8.5px; opacity:.82; }
+  .pg .l3, .pg .l4, .pg .row { display:flex; justify-content:space-between; align-items:baseline; }
+  .pg .l3 { font-size:8.5px; opacity:.82; }
+  .pg .l4 { font-size:15px; font-weight:800; letter-spacing:-.02em; margin-top:2px; }
+  .pg .row { font-size:9px; padding:2.5px 0; border-top:.5px solid currentColor; }
+  .pg .hr.thin + .row { border-top:0; }
+  .pg .hr { height:4px; background:currentColor; margin:4px 0 2px; }
+  .pg .hr.thin { height:1px; margin:2px 0; }
+  .pg .aside { flex:1; display:flex; flex-direction:column; gap:7px; padding-top:4px; }
+  .pg .ph { height:7px; border-radius:3px; background:#e6e9ee; }
+  .pg .ph.tall { height:58px; border-radius:6px; }
+  .pg .ph.w90{width:90%} .pg .ph.w85{width:85%} .pg .ph.w80{width:80%} .pg .ph.w70{width:70%} .pg .ph.w60{width:60%}
+
+  /* --- overlay geometry ---
+     Every layer is sized from one origin plus a 0→1 growth factor, so the
+     drag is a real drag: the rectangle is pulled out of the corner and the
+     scrim opens with it, exactly like Win+Shift+S. */
+  .ov { position:absolute; inset:0; }
+  .rect { position:absolute; left:var(--sx); top:var(--sy); width:calc(var(--sw)*var(--g)); height:calc(var(--sh)*var(--g)); }
+
+  .scrim { box-shadow: 0 0 0 999px rgba(6,14,15,.72); opacity:0; transition: opacity .3s ease; }
+  .s-aim .scrim, .s-drag .scrim, .s-scan .scrim, .s-ready .scrim, .s-copied .scrim { opacity:1; }
+  .s-copied.fading .scrim { opacity:0; transition-duration:.42s; }
+
+  /* The region is never dimmed or blurred as a whole, at any stage. The only
+     thing that ever appears inside it is a mark on a run that was read. */
+  .hole { overflow:hidden; }
+
+  /* The region is white now, so a white hairline would vanish into it: the
+     ants are dark and sit inside, the white hairline sits outside on the
+     scrim. One of the two always has contrast. */
+  .edge {
+    pointer-events:none;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.6);
+    background-image:
+      linear-gradient(90deg, rgba(9,23,23,.62) 50%, transparent 0),
+      linear-gradient(90deg, rgba(9,23,23,.62) 50%, transparent 0),
+      linear-gradient(0deg,  rgba(9,23,23,.62) 50%, transparent 0),
+      linear-gradient(0deg,  rgba(9,23,23,.62) 50%, transparent 0);
+    background-size: 7px 1px, 7px 1px, 1px 7px, 1px 7px;
+    background-position: 0 0, 0 100%, 0 0, 100% 0;
+    background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+    transition: opacity .3s;
+  }
+  .s-drag .edge, .s-scan .edge { animation: ants .55s linear infinite; }
+  .s-ready .edge { background-image:none; box-shadow: 0 0 0 1px rgba(255,255,255,.6), inset 0 0 0 1px rgba(9,23,23,.13); }
+  .s-copied .edge { opacity:0; }
+  @keyframes ants { to { background-position: 7px 0, -7px 100%, 0 -7px, 100% 7px; } }
+
+  /* the release: one quick ring on mouse-up, then gone */
+  .flash { pointer-events:none; opacity:0; border-radius:2px; box-shadow:0 0 0 1.5px rgba(255,255,255,.95); }
+  .s-scan .flash { animation: pop .5s cubic-bezier(.2,0,0,1); }
+  @keyframes pop { 0% { opacity:.95; transform:scale(1); } 100% { opacity:0; transform:scale(1.04); } }
+
+  /* the cursor doing the dragging */
+  .cur {
+    position:absolute; z-index:6; pointer-events:none;
+    left:calc(var(--sx) + var(--sw)*var(--g)); top:calc(var(--sy) + var(--sh)*var(--g));
+    width:17px; height:17px; margin:-8.5px 0 0 -8.5px; opacity:0; transition:opacity .22s ease;
+  }
+  .cur::before, .cur::after {
+    content:''; position:absolute; background:#fff;
+    box-shadow:0 0 0 .5px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.5);
+  }
+  .cur::before { left:8px; top:0; width:1px; height:17px; }
+  .cur::after  { top:8px; left:0; height:1px; width:17px; }
+  .s-aim .cur, .s-drag .cur { opacity:1; }
+
+  .chip {
+    position:absolute; z-index:6; pointer-events:none;
+    left:calc(var(--sx) + var(--sw)*var(--g) + 11px);
+    top:calc(var(--sy) + var(--sh)*var(--g) + 11px);
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size:8.5px; line-height:1; padding:3px 5px; border-radius:5px;
+    background:rgba(11,28,29,.9); color:#E9F4F6; white-space:nowrap;
+    opacity:0; transition:opacity .18s ease;
+  }
+  .s-drag .chip { opacity:1; }
+
+  /* --- marks over each read run --- */
+  .marks { overflow:hidden; pointer-events:none; }
+  .mk {
+    position:absolute; opacity:0; border-radius:3px;
+    transition: opacity .22s ease, background .3s ease, box-shadow .3s ease;
+  }
+  .s-scan .mk { opacity:1; background: rgba(150,158,160,var(--veil)); transition-delay: calc(var(--i) * 110ms); }
+  .s-ready .mk { opacity:1; }
+  .s-copied .mk { opacity:0; transition-delay:0s; }
+  .s-ready .marks { pointer-events:auto; }
+
+  /* Confirmation at ready — nothing is blurred any more, this only says
+     "these runs are the text I have". Three weights of saying it. */
+  .c-wash.s-ready  .mk { background: rgba(32,128,141,.11); }
+  .c-line.s-ready  .mk { background: transparent; border-radius:0; box-shadow: inset 0 -1px 0 rgba(32,128,141,.5); }
+  .c-sweep.s-ready .mk { background: rgba(32,128,141,.14); animation: fadeoff .75s ease forwards; animation-delay: calc(.2s + var(--i) * 40ms); }
+  @keyframes fadeoff { to { background: rgba(32,128,141,0); } }
+
+  /* Blur while reading, masked to the runs — never to the whole region.
+     Chrome silently drops backdrop-filter on dozens of small siblings, so
+     one masked layer per third of the runs: few enough to always render,
+     enough to let the blur arrive in a wave rather than all at once. */
+  .redactor {
+    pointer-events:none; opacity:0; transition: opacity .45s ease;
+    backdrop-filter: blur(var(--blur)) saturate(.95);
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  }
+  .s-scan .redactor { opacity:1; transition-delay: var(--gd, 0ms); }
+  .b-none .redactor { display:none; }
+
+  .bench { --blur: 1.6px; --veil: .09; }
+  .bench.b-none    { --blur: 0px;   --veil: .10; }
+  .bench.b-feather { --blur: 1px;   --veil: .06; }
+  .bench.b-light   { --blur: 1.6px; --veil: .09; }
+  .bench.b-soft    { --blur: 2.6px; --veil: .13; }
+
+  .mk::after {
+    content: attr(data-tx);
+    position:absolute; left:50%; bottom:calc(100% + 5px); transform:translateX(-50%);
+    background:#0B1C1D; color:#E9F4F6; font-size:10px; line-height:1.4;
+    padding:3px 7px; border-radius:6px; white-space:nowrap; pointer-events:none;
+    opacity:0; transition:opacity .12s; z-index:4;
+  }
+  .mk:hover::after { opacity:1; }
+
+  /* =========================================================
+     The capsule. Same shape, same place, never moves — but the
+     four versions are laid out differently inside, not just
+     labelled differently.
+     ========================================================= */
+  .tb {
+    --tb-surf:  rgba(30,44,45,.94);
+    --tb-on:    #DDE4E5;
+    --tb-on-var:#A9B7B8;
+    --tb-outl:  rgba(158,182,184,.22);
+    --tb-prim:  #82D3E0;
+    --tb-on-prim:#00363D;
+    --tb-cont:  #004F58;
+    --tb-on-cont:#9EEFFD;
+    position:absolute; left:50%; transform:translateX(-50%); top:0; z-index:7;
+    color: var(--tb-on); font-size: 9.5px; letter-spacing:.01em;
+    background: var(--tb-surf);
+    backdrop-filter: blur(16px) saturate(1.5);
+    box-shadow: 0 6px 22px -9px rgba(0,0,0,.7);
+    border-radius: 999px;
+    height: 24px; box-sizing:border-box;
+    padding: 0 4px; display:flex; align-items:center; gap:4px;
+    transition: opacity .28s ease;
+  }
+  .s-drag .tb { opacity:.34; }          /* out of the way while you are dragging */
+  .s-copied .tb { opacity:0; transition-delay:.5s; }
+  .tb .div { width:1px; height:12px; background: var(--tb-outl); flex:none; margin:0 1px; }
+  .tb .lab { color: var(--tb-on-var); white-space:nowrap; }
+  .mname {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 9px; letter-spacing:-.005em; white-space:nowrap;
+  }
+  .pad { padding-left:2px; }
+  .mbtn {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:3px 7px; border-radius:999px; cursor:pointer;
+    color: var(--tb-on); transition: background .12s;
+  }
+  .mbtn.bare { padding:3px 5px; }
+  .mbtn:hover { background: rgba(221,228,229,.08); }   /* M3 state layer, 8% */
+  .mbtn .chev { font-size:7px; opacity:.65; transition: transform .2s cubic-bezier(.2,0,0,1); }
+  .pk .mbtn .chev { transform: rotate(180deg); }
+  .fbtn {
+    display:inline-flex; align-items:center;
+    background: var(--tb-prim); color: var(--tb-on-prim);
+    font-weight:600; font-size:9.5px; letter-spacing:.02em;
+    padding:3px 10px; border-radius:999px; cursor:pointer; white-space:nowrap;
+  }
+  .fbtn.ic { padding:0; width:18px; height:18px; justify-content:center; border-radius:50%; font-size:10px; }
+  .ibtn {
+    width:18px; height:18px; border-radius:50%; display:inline-flex;
+    align-items:center; justify-content:center; color: var(--tb-on-var);
+    font-size:10px; cursor:pointer; transition: background .12s; flex:none;
+  }
+  .ibtn:hover { background: rgba(221,228,229,.08); }
+  .dot { width:5px; height:5px; border-radius:50%; background: var(--tb-prim); flex:none; }
+  .spin {
+    width:9px; height:9px; border-radius:50%; flex:none;
+    border:1.5px solid rgba(130,211,224,.26); border-top-color: var(--tb-prim);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .on-aim, .on-scan, .on-ready { display:none; align-items:center; gap:5px; }
+  .s-aim .on-aim, .s-drag .on-aim { display:inline-flex; }
+  .s-scan .on-scan { display:inline-flex; }
+  .s-ready .on-ready, .s-copied .on-ready { display:inline-flex; }
+  .l-done { display:none; }
+  .s-copied .l-copy { display:none; }
+  .s-copied .l-done { display:inline; }
+  .s-copied .fbtn { background:#9EEFFD; }
+
+  /* V2 only: at ready the capsule itself turns into the button — an M3
+     extended FAB rather than a toolbar with a button parked in it. */
+  .s-ready .v2 .tb, .s-copied .v2 .tb {
+    background: var(--tb-prim); color: var(--tb-on-prim);
+    box-shadow: 0 6px 20px -8px rgba(0,54,61,.6);
+  }
+  .s-ready .v2 .ibtn, .s-copied .v2 .ibtn,
+  .s-ready .v2 .mname, .s-copied .v2 .mname { color: var(--tb-on-prim); }
+  .s-ready .v2 .mbtn:hover, .s-copied .v2 .mbtn:hover,
+  .s-ready .v2 .ibtn:hover, .s-copied .v2 .ibtn:hover { background: rgba(0,54,61,.10); }
+  .fbtn.flat { background:transparent; color:var(--tb-on-prim); padding:3px 6px 3px 5px; font-size:10px; }
+  .s-copied .fbtn.flat { background:transparent; }
+
+  /* --- the dropdown --- */
+  .menu {
+    position:absolute; top:calc(100% + 5px); left:50%;
+    transform:translateX(-50%) scale(.96); transform-origin: top center;
+    background: rgba(33,48,49,.98); backdrop-filter: blur(18px) saturate(1.5);
+    border:1px solid rgba(158,182,184,.16); border-radius:12px;
+    box-shadow: 0 12px 34px -12px rgba(0,0,0,.85);
+    padding:4px; opacity:0; pointer-events:none; z-index:8;
+    transition: opacity .15s ease, transform .19s cubic-bezier(.2,0,0,1);
+  }
+  .pk .menu { opacity:1; transform:translateX(-50%) scale(1); pointer-events:auto; }
+  .mrow {
+    display:flex; flex-direction:column; gap:1px; padding:5px 8px 6px;
+    border-radius:8px; cursor:pointer; transition: background .12s;
+  }
+  .mrow:hover { background: rgba(221,228,229,.07); }
+  .mrow.sel { background: var(--tb-cont); }
+  .mrow .top { display:flex; align-items:baseline; justify-content:space-between; gap:16px; }
+  .mrow .lb { font-size:10px; font-weight:600; color: var(--tb-on); }
+  .mrow.sel .lb { color: var(--tb-on-cont); }
+  .mrow .sz { font-size:8px; color: var(--tb-on-var); white-space:nowrap; }
+  .mrow .nm {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size:8px; letter-spacing:-.015em; white-space:nowrap; color: var(--tb-on-var);
+  }
+  .mrow.sel .sz, .mrow.sel .nm { color: color-mix(in srgb, var(--tb-on-cont) 68%, transparent); }
+
+  /* ---------- spec ---------- */
+  .spec { margin:13px 0 0; display:grid; grid-template-columns:74px 1fr; gap:3px 12px; font-size:12px; }
+  .spec dt {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); padding-top:2px;
+  }
+  .spec dd { margin:0; color: var(--ink-2); }
+  .spec dd b { color: var(--ink); font-weight:600; }
+  .dim {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size:11px; color: var(--primary);
+  }
+
+  /* ---------- table ---------- */
+  .tbl-wrap { overflow-x:auto; border:1px solid var(--outline); border-radius:16px; background: var(--surface); }
+  table { border-collapse:collapse; width:100%; min-width:640px; font-size:13px; }
+  th, td { text-align:left; padding:12px 15px; border-bottom:1px solid var(--outline-2); vertical-align:top; }
+  tbody tr:last-child td, tbody tr:last-child th { border-bottom:0; }
+  thead th {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+    font-weight:500; border-bottom:1px solid var(--outline);
+  }
+  tbody th { font-weight:600; color:var(--ink); white-space:nowrap; }
+  td { color: var(--ink-2); }
+
+  .note {
+    margin-top:46px; padding:18px 20px; border:1px solid var(--outline);
+    border-left:3px solid var(--primary); border-radius:14px; background: var(--surface);
+    font-size:13.5px; color:var(--ink-2); max-width:80ch;
+  }
+  .note b { color: var(--ink); }
+  .note ul { margin:9px 0 0; padding-left:19px; }
+  .note li { margin:4px 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+  }
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">Local Lens · result UI · design study 06 — Capsule</p>
+  <h1>The drag is on screen now, and ready is clean</h1>
+  <p class="lede">Three changes. The <b>drag and release</b> is animated — the rectangle is pulled out of its corner, the scrim opens with it, a live size chip follows the cursor, and mouse-up gives one ring before reading starts. Scrub to <b>Drag</b>, or just watch.</p>
+  <p class="lede">The region is <b>never dimmed or blurred as a whole</b> now, at any stage. The only thing that ever appears inside it is a mark on a run that was read — arriving in a wave while the model works, settling into a <b>slight overlay</b> at ready. That is a confirmation, not a cover. <b>Confirm</b> switches how heavy it is, including one that fades to nothing; <b>Blur</b> switches how much softening rides along during the read, including none at all.</p>
+  <p class="lede">And the capsule says <b>Fast</b> / <b>Structured</b> again, with the real model names moved into the menu where there is room for them. That collapsed two of last round's versions into one, so the four below are now different <em>layouts</em>, not different label widths.</p>
+
+  <div class="transport">
+    <button id="playpause" class="on">Pause</button>
+    <div class="seg" role="group" aria-label="Jump to stage">
+      <button data-stage="0">Aim</button>
+      <button data-stage="1">Drag</button>
+      <button data-stage="2">Read</button>
+      <button data-stage="3">Ready</button>
+      <button data-stage="4">Copied</button>
+    </div>
+    <span class="seglab">Stage <b id="stagename">aiming</b></span>
+    <div class="seg" role="group" aria-label="Confirmation at ready">
+      <button data-conf="wash" class="on">Wash</button>
+      <button data-conf="line">Underline</button>
+      <button data-conf="sweep">Sweep</button>
+    </div>
+    <div class="seg" role="group" aria-label="Blur while reading">
+      <button data-blur="none">No blur</button>
+      <button data-blur="feather">Feather</button>
+      <button data-blur="light" class="on">Light</button>
+      <button data-blur="soft">Soft</button>
+    </div>
+    <button id="model">Model: Fast</button>
+    <button id="pickers">Open menus</button>
+  </div>
+
+  <div class="bench s-aim b-light c-wash" id="bench"></div>
+
+  <div class="sect">
+    <h2>Where the honest names went</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th scope="col">On the capsule</th><th scope="col">In the menu</th><th scope="col">Download</th><th scope="col">Runs on</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Fast</th>
+            <td><code>PP-OCRv6 tiny</code> — detection + recognition</td>
+            <td>6.2 MB</td>
+            <td>WebGPU, falls back to CPU</td>
+          </tr>
+          <tr>
+            <th scope="row">Structured</th>
+            <td><code>PP-DocLayoutV3 → PP-OCRv6 tiny → SLANet_plus</code></td>
+            <td>138 MB</td>
+            <td>CPU only</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede" style="margin-top:14px">Sizes measured from <span class="k">public/</span>. Open the menus to see it — the plain word is what you operate, the pipeline is one line under it. Switching <b>Model</b> in the transport no longer changes any capsule's width, which is the whole point of putting the names down there.</p>
+  </div>
+
+  <div class="sect">
+    <h2>What the four versions actually differ on now</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th scope="col">Version</th><th scope="col">Reading order</th><th scope="col">The idea being tested</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">V1 · Named</th><td>state → name → Copy → close</td><td>The conventional one. You always know which model produced this.</td></tr>
+          <tr><th scope="row">V2 · Capsule is the button</th><td>state → Copy → name → close</td><td>At ready the pill itself goes primary, so the thing you came to do is the whole object rather than a chip inside it.</td></tr>
+          <tr><th scope="row">V3 · One slot</th><td>state <em>or</em> name → Copy → close</td><td>Never carries both. Narrowest exactly while something is happening.</td></tr>
+          <tr><th scope="row">V4 · Wordless</th><td>state → ▾ → ⧉ → ✕</td><td>No text at rest at all. Smallest possible footprint; costs you the name.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Open — pick freely, and reject the framing too if it is wrong:</b>
+    <ul>
+      <li><b>Which layout.</b> They can also be mixed: V2's leading Copy with V3's one slot, for instance.</li>
+      <li><b>Confirmation weight.</b> Wash / Underline / Sweep. Sweep leaves the region completely clean after a second — that may be better or may feel like nothing happened.</li>
+      <li><b>Blur while reading.</b> Feather / Light / Soft, or drop the reading blur entirely and let the marks alone carry it.</li>
+      <li>Whether the capsule should dim during the drag at all, or stay solid.</li>
+      <li>Whether the size chip that follows the cursor is worth its noise.</li>
+      <li>Whether <span class="k">Copy</span> stays filled once it is the only loud thing on screen.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  var PAGE = [
+    '<div class="pg">',
+    '  <div class="bar"><i></i><i></i><i></i><u></u></div>',
+    '  <div class="body">',
+    '    <div class="cols">',
+    '    <div class="card"><div class="lbl">',
+    '      <div class="l1"><span class="t">Nutrition Facts</span></div>',
+    '      <div class="l2"><span class="t">8 servings per container</span></div>',
+    '      <div class="l3"><span class="t">Serving size</span><span class="t">2/3 cup (55g)</span></div>',
+    '      <div class="hr"></div>',
+    '      <div class="l4"><span class="t">Calories</span><span class="t">240</span></div>',
+    '      <div class="hr thin"></div>',
+    '      <div class="row"><span class="t">Total Fat 9g</span><span class="t">12%</span></div>',
+    '      <div class="row"><span class="t">Sodium 190mg</span><span class="t">8%</span></div>',
+    '      <div class="row"><span class="t">Total Carbohydrate 41g</span><span class="t">15%</span></div>',
+    '      <div class="row"><span class="t">Protein 6g</span><span class="t">2%</span></div>',
+    '    </div></div>',
+    '    <div class="aside">',
+    '      <div class="ph w80"></div><div class="ph w60"></div>',
+    '      <div class="ph tall"></div>',
+    '      <div class="ph w90"></div><div class="ph w70"></div><div class="ph w85"></div>',
+    '    </div>',
+    '    </div>',
+    '    <div class="below">',
+    '      <div class="ph w60"></div>',
+    '      <div class="ph"></div><div class="ph w90"></div><div class="ph w85"></div>',
+    '      <div class="ph w70"></div>',
+    '    </div>',
+    '  </div>',
+    '</div>'
+  ].join('');
+
+  // The capsule carries the plain word. The pipeline lives in the menu.
+  var MODELS = [
+    { label: 'Fast',       pipe: 'PP-OCRv6 tiny',                          size: '6 MB' },
+    { label: 'Structured', pipe: 'PP-DocLayoutV3 → OCRv6 → SLANet_plus',   size: '138 MB' }
+  ];
+
+  var MENU =
+    '<div class="menu">' +
+    MODELS.map(function (m, i) {
+      return '<div class="mrow" data-m="' + i + '">' +
+             '  <span class="top"><span class="lb">' + m.label + '</span><span class="sz">' + m.size + '</span></span>' +
+             '  <span class="nm">' + m.pipe + '</span>' +
+             '</div>';
+    }).join('') +
+    '</div>';
+
+  var COPY  = '<span class="on-ready"><span class="fbtn"><span class="l-copy">Copy</span><span class="l-done">Copied ✓</span></span></span>';
+  var COPYI = '<span class="on-ready"><span class="fbtn ic"><span class="l-copy">⧉</span><span class="l-done">✓</span></span></span>';
+  var CLOSE = '<span class="ibtn">✕</span>';
+
+  var STATUS =
+    '<span class="on-aim"><span class="dot"></span><span class="lab">Drag to select</span></span>' +
+    '<span class="on-scan"><span class="spin"></span><span class="lab">Reading</span></span>';
+  var STATUS_ICON =
+    '<span class="on-aim"><span class="dot"></span></span>' +
+    '<span class="on-scan"><span class="spin"></span></span>';
+
+  var TB = {
+    // conventional: who is speaking, then what you can do
+    v1: '<div class="tb"><span class="pad"></span>' + STATUS +
+        '  <span class="mbtn" data-pk><span class="mname" data-name></span><span class="chev">▼</span></span>' +
+        '  ' + COPY + CLOSE + MENU +
+        '</div>',
+
+    // the whole capsule becomes the action once there is something to take
+    v2: '<div class="tb"><span class="pad"></span>' + STATUS +
+        '  <span class="on-ready"><span class="fbtn flat"><span class="l-copy">Copy</span><span class="l-done">Copied ✓</span></span></span>' +
+        '  <span class="mbtn" data-pk><span class="mname" data-name></span><span class="chev">▼</span></span>' +
+        CLOSE + MENU +
+        '</div>',
+
+    // one slot: status while working, name once nothing is
+    v3: '<div class="tb">' +
+        '  <span class="mbtn" data-pk>' +
+        '    <span class="on-aim"><span class="dot"></span><span class="lab">Drag to select</span></span>' +
+        '    <span class="on-scan"><span class="spin"></span><span class="lab">Reading</span></span>' +
+        '    <span class="on-ready"><span class="mname" data-name></span></span>' +
+        '    <span class="chev">▼</span>' +
+        '  </span>' +
+        '  ' + COPY + CLOSE + MENU +
+        '</div>',
+
+    // no words at rest
+    v4: '<div class="tb"><span class="pad"></span>' + STATUS_ICON +
+        '  <span class="mbtn bare" data-pk><span class="chev">▼</span></span>' +
+        '  <span class="div"></span>' +
+        '  ' + COPYI + CLOSE + MENU +
+        '</div>'
+  };
+
+  var OPTS = [
+    { id:'v1', name:'V1 · Named', one:'state, model, action — in that order',
+      spec:[
+        ['Capsule','<span class="dim" data-dim></span> right now, measured live. Widest of the four, and the only one where the model name is present at every stage.'],
+        ['Drag','Capsule dims to 34% so it is not competing with the rectangle you are pulling.'],
+        ['Read','Safe. Reads left-to-right as a sentence: <em>Fast, ready, copy this.</em>']
+      ]},
+    { id:'v2', name:'V2 · Capsule is the button', one:'at ready the whole pill turns into Copy',
+      spec:[
+        ['Capsule','<span class="dim" data-dim></span> right now. Same size as V1 — the difference is colour, not width.'],
+        ['Drag','Identical to V1 until the read finishes. Everything it does happens at ready.'],
+        ['Read','An M3 extended FAB rather than a toolbar with a button parked in it. Unmissable, and possibly too loud sitting over a bright region.']
+      ]},
+    { id:'v3', name:'V3 · One slot', one:'status and name share one slot, never both',
+      spec:[
+        ['Capsule','<span class="dim" data-dim></span> right now — narrowest exactly while something is happening, which is when you are least interested in it.'],
+        ['Drag','Slot says <em>Drag to select</em>; the name has not appeared yet.'],
+        ['Read','The model name becomes something you learn after the work rather than before it. That may be the wrong moment for it.']
+      ]},
+    { id:'v4', name:'V4 · Wordless', one:'three icons and a chevron; no text at rest',
+      spec:[
+        ['Capsule','<span class="dim" data-dim></span> right now. Smallest by a wide margin and nearly constant across stages.'],
+        ['Drag','Barely there — a dot, a chevron, a close.'],
+        ['Read','Gives up the naming this thread started from. Here so the trade is on screen instead of argued about.']
+      ]}
+  ];
+
+  var bench = document.getElementById('bench');
+  OPTS.forEach(function (o) {
+    var fig = document.createElement('figure');
+    fig.className = 'opt ' + o.id;
+    var spec = o.spec.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('');
+    fig.innerHTML =
+      '<figcaption class="cap"><span class="tag">' + o.name + '</span><span class="one">' + o.one + '</span></figcaption>' +
+      '<div class="station">' + PAGE +
+      '  <div class="ov">' +
+      '    <div class="rect scrim"></div>' +
+      '    <div class="rect hole"></div>' +
+      '    <div class="rect redactor"></div>' +
+      '    <div class="rect redactor"></div>' +
+      '    <div class="rect redactor"></div>' +
+      '    <div class="rect edge"></div>' +
+      '    <div class="rect flash"></div>' +
+      '    <div class="rect marks"></div>' +
+      '    <div class="cur"></div>' +
+      '    <div class="chip" data-chip>0 × 0</div>' +
+             TB[o.id] +
+      '  </div>' +
+      '</div>' +
+      '<dl class="spec">' + spec + '</dl>';
+    bench.appendChild(fig);
+  });
+
+  var modelIdx = 0;
+  var modelBtn = document.getElementById('model');
+
+  function setModel(i) {
+    modelIdx = i;
+    var m = MODELS[i];
+    modelBtn.textContent = 'Model: ' + m.label;
+    var names = document.querySelectorAll('.mname');
+    for (var n = 0; n < names.length; n++) names[n].textContent = m.label;
+    var rows = document.querySelectorAll('.mrow');
+    for (var r = 0; r < rows.length; r++) {
+      rows[r].classList.toggle('sel', Number(rows[r].getAttribute('data-m')) === i);
+    }
+    reportSizes();
+  }
+
+  // Widths in the spec are measured, never asserted, so they cannot go stale.
+  function reportSizes() {
+    var figs = document.querySelectorAll('.opt');
+    for (var f = 0; f < figs.length; f++) {
+      var tb = figs[f].querySelector('.tb').getBoundingClientRect();
+      var slot = figs[f].querySelector('[data-dim]');
+      if (slot) slot.textContent = Math.round(tb.width) + ' × ' + Math.round(tb.height);
+    }
+  }
+
+  function layoutMarks() {
+    var figs = document.querySelectorAll('.opt');
+    for (var f = 0; f < figs.length; f++) {
+      var fig = figs[f];
+      var station = fig.querySelector('.station');
+      var marks = fig.querySelector('.marks');
+      var sr = station.getBoundingClientRect();
+      if (!sr.width) continue;
+
+      var lb = fig.querySelector('.pg .lbl').getBoundingClientRect();
+      var pad = Math.round(sr.width * 0.016);
+      station.style.setProperty('--sx', Math.round(lb.left - sr.left - pad) + 'px');
+      station.style.setProperty('--sy', Math.round(lb.top - sr.top - pad) + 'px');
+      station.style.setProperty('--sw', Math.round(lb.width + pad * 2) + 'px');
+      station.style.setProperty('--sh', Math.round(lb.height + pad * 2) + 'px');
+
+      var hx = lb.left - pad, hy = lb.top - pad;
+      var hw = lb.width + pad * 2, hh = lb.height + pad * 2;
+      marks.textContent = '';
+      var runs = fig.querySelectorAll('.pg .t');
+      var i = 0, sizes = [], posns = [];
+      for (var r = 0; r < runs.length; r++) {
+        var b = runs[r].getBoundingClientRect();
+        var cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+        if (cx < hx || cx > hx + hw || cy < hy || cy > hy + hh) continue;
+        var x = b.left - hx - 1.5, y = b.top - hy - 1;
+        var w = b.width + 3, h = b.height + 2;
+        var d = document.createElement('div');
+        d.className = 'mk';
+        d.style.left = x + 'px'; d.style.top = y + 'px';
+        d.style.width = w + 'px'; d.style.height = h + 'px';
+        d.style.setProperty('--i', i);
+        d.setAttribute('data-tx', runs[r].textContent.trim());
+        marks.appendChild(d);
+        sizes.push(w + 'px ' + h + 'px');
+        posns.push(x + 'px ' + y + 'px');
+        i++;
+      }
+
+      // Split the runs into three masked layers so the blur arrives in the
+      // same wave the veils do, instead of landing on every run at once.
+      var reds = fig.querySelectorAll('.redactor');
+      var per = Math.ceil(sizes.length / reds.length) || 1;
+      for (var g = 0; g < reds.length; g++) {
+        var from = g * per, to = Math.min(sizes.length, from + per);
+        var gs = sizes.slice(from, to), gp = posns.slice(from, to);
+        var el = reds[g];
+        if (!gs.length) { el.style.display = 'none'; continue; }
+        el.style.display = '';
+        el.style.setProperty('--gd', (from * 110) + 'ms');
+        var layers = gs.map(function () { return 'linear-gradient(#000,#000)'; }).join(',');
+        el.style.webkitMaskImage = layers;
+        el.style.maskImage = layers;
+        el.style.webkitMaskSize = gs.join(',');
+        el.style.maskSize = gs.join(',');
+        el.style.webkitMaskPosition = gp.join(',');
+        el.style.maskPosition = gp.join(',');
+      }
+    }
+    reportSizes();
+  }
+
+  var STAGES = [['aim',1300],['drag',1700],['scan',2600],['ready',3200],['copied',1800]];
+  var LABEL = { aim:'aiming', drag:'dragging', scan:'reading', ready:'ready to copy', copied:'copied → released' };
+  var GROW = 1250;   // ms the drag takes; matches the CSS animation
+  var idx = 0, last = 0, playing = true, blur = 'light', conf = 'wash';
+  var stagename = document.getElementById('stagename');
+  var playpause = document.getElementById('playpause');
+  var fadeTimer = null;
+  var stations = document.querySelectorAll('.station');
+  var dragStart = 0;
+
+  function setGrow(v) {
+    for (var i2 = 0; i2 < stations.length; i2++) stations[i2].style.setProperty('--g', v);
+  }
+
+  function apply() {
+    var st = STAGES[idx][0];
+    bench.className = 'bench s-' + st + ' b-' + blur + ' c-' + conf;
+    stagename.textContent = LABEL[st];
+    clearTimeout(fadeTimer);
+
+    // --g is driven from JS rather than a CSS keyframe so that scrubbing
+    // backwards into Drag always restarts the pull from zero.
+    if (st === 'aim') { setGrow(0); }
+    else if (st === 'drag') { dragStart = performance.now(); setGrow(0); }
+    else { setGrow(1); }
+
+    if (st === 'copied') fadeTimer = setTimeout(function () { bench.classList.add('fading'); }, 560);
+    requestAnimationFrame(reportSizes);
+  }
+
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function frame(now) {
+    var st = STAGES[idx][0];
+
+    if (st === 'drag') {
+      var t = Math.min(1, (now - dragStart) / GROW);
+      setGrow(easeOut(t));
+    }
+    if (st === 'drag' || st === 'aim') {
+      for (var f = 0; f < stations.length; f++) {
+        var hole = stations[f].querySelector('.hole').getBoundingClientRect();
+        var chip = stations[f].querySelector('[data-chip]');
+        chip.textContent = Math.round(hole.width * 4) + ' × ' + Math.round(hole.height * 4);
+      }
+    }
+    if (playing && now - last >= STAGES[idx][1]) {
+      idx = (idx + 1) % STAGES.length;
+      last = now;
+      apply();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function setPlaying(v) {
+    playing = v;
+    playpause.textContent = v ? 'Pause' : 'Play';
+    playpause.classList.toggle('on', v);
+    last = performance.now();
+  }
+  playpause.addEventListener('click', function () { setPlaying(!playing); });
+
+  var stageBtns = document.querySelectorAll('[data-stage]');
+  for (var s = 0; s < stageBtns.length; s++) {
+    stageBtns[s].addEventListener('click', function (e) {
+      setPlaying(false);
+      idx = Number(e.currentTarget.getAttribute('data-stage'));
+      apply();
+    });
+  }
+
+  function segment(attr, onPick) {
+    var btns = document.querySelectorAll('[' + attr + ']');
+    for (var q = 0; q < btns.length; q++) {
+      btns[q].addEventListener('click', function (e) {
+        for (var w = 0; w < btns.length; w++) btns[w].classList.toggle('on', btns[w] === e.currentTarget);
+        onPick(e.currentTarget.getAttribute(attr));
+      });
+    }
+  }
+  segment('data-blur', function (v) {
+    blur = v;
+    if (STAGES[idx][0] !== 'scan') { setPlaying(false); idx = 2; }
+    apply();
+  });
+  segment('data-conf', function (v) {
+    conf = v;
+    setPlaying(false); idx = 3;
+    apply();
+  });
+
+  modelBtn.addEventListener('click', function () { setModel(modelIdx === 0 ? 1 : 0); });
+
+  var allOpen = false;
+  var pickersBtn = document.getElementById('pickers');
+  function setAll(open) {
+    allOpen = open;
+    var figs = document.querySelectorAll('.opt');
+    for (var i3 = 0; i3 < figs.length; i3++) figs[i3].classList.toggle('pk', open);
+    pickersBtn.textContent = open ? 'Close menus' : 'Open menus';
+    pickersBtn.classList.toggle('on', open);
+  }
+  pickersBtn.addEventListener('click', function () {
+    if (!allOpen) { setPlaying(false); idx = 3; apply(); }
+    setAll(!allOpen);
+  });
+
+  bench.addEventListener('click', function (e) {
+    if (!e.target.closest) return;
+    var row = e.target.closest('.mrow');
+    if (row) { setModel(Number(row.getAttribute('data-m'))); return; }
+    var btn = e.target.closest('[data-pk]');
+    if (!btn) return;
+    var fig = btn.closest('.opt');
+    setPlaying(false);
+    if (STAGES[idx][0] !== 'ready') { idx = 3; apply(); }
+    fig.classList.toggle('pk');
+  });
+
+  setModel(0);
+  apply();
+  layoutMarks();
+  requestAnimationFrame(frame);
+
+  var t2 = null;
+  window.addEventListener('resize', function () { clearTimeout(t2); t2 = setTimeout(layoutMarks, 120); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutMarks);
+})();
+</script>
