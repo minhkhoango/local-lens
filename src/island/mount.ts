@@ -1,4 +1,5 @@
 import { createRoot, type Root } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import { createElement, createRef } from 'react';
 import islandStyles from '../styles/island.css?inline';
 import { RuntimeMessageAction } from '../types';
@@ -40,6 +41,8 @@ export class FloatingIsland {
     console.debug('[Island.mount] constructor');
     this.host = document.createElement('div');
     this.host.id = ID;
+    // Focusable but not tab-reachable — see the focus call in mount().
+    this.host.tabIndex = -1;
     this.shadow = this.host.attachShadow({ mode: 'closed' });
 
     const style = document.createElement('style');
@@ -50,23 +53,38 @@ export class FloatingIsland {
     this.shadow.appendChild(mountPoint);
 
     this.root = createRoot(mountPoint);
-    this.root.render(
-      createElement(FloatingIslandComponent, {
-        ref: this.handleRef,
-        cursorPosition,
-        imageUrl,
-        isPdf,
-        webgpuSupported,
-        onDestroy: () => void this.destroy(),
-        onEngineChange,
-      }),
-    );
+    // Render synchronously so `handleRef` is populated by the time the
+    // constructor returns. Every method below is a no-op while the ref is null,
+    // and callers legitimately update the island in the same turn they build it
+    // — content.ts reports a failed capture immediately after mount(). With a
+    // concurrent render those updates landed before React had committed and
+    // were dropped, leaving a blank island.
+    flushSync(() => {
+      this.root.render(
+        createElement(FloatingIslandComponent, {
+          ref: this.handleRef,
+          cursorPosition,
+          imageUrl,
+          isPdf,
+          webgpuSupported,
+          onDestroy: () => void this.destroy(),
+          onEngineChange,
+        }),
+      );
+    });
   }
 
   public mount(): void {
     if (!document.getElementById(ID)) {
       document.documentElement.appendChild(this.host);
     }
+    // Pull keyboard focus out of whatever subframe had it — Chrome's PDF viewer
+    // plugin above all. Key events only reach the focused frame, so without
+    // this the island's Escape handler never fires on a PDF and the island
+    // cannot be dismissed. It also re-focuses the document, which is what
+    // `navigator.clipboard.write` requires: auto-copy silently no-ops while a
+    // plugin frame holds focus.
+    this.host.focus({ preventScroll: true });
   }
 
   public updateDownload(payload: DownloadProgress): void {

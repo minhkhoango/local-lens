@@ -10,6 +10,7 @@ const flush = () => new Promise<void>((r) => setTimeout(r, 30));
 async function makeIsland(
   onEngineChange: (engine: string) => Promise<void> = async () => {},
   webgpuSupported = true,
+  isPdf = false,
 ): Promise<{ island: any; host: HTMLElement; shadow: ShadowRoot }> {
   // chrome.runtime.sendMessage GET_SHORTCUT → return a stub shortcut response.
   (chrome.runtime.sendMessage as any).mockImplementation(async (msg: any) => {
@@ -22,7 +23,7 @@ async function makeIsland(
   const island = new FloatingIsland(
     { x: 100, y: 100 },
     '',
-    /* isPdf */ false,
+    isPdf,
     webgpuSupported,
     onEngineChange as any,
   );
@@ -168,6 +169,38 @@ describe('FloatingIsland (DOM state)', () => {
 
     const banner = shadow.querySelector('.engine-warning');
     expect(banner!.className).toContain('hidden');
+  });
+
+  // Regression: the island's only keyboard dismissal is a `window` keydown, and
+  // key events are delivered to the focused frame alone. On a PDF tab focus
+  // lives in Chrome's viewer plugin, so Escape never reached the page and the
+  // island could not be closed. Taking focus on mount also re-focuses the
+  // document, which navigator.clipboard.write requires — auto-copy silently
+  // no-ops while a plugin frame holds focus.
+  it('takes keyboard focus on mount so Escape reaches the page', async () => {
+    const { host } = await makeIsland();
+    expect(document.activeElement).toBe(host);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flush();
+
+    expect(document.getElementById('xr-floating-island-host')).toBeNull();
+  });
+
+  it('tears down on window blur when hosted on a PDF page', async () => {
+    await makeIsland(undefined, true, /* isPdf */ true);
+    window.dispatchEvent(new Event('blur'));
+    await flush();
+
+    expect(document.getElementById('xr-floating-island-host')).toBeNull();
+  });
+
+  it('ignores window blur on an ordinary page', async () => {
+    await makeIsland(undefined, true, /* isPdf */ false);
+    window.dispatchEvent(new Event('blur'));
+    await flush();
+
+    expect(document.getElementById('xr-floating-island-host')).not.toBeNull();
   });
 
   it('surfaces an error in the island when onEngineChange rejects', async () => {
