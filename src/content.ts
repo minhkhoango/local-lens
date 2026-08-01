@@ -73,11 +73,26 @@ chrome.runtime.onMessage.addListener(
 );
 
 /**
+ * Chrome renders a PDF as an `<embed type="application/pdf">` inside a
+ * synthetic host document, and that plugin lives in its own frame: mouse and
+ * key events inside it never reach this document. Both the overlay and the
+ * island need to know, so they can fall back to signals that do arrive.
+ *
+ * The worker's URL sniff (`pathname.endsWith('.pdf')`) misses every PDF served
+ * without the extension — `arxiv.org/pdf/2401.12345`, anything delivered by
+ * Content-Disposition — so confirm it here, where the DOM can just be read.
+ */
+function isPdfViewerDocument(): boolean {
+  if (document.contentType === 'application/pdf') return true;
+  return !!document.querySelector('embed[type="application/pdf"]');
+}
+
+/**
  * Mounting of overlay. On normal tab, imageUrl is empty. On restricted tab, imageUrl is present
  */
 async function handleActivateOverlay(payload: ActivateOverlayPayload) {
   const { imageUrl, isPdf: ispdf } = payload;
-  isPdf = ispdf;
+  isPdf = ispdf || isPdfViewerDocument();
   if (imageUrl) capturedImage = imageUrl;
   if (activeOverlay) activeOverlay.destroy();
 
@@ -88,23 +103,53 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
     engine = toEngineOption(saved?.engine);
   } catch {}
 
-  activeOverlay = new GhostOverlay(overlayStyles, !imageUrl, engine, (rect) => {
-    void handleCaptureSuccess(rect);
-  });
-  activeOverlay.mount();
+  const overlay = new GhostOverlay(
+    overlayStyles,
+    !imageUrl,
+    engine,
+    (rect, captureReady) => {
+      void handleCaptureSuccess(rect, captureReady);
+    },
+  );
+  activeOverlay = overlay;
+  overlay.mount();
 
-  const port = await chrome.runtime.connect({ name: OCR_PORT });
+  const port = chrome.runtime.connect({ name: OCR_PORT });
+
+  // Setup has exactly one job: hand control back to the user. It must do that
+  // on EVERY outcome, not just SETUP_DONE — an engine that failed to
+  // initialize, or an offscreen document that went away, used to leave the
+  // overlay mounted-but-inert forever (dimmed screen, "Loading model...", no
+  // way to select and, before Escape moved into mount(), no way to cancel).
+  let settled = false;
+  const releaseOverlay = (failure?: string): void => {
+    if (settled) return;
+    settled = true;
+    if (activeOverlay !== overlay) return;
+    overlay.activate(failure);
+  };
+
   port.onMessage.addListener((msg: TabsConnect) => {
-    if (!activeOverlay) return;
+    if (activeOverlay !== overlay) return;
     switch (msg.action) {
       case 'DOWNLOAD':
-        activeOverlay.loadingProgress(msg.payload.progress);
-        return true;
+        overlay.loadingProgress(msg.payload.progress);
+        return;
       case 'SETUP_DONE':
-        activeOverlay.activate();
-        return false;
+        releaseOverlay();
+        port.disconnect();
+        return;
+      case 'ERROR':
+        console.error('Engine setup failed:', msg.payload.error);
+        releaseOverlay('Model failed to load. Press Esc to close.');
+        port.disconnect();
+        return;
     }
   });
+  port.onDisconnect.addListener(() => {
+    releaseOverlay('Model failed to load. Press Esc to close.');
+  });
+
   const initiateMessage: TabsConnect = {
     action: 'SETUP_BEGIN',
     payload: {
@@ -114,16 +159,37 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
   port.postMessage(initiateMessage);
 }
 
-/** Send rect payload from bg to offscreen for OCR, then update UI */
-async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
+/**
+ * Send rect payload from bg to offscreen for OCR, then update UI.
+ *
+ * `captureReady` is the screenshot request the overlay fired at mouse-down. It
+ * is awaited HERE rather than in the overlay so that a slow round trip delays
+ * only the crop, never the drag itself.
+ */
+async function handleCaptureSuccess(
+  rect: SelectionRect,
+  captureReady: Promise<void>,
+): Promise<void> {
   console.debug('handle capture success');
-
-  console.debug(`cropping capturedImage to rect: ${rect}`);
-  croppedImage = await cropImage(capturedImage, rect);
   cursorPosition = {
     x: rect.x + rect.width,
     y: rect.y + rect.height,
   };
+
+  // A failure anywhere below used to reject into `void handleCaptureSuccess()`
+  // and vanish: the user finished a drag and got nothing at all, with no island
+  // and no error. Mount the island either way so every drag has a visible
+  // outcome.
+  let captureError: string | null = null;
+  try {
+    await captureReady;
+    console.debug(`cropping capturedImage to rect: ${rect}`);
+    croppedImage = await cropImage(capturedImage, rect);
+  } catch (err) {
+    console.error('Failed to capture the selected region:', err);
+    croppedImage = '';
+    captureError = 'Could not capture that area. Try again.';
+  }
 
   console.debug('Update floating island with new image');
   activeIsland = new FloatingIsland(
@@ -135,7 +201,20 @@ async function handleCaptureSuccess(rect: SelectionRect): Promise<void> {
   );
   activeIsland.mount();
 
-  await handlePerformOcr('auto');
+  if (captureError) {
+    activeIsland.updateError({ stage: 'error', error: captureError });
+    return;
+  }
+
+  try {
+    await handlePerformOcr('auto');
+  } catch (err) {
+    console.error('Could not start OCR:', err);
+    activeIsland.updateError({
+      stage: 'error',
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
 
 /** Handle UI update when offscreen finishing OCR the image */
@@ -156,24 +235,41 @@ async function handlePerformOcr(
   }
 
   // switch to chrome.runtime.connect for streaming of OCR progress
-  const port = await chrome.runtime.connect({ name: OCR_PORT });
+  const port = chrome.runtime.connect({ name: OCR_PORT });
 
+  // The island shows a spinner and disables its copy button until a terminal
+  // message arrives, so a port that dies mid-run (offscreen document torn down,
+  // engine crash) left it spinning forever with no way to tell the run had
+  // ended. Treat the disconnect itself as terminal.
+  let settled = false;
   port.onMessage.addListener((msg: TabsConnect) => {
     if (!activeIsland) return;
     switch (msg.action) {
       case 'DOWNLOAD':
         activeIsland.updateDownload(msg.payload);
-        return true;
+        return;
       case 'PROGRESS':
         activeIsland.updateProgress(msg.payload);
-        return true;
+        return;
       case 'ERROR':
+        settled = true;
         activeIsland.updateError(msg.payload);
-        return false;
+        port.disconnect();
+        return;
       case 'FINISH':
+        settled = true;
         activeIsland.updateFinish(msg.payload);
-        return false;
+        port.disconnect();
+        return;
     }
+  });
+  port.onDisconnect.addListener(() => {
+    if (settled) return;
+    settled = true;
+    activeIsland?.updateError({
+      stage: 'error',
+      error: 'The OCR engine stopped unexpectedly. Try again.',
+    });
   });
 
   const initiateMessage: TabsConnect = {

@@ -8,6 +8,19 @@ import type {
 
 type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
+/**
+ * Called on mouse-up with the selected rectangle.
+ *
+ * `captureReady` resolves once the fresh screenshot requested at mouse-down has
+ * reached the content script. The overlay deliberately does NOT await that
+ * round trip itself — see `handleMouseDown` — so the caller must await this
+ * before cropping.
+ */
+export type SelectionHandler = (
+  rect: SelectionRect,
+  captureReady: Promise<void>,
+) => void;
+
 const CSS = {
   bgAlpha: 0.4,
   stroke: '#ffffff',
@@ -34,23 +47,29 @@ export class GhostOverlay {
   private backupMode: boolean;
   private engine: EngineOption;
   private notificationBanner: HTMLDivElement;
-  private onSelection: (rect: SelectionRect) => void;
+  private onSelection: SelectionHandler;
 
   private isDragging = false;
+  private hasFaded = false;
   private startPos: Point = { x: 0, y: 0 };
   private currentPos: Point = { x: 0, y: 0 };
   private bgAlpha = 0;
+  /** Resolves when the screenshot requested at mouse-down has landed. */
+  private capturePromise: Promise<void> = Promise.resolve();
 
   constructor(
     overlayStyles: string,
     backupMode: boolean,
     engine: EngineOption,
-    onSelection: (rect: SelectionRect) => void,
+    onSelection: SelectionHandler,
   ) {
     this.onSelection = onSelection;
     console.debug('[Overlay]: Initiate overlay for screenshot rect');
     this.host = document.createElement('div');
     this.host.id = ID;
+    // Focusable (but not tab-reachable) so `mount` can pull keyboard focus into
+    // this document — see the focus note there.
+    this.host.tabIndex = -1;
     this.shadow = this.host.attachShadow({ mode: 'closed' });
     this.canvas = document.createElement('canvas');
     this.ctx = this.canvas.getContext('2d');
@@ -109,12 +128,26 @@ export class GhostOverlay {
   public mount(): void {
     console.debug('[Overlay]: Mount overlay on screen');
     if (!document.getElementById(ID)) {
-      document.body.appendChild(this.host);
+      (document.body ?? document.documentElement).appendChild(this.host);
     }
 
     this.host.style.pointerEvents = 'none';
     this.resizeCanvas();
     window.addEventListener('resize', this.handleResize);
+
+    // Escape is wired at MOUNT, not at activate(): the engine can take tens of
+    // seconds to load — or fail outright — and the user must be able to cancel
+    // the whole time. Waiting for activate() left the overlay unkillable
+    // whenever setup never finished.
+    window.addEventListener('keydown', this.handleKeyDown);
+
+    // Pull keyboard focus into this document. Key events are delivered to the
+    // focused frame only, so with focus parked in a subframe — Chrome's PDF
+    // viewer plugin, any cross-origin iframe — a `window` keydown listener in
+    // the top document never fires and Escape silently does nothing. Since the
+    // overlay covers the viewport and swallows clicks once active, that left no
+    // way at all to dismiss it on a PDF short of reloading the tab.
+    this.host.focus({ preventScroll: true });
 
     if (this.engine === 'fast') return;
     this.fillBackground(0.4);
@@ -140,21 +173,29 @@ export class GhostOverlay {
     bannerText.textContent = `Loading model ${progress}%`;
   }
 
-  /** Enables '+' mouse, listen to mousedown and 'Escape' */
-  public activate(): void {
+  /**
+   * Enables '+' mouse and starts listening for the drag.
+   *
+   * @param banner overrides the default prompt — used to say the engine failed
+   * to load while still handing control back to the user.
+   */
+  public activate(banner?: string): void {
     console.debug('[Overlay] Enables + mouse, listen to mousedown');
     this.host.style.pointerEvents = 'auto';
-    this.canvas.addEventListener('mousedown', this.startFade, { once: true });
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
-    window.addEventListener('keydown', this.handleKeyDown);
+    this.host.focus({ preventScroll: true });
 
     const bannerText = this.notificationBanner.querySelector('span');
     if (!bannerText) return;
-    bannerText.textContent = `Click and drag to extract text`;
+    bannerText.textContent = banner ?? `Click and drag to extract text`;
 
     if (!this.ctx) return;
     const dpr = window.devicePixelRatio || 1;
     this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+
+    // The flash reads as "ready" — skip it when we are only handing control
+    // back after a failure.
+    if (banner) return;
 
     const flash = document.createElement('div');
     flash.className = 'flash-effect';
@@ -172,7 +213,6 @@ export class GhostOverlay {
   public destroy(): void {
     console.debug('[Overlay] remove listener, "escape" keydown, & box');
     if (this.notificationBanner) this.notificationBanner.remove();
-    this.canvas.removeEventListener('mousedown', this.startFade);
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);
@@ -185,14 +225,25 @@ export class GhostOverlay {
    * Upon mousedown:
    * - listen to 'mousemove' to update white rectangle
    * - listen to 'mouseup' to capture SelectionRect & send to background
+   *
+   * Everything here is synchronous, deliberately. This used to `await` the
+   * CAPTURE_VISIBLE_TAB round trip (content -> worker -> captureVisibleTab ->
+   * content, 200ms+ on a cold service worker) BEFORE recording startPos and
+   * attaching the mousemove/mouseup listeners. Any release that beat the round
+   * trip — every plain click, and any drag faster than the worker — was dropped
+   * on the floor: the overlay was never destroyed, so a full-viewport
+   * pointer-events:auto layer stayed over the page and it looked frozen. Worse,
+   * the listeners landed afterwards with `isDragging` still true, so the
+   * selection box then tracked the cursor with no button held and the NEXT
+   * click cropped a rectangle the user never drew.
+   *
+   * The screenshot request is still issued here (it must be, to pick up the
+   * current scroll position) but it is now handed to `onSelection` as a promise
+   * for the caller to await before cropping.
    */
-  private handleMouseDown = async (e: MouseEvent) => {
+  private handleMouseDown = (e: MouseEvent): void => {
+    if (e.button !== 0) return;
     this.notificationBanner.remove();
-    if (this.backupMode) {
-      await chrome.runtime.sendMessage<RuntimeMessage>({
-        action: RuntimeMessageAction.CAPTURE_VISIBLE_TAB,
-      });
-    }
 
     this.isDragging = true;
     this.startPos = { x: e.clientX, y: e.clientY };
@@ -201,7 +252,32 @@ export class GhostOverlay {
 
     document.addEventListener('mousemove', this.handleMouseMove);
     document.addEventListener('mouseup', this.handleMouseUp);
+
+    if (!this.hasFaded) {
+      this.hasFaded = true;
+      this.startFade();
+    }
+
+    if (this.backupMode) this.capturePromise = this.requestCapture();
   };
+
+  /**
+   * Ask the worker for a fresh screenshot of the tab. Never awaited inline —
+   * `handleMouseUp` passes the promise on so the crop can wait for it without
+   * blocking the drag.
+   */
+  private requestCapture(): Promise<void> {
+    const pending = chrome.runtime
+      .sendMessage<RuntimeMessage>({
+        action: RuntimeMessageAction.CAPTURE_VISIBLE_TAB,
+      })
+      .then(() => undefined);
+    // The consumer only attaches its handler on mouse-up; swallow here so a
+    // rejection in between is not reported as unhandled. It still rejects for
+    // the consumer.
+    pending.catch(() => {});
+    return pending;
+  }
 
   /**
    * Dark background fade in for 300ms, then stay at 0.4
@@ -233,14 +309,15 @@ export class GhostOverlay {
 
     if (rect.width > 5 && rect.height > 5) {
       console.debug('Image captured:', rect);
-      this.onSelection(rect);
+      this.onSelection(rect, this.capturePromise);
     }
     this.destroy();
   };
 
   private handleKeyDown = (e: KeyboardEvent): void => {
+    if (e.key !== 'Escape') return;
     console.debug('[Overlay] destroy on "Escape"');
-    if (e.key === 'Escape') this.destroy();
+    this.destroy();
   };
 
   /**
