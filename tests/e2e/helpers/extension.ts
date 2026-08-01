@@ -392,22 +392,27 @@ export async function runOcrCapture(params: OcrCaptureParams): Promise<OcrCaptur
 
   const overlayAppeared = await waitForHost(page, '#xr-screenshot-reader-host', deadline);
 
-  // 3) Drag-select over the target's bbox. The overlay only becomes clickable
-  //    after the engine's SETUP_DONE (for `structured`, model load takes several
-  //    seconds), and until then pointer events pass through the overlay host to
-  //    the page harmlessly. So we retry the drag until the island appears.
+  // 3) Wait until the overlay is actually armed, then drag ONCE.
+  //
+  //    This used to retry the drag in a loop, with an 800ms hold after
+  //    mouse-down, because the overlay only accepts input after the engine's
+  //    SETUP_DONE (model load takes seconds for `structured`). Both of those
+  //    also hid a real bug: the overlay armed its mousemove/mouseup listeners
+  //    only after the CAPTURE_VISIBLE_TAB round trip came back, so any gesture
+  //    quicker than the service worker was silently dropped. A retry loop plus
+  //    a long hold turns that into a pass.
+  //
+  //    Instead, wait for the arming signal the overlay already publishes —
+  //    pointer-events on its (light-DOM) host — and then perform one ordinary,
+  //    brisk drag that MUST work.
   const bbox = await locateTarget(page, targetSelector, margin);
-  let dragEndedAt = 0;
-  let islandAppeared = false;
-  for (let attempt = 0; !islandAppeared && Date.now() < deadline; attempt++) {
-    await performDrag(page, bbox);
-    dragEndedAt = Date.now();
-    islandAppeared = await waitForHost(page, '#xr-floating-island-host', Math.min(deadline, dragEndedAt + 4_000));
-    if (!islandAppeared) {
-      console.log(`[e2e-trigger] ${engine}: drag attempt ${attempt} — overlay not active yet (model loading), retrying`);
-      await page.waitForTimeout(1_500);
-    }
+  const armed = await waitForOverlayArmed(page, deadline);
+  if (!armed) {
+    console.log(`[e2e-trigger] ${engine}: overlay never became interactive before the deadline`);
   }
+  await performDrag(page, bbox);
+  const dragEndedAt = Date.now();
+  const islandAppeared = await waitForHost(page, '#xr-floating-island-host', deadline);
 
   // 4) Read the recognized text straight out of the island's closed shadow root.
   const clip = await readIslandResult(page, deadline);
@@ -424,6 +429,24 @@ export async function runOcrCapture(params: OcrCaptureParams): Promise<OcrCaptur
       dragToFinishMs: dragEndedAt > 0 ? finishAt - dragEndedAt : -1,
     },
   };
+}
+
+/**
+ * Poll until the overlay accepts input. `GhostOverlay.activate()` flips its
+ * host's inline `pointer-events` from 'none' to 'auto' on SETUP_DONE, and the
+ * host lives in the light DOM, so this is readable without piercing the shadow
+ * root — and it is the same signal the user gets (a crosshair cursor).
+ */
+async function waitForOverlayArmed(page: Page, deadline: number): Promise<boolean> {
+  while (Date.now() < deadline) {
+    const armed = await page.evaluate(() => {
+      const host = document.querySelector<HTMLElement>('#xr-screenshot-reader-host');
+      return host?.style.pointerEvents === 'auto';
+    });
+    if (armed) return true;
+    await page.waitForTimeout(200);
+  }
+  return false;
 }
 
 /** Poll for a light-DOM host element (shadow roots are closed, hosts are not). */
@@ -457,18 +480,19 @@ async function locateTarget(page: Page, selector: string, margin: number): Promi
 }
 
 /**
- * A single drag-select gesture. The 800ms hold after mouse-down lets the
- * overlay's backup-mode `captureVisibleTab` round-trip (background → content)
- * complete before mouse-up crops that screenshot — mirroring a real, unhurried
- * drag. Without it the crop can race an empty screenshot.
+ * A single drag-select gesture, at the speed a real user drags.
+ *
+ * Deliberately brisk: the whole gesture finishes well inside the time the
+ * CAPTURE_VISIBLE_TAB round trip takes on a cold service worker. The content
+ * script must handle that — the screenshot is awaited before the crop, not
+ * before the drag is armed — so a slow worker may delay the island but must
+ * never lose the selection.
  */
 async function performDrag(page: Page, box: DragBox): Promise<void> {
   await page.mouse.move(box.x1, box.y1);
   await page.mouse.down();
-  await page.waitForTimeout(800);
-  await page.mouse.move((box.x1 + box.x2) / 2, (box.y1 + box.y2) / 2, { steps: 10 });
-  await page.mouse.move(box.x2, box.y2, { steps: 10 });
-  await page.waitForTimeout(150);
+  await page.mouse.move((box.x1 + box.x2) / 2, (box.y1 + box.y2) / 2, { steps: 5 });
+  await page.mouse.move(box.x2, box.y2, { steps: 5 });
   await page.mouse.up();
 }
 
