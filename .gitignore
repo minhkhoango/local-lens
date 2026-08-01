@@ -41,3 +41,8 @@ tests/ui-snapshots/output
 # Paddle OCR models — fetched by scripts/fetch-paddle-models.mjs
 public/paddle_engine/
 public/structured_engine/
+
+# v1.5.0 repro artifacts (tests/repro/*.mjs write these to cwd)
+overlay-healthy.png
+overlay-setup-failed.png
+repro-page.html
