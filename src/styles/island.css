@@ -440,6 +440,23 @@
   height: var(--icon-size);
 }
 
+/*
+ * Deliberately smaller than Copy and Settings: this is an exit, not an action.
+ * It is also the island's only guaranteed one — on a PDF page the plugin
+ * process swallows click-outside and Escape before they reach us.
+ */
+.btn.close-btn {
+  width: 32px;
+  height: 32px;
+}
+.btn.close-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.btn.close-btn:hover {
+  color: var(--error);
+}
+
 /* Settings */
 .settings {
   position: relative;
