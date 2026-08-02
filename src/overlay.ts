@@ -15,6 +15,15 @@ const CSS = {
   lineWidth: 3,
 } as const;
 const ID = 'xr-screenshot-reader-host';
+/**
+ * The structured engine can spend tens of seconds loading before SETUP_DONE
+ * arrives, and the overlay dims the whole page for that entire window. Naming
+ * the escape hatch in the banner is the difference between "waiting" and
+ * "frozen" — see `mount()`, which binds Escape from the moment we go dark.
+ */
+const LOADING_TEXT = 'Loading model... (press Esc to cancel)';
+/** How long the failure banner stays up before the overlay tears itself down. */
+const FAILURE_LINGER_MS = 4000;
 const ICON = `<svg viewBox="3 -0.375 18 21" fill="none" width="24" height="24"><path stroke="#4285f4" stroke-width="1.7143125" d="M6.857 4.286H17.143a2.571 2.571 0 0 1 2.571 2.571v6.857A2.571 2.571 0 0 1 17.143 16.286H6.857a2.571 2.571 0 0 1 -2.571 -2.571V6.857a2.571 2.571 0 0 1 2.571 -2.571z"/><path fill="#b1caf5" d="M16.971 10.286a4.286 4.286 0 0 1 -4.286 4.286A4.286 4.286 0 0 1 8.4 10.286a4.286 4.286 0 0 1 8.571 0M6.686 0.857h3.771a0.686 0.686 0 0 1 0.686 0.686v0.514a0.686 0.686 0 0 1 -0.686 0.686H6.686A0.686 0.686 0 0 1 6 2.057V1.543a0.686 0.686 0 0 1 0.686 -0.686"/></svg>`;
 
 /**
@@ -40,6 +49,8 @@ export class GhostOverlay {
   private startPos: Point = { x: 0, y: 0 };
   private currentPos: Point = { x: 0, y: 0 };
   private bgAlpha = 0;
+  private destroyed = false;
+  private failureTimer: number | null = null;
 
   constructor(
     overlayStyles: string,
@@ -98,7 +109,7 @@ export class GhostOverlay {
 
     if (this.engine === 'fast')
       bannerText.textContent = `Click and drag to extract text`;
-    else bannerText.textContent = 'Loading model...';
+    else bannerText.textContent = LOADING_TEXT;
 
     this.notificationBanner.appendChild(lenIcon);
     this.notificationBanner.appendChild(bannerText);
@@ -115,6 +126,14 @@ export class GhostOverlay {
     this.host.style.pointerEvents = 'none';
     this.resizeCanvas();
     window.addEventListener('resize', this.handleResize);
+
+    // Escape is bound HERE, not in activate(). Everything between mount() and
+    // SETUP_DONE is time the user spends staring at a darkened page, and if
+    // setup never finishes — the offscreen document throws, the service worker
+    // is torn down, a model file is unreadable — activate() is never called.
+    // Binding the only dismissal path behind that message is what turned an
+    // engine-load failure into a page the user could not un-darken.
+    window.addEventListener('keydown', this.handleKeyDown);
 
     if (this.engine === 'fast') return;
     this.fillBackground(0.4);
@@ -135,18 +154,19 @@ export class GhostOverlay {
   }
 
   public loadingProgress(progress: number): void {
+    if (this.destroyed) return;
     const bannerText = this.notificationBanner.querySelector('span');
     if (!bannerText) return;
-    bannerText.textContent = `Loading model ${progress}%`;
+    bannerText.textContent = `Loading model ${progress}% (press Esc to cancel)`;
   }
 
-  /** Enables '+' mouse, listen to mousedown and 'Escape' */
+  /** Enables '+' mouse, listen to mousedown. Escape is already live from mount(). */
   public activate(): void {
+    if (this.destroyed) return;
     console.debug('[Overlay] Enables + mouse, listen to mousedown');
     this.host.style.pointerEvents = 'auto';
     this.canvas.addEventListener('mousedown', this.startFade, { once: true });
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
-    window.addEventListener('keydown', this.handleKeyDown);
 
     const bannerText = this.notificationBanner.querySelector('span');
     if (!bannerText) return;
@@ -169,8 +189,45 @@ export class GhostOverlay {
     );
   }
 
+  /**
+   * Engine setup failed (or the port died) before the overlay was ever usable.
+   *
+   * Clear the darkening immediately so the page is readable again, say why, and
+   * tear down shortly after. The overlay has nothing left to do — there is no
+   * engine to send a selection to — so lingering silently is the one thing it
+   * must not do.
+   */
+  public setupFailed(reason?: string): void {
+    if (this.destroyed) return;
+    console.debug('[Overlay] setup failed, releasing the page:', reason);
+
+    this.bgAlpha = 0;
+    this.fillBackground(0);
+
+    const bannerText = this.notificationBanner.querySelector('span');
+    if (bannerText) {
+      bannerText.textContent = 'Could not load the OCR engine. Please retry.';
+    }
+
+    this.failureTimer = window.setTimeout(() => {
+      this.failureTimer = null;
+      this.destroy();
+    }, FAILURE_LINGER_MS);
+  }
+
+  /** True once the overlay has torn itself down (Escape, selection, failure). */
+  public get isDestroyed(): boolean {
+    return this.destroyed;
+  }
+
   public destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
     console.debug('[Overlay] remove listener, "escape" keydown, & box');
+    if (this.failureTimer !== null) {
+      window.clearTimeout(this.failureTimer);
+      this.failureTimer = null;
+    }
     if (this.notificationBanner) this.notificationBanner.remove();
     this.canvas.removeEventListener('mousedown', this.startFade);
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
@@ -239,8 +296,9 @@ export class GhostOverlay {
   };
 
   private handleKeyDown = (e: KeyboardEvent): void => {
+    if (e.key !== 'Escape') return;
     console.debug('[Overlay] destroy on "Escape"');
-    if (e.key === 'Escape') this.destroy();
+    this.destroy();
   };
 
   /**
