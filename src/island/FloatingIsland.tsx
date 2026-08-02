@@ -295,6 +295,10 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
       dispatch({ type: 'expandSettings' });
     }, []);
 
+    const handleCloseClick = useCallback((): void => {
+      props.onDestroy();
+    }, [props]);
+
     const handlePreviewClick = useCallback((): void => {
       dispatch({ type: 'expandText' });
     }, []);
@@ -451,6 +455,19 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
               title="Settings"
               onClick={handleSettingsClick}
               dangerouslySetInnerHTML={{ __html: ICONS.settings }}
+            />
+            {/*
+              The only dismissal path that does not depend on the page routing
+              events to us. Click-outside and Escape both die inside Chrome's
+              PDF plugin process, which left the island permanently stuck on
+              any PDF the URL sniff did not recognise.
+            */}
+            <button
+              className={`${CLASS.BTN.btn} ${CLASS.BTN.close}`}
+              title="Close"
+              aria-label="Close"
+              onClick={handleCloseClick}
+              dangerouslySetInnerHTML={{ __html: ICONS.close }}
             />
           </div>
         </div>
