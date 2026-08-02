@@ -105,5 +105,10 @@ export function installChromeShim(): ChromeShim {
 }
 
 export function uninstallChromeShim(): void {
-  delete (globalThis as any).chrome;
+  // Some Chromium builds expose `window.chrome` as a non-configurable own
+  // property, so `delete` is a no-op there (and throws under strict mode).
+  // Reflect reports the failure instead of throwing; blank the shim by hand.
+  if (!Reflect.deleteProperty(globalThis, 'chrome')) {
+    (globalThis as any).chrome = undefined;
+  }
 }
