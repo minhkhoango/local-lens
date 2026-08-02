@@ -112,7 +112,7 @@ describe('content.ts engine-setup handshake', () => {
   });
 
   it('ERROR releases the page instead of dimming it forever', async () => {
-    const { post } = stubPort();
+    const { post, port } = stubPort();
     await activateOverlay();
 
     post({
@@ -123,6 +123,8 @@ describe('content.ts engine-setup handshake', () => {
 
     // The overlay explains itself and then goes away on its own.
     await vi.waitFor(() => expect(findOverlay()).toBeNull(), { timeout: 8000 });
+    // ...and takes the setup port with it.
+    expect(port.disconnect).toHaveBeenCalled();
   });
 
   it('a port that dies mid-setup releases the page too', async () => {
@@ -158,4 +160,21 @@ describe('content.ts engine-setup handshake', () => {
 
     expect(findOverlay()).toBeNull();
   });
+
+  it('closes the setup port when the overlay goes away mid-setup', async () => {
+    // Escape is live from mount(), so the overlay can outlive nothing and the
+    // port can outlive everything: without this, every load the user gives up
+    // on leaves an open port — and the offscreen listeners bound to it — behind
+    // for the life of the tab.
+    const { port } = stubPort();
+    await activateOverlay();
+
+    expect(port.disconnect).not.toHaveBeenCalled();
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flush();
+
+    expect(port.disconnect).toHaveBeenCalled();
+  });
+
 });

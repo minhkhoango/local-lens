@@ -44,6 +44,7 @@ export class GhostOverlay {
   private engine: EngineOption;
   private notificationBanner: HTMLDivElement;
   private onSelection: (rect: SelectionRect) => void;
+  private onDestroy?: () => void;
 
   private isDragging = false;
   private startPos: Point = { x: 0, y: 0 };
@@ -57,8 +58,10 @@ export class GhostOverlay {
     backupMode: boolean,
     engine: EngineOption,
     onSelection: (rect: SelectionRect) => void,
+    onDestroy?: () => void,
   ) {
     this.onSelection = onSelection;
+    this.onDestroy = onDestroy;
     console.debug('[Overlay]: Initiate overlay for screenshot rect');
     this.host = document.createElement('div');
     this.host.id = ID;
@@ -236,6 +239,9 @@ export class GhostOverlay {
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('resize', this.handleResize);
     this.host.remove();
+    // Runs last, and only once: `destroyed` is already set, so a callback that
+    // loops back into the overlay cannot re-enter this teardown.
+    this.onDestroy?.();
   }
 
   /**

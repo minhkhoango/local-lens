@@ -88,9 +88,27 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
     engine = toEngineOption(saved?.engine);
   } catch {}
 
-  activeOverlay = new GhostOverlay(overlayStyles, !imageUrl, engine, (rect) => {
-    void handleCaptureSuccess(rect);
-  });
+  // Escape is live from mount(), so the overlay can now go away while setup is
+  // still in flight. Close the setup port when it does — otherwise every
+  // dismissed-mid-load overlay leaves an open port (and the listeners the
+  // offscreen document registered for it) behind for the life of the tab.
+  // Disconnecting is safe on the success path too: the OCR request that follows
+  // a selection opens its own port, and the loaded engine lives in the offscreen
+  // document's module state rather than on this connection.
+  let setupPort: chrome.runtime.Port | null = null;
+
+  activeOverlay = new GhostOverlay(
+    overlayStyles,
+    !imageUrl,
+    engine,
+    (rect) => {
+      void handleCaptureSuccess(rect);
+    },
+    () => {
+      setupPort?.disconnect();
+      setupPort = null;
+    },
+  );
   activeOverlay.mount();
 
   // The overlay dims the page from mount() until SETUP_DONE, so every way this
@@ -100,6 +118,13 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
   let setupSettled = false;
 
   const port = await chrome.runtime.connect({ name: OCR_PORT });
+  // The overlay can be dismissed before `connect()` settles; close immediately
+  // rather than handing a live port to an overlay that is already gone.
+  if (overlay.isDestroyed) {
+    port.disconnect();
+    return;
+  }
+  setupPort = port;
   port.onMessage.addListener((msg: TabsConnect) => {
     if (overlay.isDestroyed) return;
     switch (msg.action) {
