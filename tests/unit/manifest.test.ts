@@ -2,19 +2,17 @@
  * Guards on `public/manifest.json` — specifically, the keys that change how the
  * OCR engine runs without touching a single line of engine code.
  *
- * v1.5.0 added `cross_origin_embedder_policy` and `cross_origin_opener_policy`
- * to the manifest. Those keys apply to every extension page, so the offscreen
- * document became cross-origin-isolated, `self.crossOriginIsolated` flipped to
- * true, and this line in src/offscreen.ts went from 1 thread to 4:
+ * `cross_origin_embedder_policy` and `cross_origin_opener_policy` apply to every
+ * extension page, so they decide whether the offscreen document is
+ * cross-origin-isolated — which decides whether onnxruntime-web runs WASM
+ * inference on 4 threads or 1. v1.5.0 set them deliberately for exactly that
+ * reason, while a stale comment in src/offscreen.ts asserted the opposite was
+ * even possible.
  *
- *     ort.env.wasm.numThreads = wasmCrossOriginIsolated
- *       ? Math.min(navigator.hardwareConcurrency ?? 4, 4)
- *       : 1;
- *
- * Nothing in the diff said so, the comment above that line asserted the
- * opposite, and no test or bench ran against the threaded path. This file is
- * the missing link: enabling isolation is a real change to inference, and it
- * should have to be made on purpose.
+ * So the invariant worth pinning is not "isolation is off" but "nobody changes
+ * this without knowing what it costs": dropping the keys makes the wasm-pinned
+ * layout model — the dominant cost of the structured engine — roughly 2.8x
+ * slower, with no WebGPU fallback available for those graphs.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -26,18 +24,19 @@ const manifest = JSON.parse(
 ) as Record<string, unknown>;
 const offscreenSource = readFileSync(resolve(root, 'src/offscreen.ts'), 'utf8');
 
+const WHY_ISOLATION =
+  'Removing this key makes extension pages non-isolated, which drops ' +
+  'onnxruntime-web to single-threaded WASM in the offscreen document (~2.8x ' +
+  'slower on the wasm-pinned layout model). If that is intended, benchmark it ' +
+  'with `npm run test:bench` and update this test.';
+
 describe('manifest cross-origin isolation', () => {
-  it.each(['cross_origin_embedder_policy', 'cross_origin_opener_policy'])(
-    'does not declare %s',
-    (key) => {
-      expect(
-        manifest[key],
-        `Declaring ${key} makes extension pages cross-origin-isolated, which ` +
-          'switches onnxruntime-web to multi-threaded WASM in the offscreen ' +
-          'document. If that is intended, benchmark it and update this test.',
-      ).toBeUndefined();
-    },
-  );
+  it.each([
+    ['cross_origin_embedder_policy', 'require-corp'],
+    ['cross_origin_opener_policy', 'same-origin'],
+  ])('declares %s so the offscreen document stays isolated', (key, value) => {
+    expect(manifest[key], WHY_ISOLATION).toEqual({ value });
+  });
 
   it('keeps the wasm-unsafe-eval CSP the engines need', () => {
     const csp = manifest.content_security_policy as { extension_pages: string };
@@ -46,15 +45,37 @@ describe('manifest cross-origin isolation', () => {
 });
 
 describe('offscreen ORT bootstrap', () => {
-  // onnxruntime-web's worker-ready promise has no reject path, so the default
-  // initTimeout of 0 ("wait forever") turns a failed wasm/pthread bootstrap
-  // into a permanent silent hang rather than an error anyone can report.
+  /**
+   * Read the value assigned to `ort.env.wasm.initTimeout`, following one level
+   * of `const` indirection. Asserting on the source text alone is too weak: the
+   * assignment names a constant, so a regex against this line would happily
+   * pass with that constant set to 0 — the exact value that means "hang
+   * forever".
+   */
+  function resolvedInitTimeout(): number | null {
+    const assignment = offscreenSource.match(
+      /^\s*ort\.env\.wasm\.initTimeout\s*=\s*([A-Za-z0-9_]+)\s*;/m,
+    );
+    if (!assignment) return null;
+    const literal = Number(assignment[1].replace(/_/g, ''));
+    if (Number.isFinite(literal)) return literal;
+
+    const constant = offscreenSource.match(
+      new RegExp(`const\\s+${assignment[1]}\\s*=\\s*([0-9_]+)\\s*;`),
+    );
+    return constant ? Number(constant[1].replace(/_/g, '')) : null;
+  }
+
+  // onnxruntime-web's pthread bootstrap has no reject path, so the default
+  // initTimeout of 0 ("wait forever") turns a failed wasm/worker start into a
+  // permanent silent hang rather than an error anyone can report.
   it('bounds ORT wasm init instead of waiting forever', () => {
-    expect(offscreenSource).toMatch(/ort\.env\.wasm\.initTimeout\s*=/);
+    const timeout = resolvedInitTimeout();
+    expect(timeout, 'ort.env.wasm.initTimeout must be assigned').not.toBeNull();
     expect(
-      offscreenSource,
-      'initTimeout must be a positive number of milliseconds',
-    ).not.toMatch(/ort\.env\.wasm\.initTimeout\s*=\s*0\b/);
+      timeout,
+      'initTimeout must be a positive number of milliseconds; 0 means "wait forever"',
+    ).toBeGreaterThan(0);
   });
 
   it('only asks for threads when the page is actually isolated', () => {

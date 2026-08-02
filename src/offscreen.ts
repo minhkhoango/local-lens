@@ -30,23 +30,27 @@ const WASM_INIT_TIMEOUT_MS = 60_000;
 // onnxruntime-web ships a threaded+JSEP wasm binary that only uses multiple
 // threads (via SharedArrayBuffer) when the document is cross-origin-isolated.
 //
-// MV3 does support `cross_origin_embedder_policy` / `cross_origin_opener_policy`
-// in the manifest, and they apply to every extension page including this one.
-// v1.5.0 added both keys, which silently flipped `self.crossOriginIsolated` to
-// true and this line from 1 thread to 4 — a change no test, bench or review
-// covered, on the exact code path users described as freezing. Measured on the
-// shipped build:
+// MV3 *does* support `cross_origin_embedder_policy` / `cross_origin_opener_policy`
+// in the manifest — an earlier version of this comment claimed MV3 had removed
+// them and that isolation could not be enabled here, which was never true.
+// v1.5.0 set both keys deliberately ("add COOP/COEP manifest keys so the
+// offscreen document is crossOriginIsolated and the guarded WASM threads can
+// run"), and they apply to every extension page including this one. Measured:
 //
-//     1.5.0 as shipped : crossOriginIsolated=true   numThreads=4
-//     without the keys : crossOriginIsolated=false  numThreads=1
+//     with the keys    : crossOriginIsolated=true   numThreads=4
+//     without them     : crossOriginIsolated=false  numThreads=1
 //
-// The keys are gone again, so this resolves to 1 thread, which is the
-// configuration every measurement in tests/bench was taken against.
+// Threads are worth roughly 2.8x on the WASM inference path, which is not
+// optional here: structured.ts pins PP-DocLayoutV3 and SLANet to the wasm EP
+// (MaxPool/ceil is unsupported on WebGPU), and layout dominates wall time. So
+// dropping to 1 thread would make the slowest path ~3x slower with no GPU
+// escape hatch. Removing the manifest keys is a real performance decision —
+// benchmark it, do not do it by accident.
 //
-// Before re-enabling isolation: onnxruntime-web builds its worker-ready promise
-// with no reject path, so a pthread that fails to start hangs the first session
-// forever instead of throwing. `initTimeout` below is what turns that into an
-// error the caller can report.
+// The genuine hazard is the failure mode, not the thread count: a pthread that
+// never starts leaves onnxruntime-web's bootstrap pending with no reject path,
+// so the first session hangs instead of throwing. `initTimeout` below is what
+// turns that into an error the caller can report.
 const wasmCrossOriginIsolated = self.crossOriginIsolated === true;
 ort.env.wasm.numThreads = wasmCrossOriginIsolated
   ? Math.min(navigator.hardwareConcurrency ?? 4, 4)
@@ -54,6 +58,12 @@ ort.env.wasm.numThreads = wasmCrossOriginIsolated
 // Defaults to 0, meaning "wait forever". Nothing upstream of us has a timeout
 // either, so a wedged init is indistinguishable from a slow one and the whole
 // setup handshake stalls with no message back to the content script.
+//
+// Note the timeout is one-shot: onnxruntime-web throws out of the timeout branch
+// without clearing its `initializing` flag, so a retry in the same document
+// reports "multiple calls to initializeWebAssembly()" rather than trying again.
+// The user still gets an error either way, which is the point — but recovering
+// properly would mean tearing down the offscreen document.
 ort.env.wasm.initTimeout = WASM_INIT_TIMEOUT_MS;
 console.debug(
   '[Offscreen] ORT WASM threading: crossOriginIsolated =',
