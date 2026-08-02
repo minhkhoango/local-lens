@@ -89,9 +89,9 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
     const positionRef = useRef(position);
     positionRef.current = position;
 
-    const [downloadProgress, setDownloadProgress] = useState<number | undefined>(
-      undefined,
-    );
+    const [downloadProgress, setDownloadProgress] = useState<
+      number | undefined
+    >(undefined);
     const [warningVisible, setWarningVisible] = useState(false);
     const warningTimerRef = useRef<number | null>(null);
 
@@ -297,7 +297,7 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
 
     const handleCloseClick = useCallback((): void => {
       props.onDestroy();
-    }, [props]);
+    }, [props.onDestroy]);
 
     const handlePreviewClick = useCallback((): void => {
       dispatch({ type: 'expandText' });
@@ -323,12 +323,7 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
           void copyToClipboard(state.clipboardOutput);
         }
       },
-      [
-        copyToClipboard,
-        state.clipboardOutput,
-        state.hasCopied,
-        state.settings,
-      ],
+      [copyToClipboard, state.clipboardOutput, state.hasCopied, state.settings],
     );
 
     const handleEngineChange = useCallback(
@@ -425,7 +420,11 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
       <div
         ref={containerRef}
         className={islandClass}
-        style={{ left: `${position.x}px`, top: `${position.y}px`, width: `${width}px` }}
+        style={{
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+          width: `${width}px`,
+        }}
         onMouseDown={handleMouseDown}
       >
         <div className="row">
@@ -542,4 +541,3 @@ export const FloatingIsland = forwardRef<IslandHandle, FloatingIslandProps>(
     );
   },
 );
-

@@ -79,12 +79,17 @@ export class DragController {
  * Content-Disposition response is classified as not-a-PDF, and the island then
  * attaches zero working dismissal paths. Chrome sets `document.contentType` to
  * 'application/pdf' for the viewer regardless of the URL, so ask the document.
+ *
+ * Deliberately does NOT look for an `<embed type="application/pdf">` in the
+ * page. An ordinary HTML document can inline one anywhere, and such a page
+ * delivers mousedown and keydown perfectly well — it would gain nothing but the
+ * blur fallback, which also fires on a plain app switch and would then discard
+ * the island along with an OCR result the user had not copied yet.
  */
-export function isPluginDocument(): boolean {
-  return (
-    document.contentType === 'application/pdf' ||
-    document.querySelector('embed[type="application/pdf"]') !== null
-  );
+export function isPluginDocument(
+  doc: Pick<Document, 'contentType'> = document,
+): boolean {
+  return doc.contentType === 'application/pdf';
 }
 
 /**
@@ -104,12 +109,13 @@ export class EventsController {
     hostElement: HTMLDivElement,
     isPdf: boolean,
     callbacks: EventCallbacks,
+    doc: Pick<Document, 'contentType'> = document,
   ) {
     this.hostElement = hostElement;
     // Trust the document over the URL: the filename sniff misses every PDF
     // served without a .pdf path, and those are exactly the pages where the
     // island had no way to be dismissed at all.
-    this.isPdf = isPdf || isPluginDocument();
+    this.isPdf = isPdf || isPluginDocument(doc);
 
     this.onDestroy = callbacks.onDestroy;
     this.onReposition = callbacks.onReposition;

@@ -176,5 +176,4 @@ describe('content.ts engine-setup handshake', () => {
 
     expect(port.disconnect).toHaveBeenCalled();
   });
-
 });

@@ -456,6 +456,15 @@
 .btn.close-btn:hover {
   color: var(--error);
 }
+/*
+ * The island had no keyboard-reachable controls before this button, so it had
+ * no focus styling either. Give the one deliberate exit a visible ring rather
+ * than shipping a control a keyboard user can reach but not see.
+ */
+.btn.close-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 
 /* Settings */
 .settings {

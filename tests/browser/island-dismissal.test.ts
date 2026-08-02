@@ -25,24 +25,34 @@ const HOST_ID = 'xr-floating-island-host';
 const flush = () => new Promise<void>((r) => setTimeout(r, 30));
 const findHost = () => document.getElementById(HOST_ID);
 
-/** Make the document look like Chrome's PDF viewer to everything but Chrome. */
-function addPdfEmbed(): HTMLEmbedElement {
-  const embed = document.createElement('embed');
-  embed.setAttribute('type', 'application/pdf');
-  document.body.appendChild(embed);
-  return embed;
-}
+/**
+ * `document.contentType` is read-only and a test page is always text/html, so
+ * the plugin-document branch is exercised through the injected-document seam
+ * rather than by faking the real one.
+ */
+const pdfDoc: Pick<Document, 'contentType'> = {
+  contentType: 'application/pdf',
+};
+const htmlDoc: Pick<Document, 'contentType'> = { contentType: 'text/html' };
 
-function makeController(isPdf: boolean) {
+function makeController(
+  isPdf: boolean,
+  doc: Pick<Document, 'contentType'> = htmlDoc,
+) {
   const host = document.createElement('div');
   document.body.appendChild(host);
   let destroyed = 0;
   const position: Point = { x: 100, y: 100 };
-  const controller = new EventsController(host, isPdf, {
-    onDestroy: () => destroyed++,
-    onReposition: () => {},
-    getCurrentPosition: () => position,
-  });
+  const controller = new EventsController(
+    host,
+    isPdf,
+    {
+      onDestroy: () => destroyed++,
+      onReposition: () => {},
+      getCurrentPosition: () => position,
+    },
+    doc,
+  );
   controller.attach();
   return {
     host,
@@ -77,24 +87,34 @@ async function makeIsland(isPdf: boolean) {
 }
 
 describe('isPluginDocument()', () => {
-  afterEach(() => {
-    document.querySelectorAll('embed').forEach((e) => e.remove());
-  });
-
   it('is false on an ordinary HTML page', () => {
+    expect(isPluginDocument(htmlDoc)).toBe(false);
+    // The real test-page document, which is also ordinary HTML.
     expect(isPluginDocument()).toBe(false);
   });
 
-  it('is true when the page is hosting the PDF plugin', () => {
-    addPdfEmbed();
-    expect(isPluginDocument()).toBe(true);
+  it('is true when the document itself is the PDF, whatever the URL said', () => {
+    expect(isPluginDocument(pdfDoc)).toBe(true);
+  });
+
+  it('ignores a PDF merely embedded in an ordinary page', () => {
+    // Such a page routes mousedown and Escape to us perfectly well, so it must
+    // NOT get the blur fallback — that also fires on a plain app switch, and
+    // would throw away an OCR result the user had not copied yet.
+    const embed = document.createElement('embed');
+    embed.setAttribute('type', 'application/pdf');
+    document.body.appendChild(embed);
+    try {
+      expect(isPluginDocument()).toBe(false);
+    } finally {
+      embed.remove();
+    }
   });
 });
 
 describe('EventsController dismissal', () => {
   beforeEach(() => installChromeShim());
   afterEach(() => {
-    document.querySelectorAll('embed').forEach((e) => e.remove());
     uninstallChromeShim();
   });
 
@@ -129,8 +149,7 @@ describe('EventsController dismissal', () => {
   // The regression. `isPdf` is false because the URL had no .pdf suffix, but
   // the document really is the PDF viewer, so the blur fallback has to attach.
   it('attaches the blur fallback on a PDF document the URL sniff missed', () => {
-    addPdfEmbed();
-    const c = makeController(/* isPdf from background.ts */ false);
+    const c = makeController(/* isPdf from background.ts */ false, pdfDoc);
 
     expect(c.controller.treatsPageAsPdf).toBe(true);
     window.dispatchEvent(new Event('blur'));
@@ -147,8 +166,7 @@ describe('EventsController dismissal', () => {
   });
 
   it('detaches every listener on destroy', () => {
-    addPdfEmbed();
-    const c = makeController(false);
+    const c = makeController(false, pdfDoc);
     c.controller.destroy();
 
     document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
@@ -164,7 +182,6 @@ describe('island close button', () => {
   beforeEach(() => installChromeShim());
   afterEach(() => {
     findHost()?.remove();
-    document.querySelectorAll('embed').forEach((e) => e.remove());
     uninstallChromeShim();
   });
 
@@ -178,17 +195,6 @@ describe('island close button', () => {
   it('dismisses the island when clicked', async () => {
     const { shadow } = await makeIsland(false);
     expect(findHost()).not.toBeNull();
-
-    (shadow.querySelector('.close-btn') as HTMLButtonElement).click();
-    await flush();
-
-    expect(findHost()).toBeNull();
-  });
-
-  // The point of the button: it works on the page where nothing else does.
-  it('dismisses the island on a PDF page', async () => {
-    addPdfEmbed();
-    const { shadow } = await makeIsland(false);
 
     (shadow.querySelector('.close-btn') as HTMLButtonElement).click();
     await flush();
