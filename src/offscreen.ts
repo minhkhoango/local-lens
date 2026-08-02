@@ -15,6 +15,13 @@ import type { StructuredEngine } from './engine/structured';
 import type { FastEngine } from './engine/fast';
 import { OCR_PORT } from './constants';
 
+/**
+ * Ceiling on onnxruntime-web's own wasm/worker bootstrap. Generous — this
+ * covers instantiating a ~26 MB wasm binary on a cold disk — but finite, so a
+ * bootstrap that will never finish surfaces as an error rather than a hang.
+ */
+const WASM_INIT_TIMEOUT_MS = 60_000;
+
 // Configure ORT WASM threading ONCE, at offscreen startup — before the lazy
 // engine imports run and create any ORT session. `ort.env` is a shared
 // singleton across the module graph, so setting it here also applies to the
@@ -22,15 +29,32 @@ import { OCR_PORT } from './constants';
 //
 // onnxruntime-web ships a threaded+JSEP wasm binary that only uses multiple
 // threads (via SharedArrayBuffer) when the document is cross-origin-isolated.
-// MV3 offscreen documents are usually NOT cross-origin-isolated: MV3 removed
-// the MV2 COOP/COEP manifest keys, so `self.crossOriginIsolated` is commonly
-// false and this guard keeps us at 1 thread today — which is correct and safe.
-// The code is ready to use threads the moment isolation is enabled (handled
-// separately by adding cross-origin-isolation headers; do NOT add them here).
+//
+// MV3 does support `cross_origin_embedder_policy` / `cross_origin_opener_policy`
+// in the manifest, and they apply to every extension page including this one.
+// v1.5.0 added both keys, which silently flipped `self.crossOriginIsolated` to
+// true and this line from 1 thread to 4 — a change no test, bench or review
+// covered, on the exact code path users described as freezing. Measured on the
+// shipped build:
+//
+//     1.5.0 as shipped : crossOriginIsolated=true   numThreads=4
+//     without the keys : crossOriginIsolated=false  numThreads=1
+//
+// The keys are gone again, so this resolves to 1 thread, which is the
+// configuration every measurement in tests/bench was taken against.
+//
+// Before re-enabling isolation: onnxruntime-web builds its worker-ready promise
+// with no reject path, so a pthread that fails to start hangs the first session
+// forever instead of throwing. `initTimeout` below is what turns that into an
+// error the caller can report.
 const wasmCrossOriginIsolated = self.crossOriginIsolated === true;
 ort.env.wasm.numThreads = wasmCrossOriginIsolated
   ? Math.min(navigator.hardwareConcurrency ?? 4, 4)
   : 1;
+// Defaults to 0, meaning "wait forever". Nothing upstream of us has a timeout
+// either, so a wedged init is indistinguishable from a slow one and the whole
+// setup handshake stalls with no message back to the content script.
+ort.env.wasm.initTimeout = WASM_INIT_TIMEOUT_MS;
 console.debug(
   '[Offscreen] ORT WASM threading: crossOriginIsolated =',
   wasmCrossOriginIsolated,
