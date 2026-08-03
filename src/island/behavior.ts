@@ -67,6 +67,27 @@ export class DragController {
 }
 
 /**
+ * True when the top-level document is one Chrome renders with a plugin — its
+ * built-in PDF viewer being the only one that matters here.
+ *
+ * The viewer is a single <embed type="application/pdf"> whose plugin runs in
+ * its own process, and every mouse and key event that lands inside it stays
+ * there. None of the dismissal listeners below can ever see them.
+ *
+ * The caller's `isPdf` comes from `background.ts` classifyUrl(), which decides
+ * by filename suffix. A PDF served from `/report`, `/download?id=…`, or any
+ * Content-Disposition response is classified as not-a-PDF, and the island then
+ * attaches zero working dismissal paths. Chrome sets `document.contentType` to
+ * 'application/pdf' for the viewer regardless of the URL, so ask the document.
+ */
+export function isPluginDocument(): boolean {
+  return (
+    document.contentType === 'application/pdf' ||
+    document.querySelector('embed[type="application/pdf"]') !== null
+  );
+}
+
+/**
  * Listen to mousedown & keyboard 'Escape' to remove island
  * Ensure natural position of island on tab resize, zoom in / out
  */
@@ -85,7 +106,10 @@ export class EventsController {
     callbacks: EventCallbacks,
   ) {
     this.hostElement = hostElement;
-    this.isPdf = isPdf;
+    // Trust the document over the URL: the filename sniff misses every PDF
+    // served without a .pdf path, and those are exactly the pages where the
+    // island had no way to be dismissed at all.
+    this.isPdf = isPdf || isPluginDocument();
 
     this.onDestroy = callbacks.onDestroy;
     this.onReposition = callbacks.onReposition;
@@ -103,7 +127,16 @@ export class EventsController {
     window.addEventListener('resize', this.handleResize);
     // For PDF pages: Chrome's PDF viewer captures mouse events internally
     // and doesn't propagate them to document. We detect this via window blur.
+    //
+    // This is a fallback, not a guarantee — it fires when the plugin takes
+    // focus, which is not the same thing as the user wanting the island gone.
+    // The island's close button is the dismissal path that always works.
     if (this.isPdf) window.addEventListener('blur', this.handleWindowBlur);
+  }
+
+  /** Whether this controller decided it is running on a plugin-hosted page. */
+  public get treatsPageAsPdf(): boolean {
+    return this.isPdf;
   }
 
   private handleClickOutside = (e: MouseEvent): void => {
