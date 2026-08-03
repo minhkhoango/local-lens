@@ -17,11 +17,11 @@ const CSS = {
 const ID = 'xr-screenshot-reader-host';
 /**
  * The structured engine can spend tens of seconds loading before SETUP_DONE
- * arrives, and the overlay dims the whole page for that entire window. Naming
- * the escape hatch in the banner is the difference between "waiting" and
- * "frozen" — see `mount()`, which binds Escape from the moment we go dark.
+ * arrives, and the overlay dims the whole page for that entire window. Escape
+ * is the way out of that window — see `mount()`, which binds it from the
+ * moment we go dark, rather than waiting for a message that may never come.
  */
-const LOADING_TEXT = 'Loading model... (press Esc to cancel)';
+const LOADING_TEXT = 'Loading model...';
 /** How long the failure banner stays up before the overlay tears itself down. */
 const FAILURE_LINGER_MS = 4000;
 const ICON = `<svg viewBox="3 -0.375 18 21" fill="none" width="24" height="24"><path stroke="#4285f4" stroke-width="1.7143125" d="M6.857 4.286H17.143a2.571 2.571 0 0 1 2.571 2.571v6.857A2.571 2.571 0 0 1 17.143 16.286H6.857a2.571 2.571 0 0 1 -2.571 -2.571V6.857a2.571 2.571 0 0 1 2.571 -2.571z"/><path fill="#b1caf5" d="M16.971 10.286a4.286 4.286 0 0 1 -4.286 4.286A4.286 4.286 0 0 1 8.4 10.286a4.286 4.286 0 0 1 8.571 0M6.686 0.857h3.771a0.686 0.686 0 0 1 0.686 0.686v0.514a0.686 0.686 0 0 1 -0.686 0.686H6.686A0.686 0.686 0 0 1 6 2.057V1.543a0.686 0.686 0 0 1 0.686 -0.686"/></svg>`;
@@ -157,7 +157,7 @@ export class GhostOverlay {
     if (this.destroyed) return;
     const bannerText = this.notificationBanner.querySelector('span');
     if (!bannerText) return;
-    bannerText.textContent = `Loading model ${progress}% (press Esc to cancel)`;
+    bannerText.textContent = `Loading model ${progress}%`;
   }
 
   /** Enables '+' mouse, listen to mousedown. Escape is already live from mount(). */

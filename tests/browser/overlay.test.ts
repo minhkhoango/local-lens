@@ -99,19 +99,6 @@ describe('GhostOverlay', () => {
     expect(overlay.isDestroyed).toBe(true);
   });
 
-  it('names Escape in the structured-engine loading banner', async () => {
-    const overlay = new GhostOverlay(
-      OVERLAY_CSS,
-      false,
-      'structured',
-      () => {},
-    );
-    overlay.mount();
-    const banner = (overlay as any).notificationBanner as HTMLDivElement;
-    expect(banner.querySelector('span')!.textContent).toMatch(/Esc/);
-    overlay.destroy();
-  });
-
   it('setupFailed() explains itself, then tears the overlay down', async () => {
     vi.useFakeTimers();
     try {
