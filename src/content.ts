@@ -93,18 +93,40 @@ async function handleActivateOverlay(payload: ActivateOverlayPayload) {
   });
   activeOverlay.mount();
 
+  // The overlay dims the page from mount() until SETUP_DONE, so every way this
+  // handshake can end has to reach it. Dropping one — as the ERROR case was —
+  // leaves the user on a darkened page waiting for a message that never comes.
+  const overlay = activeOverlay;
+  let setupSettled = false;
+
   const port = await chrome.runtime.connect({ name: OCR_PORT });
   port.onMessage.addListener((msg: TabsConnect) => {
-    if (!activeOverlay) return;
+    if (overlay.isDestroyed) return;
     switch (msg.action) {
       case 'DOWNLOAD':
-        activeOverlay.loadingProgress(msg.payload.progress);
+        overlay.loadingProgress(msg.payload.progress);
         return true;
       case 'SETUP_DONE':
-        activeOverlay.activate();
+        setupSettled = true;
+        overlay.activate();
+        return false;
+      case 'ERROR':
+        setupSettled = true;
+        console.error('Engine setup failed:', msg.payload.error);
+        overlay.setupFailed(msg.payload.error);
         return false;
     }
   });
+
+  // The offscreen document can go away mid-setup (it is torn down with the
+  // service worker, and Chrome may reclaim it under memory pressure). That
+  // closes the port without ever posting SETUP_DONE or ERROR.
+  port.onDisconnect.addListener(() => {
+    if (setupSettled || overlay.isDestroyed) return;
+    console.error('Engine setup port closed before setup finished');
+    overlay.setupFailed('offscreen document disconnected');
+  });
+
   const initiateMessage: TabsConnect = {
     action: 'SETUP_BEGIN',
     payload: {
